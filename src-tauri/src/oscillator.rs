@@ -2,112 +2,25 @@
 Good starting point for integration of cpal into your application.
 */
 
-// use dasp_ring_buffer::{Bounded, Fixed};
-use hound::{WavReader, WavSamples};
-use std::fs::File;
-use std::io::BufReader;
-use std::sync::{mpsc, Mutex};
-
-use wavers::{read, Samples, Wav};
+use wavers::{Samples, Wav};
 
 use anyhow;
-use cpal::{self, Stream};
+use cpal::{self};
 
+use crate::constants::*;
+use crate::types::*;
+use cpal::FromSample;
 use cpal::{
-    traits::{DeviceTrait, HostTrait, StreamTrait},
+    traits::{DeviceTrait, HostTrait},
     SizedSample,
 };
-use cpal::{FromSample, Sample};
 use tauri::State;
 
-pub struct MStream(pub Mutex<Stream>);
-pub struct MFilterBank(pub Mutex<FilterBank>);
+pub fn get_wav_samples(path: &str) -> Vec<f32> {
+    let mut wav: Wav<f32> = Wav::from_path(path).unwrap();
+    let samples: Samples<f32> = wav.read().unwrap();
 
-unsafe impl Sync for MStream {}
-unsafe impl Send for MStream {}
-
-pub struct MSender(pub Mutex<tauri::async_runtime::Sender<FilterBank>>);
-// pub struct MSender2(pub Mutex<tauri::async_runtime::Sender<bool>>);
-
-pub struct AppState(pub Mutex<AppStruct>);
-
-pub struct AppStruct {
-    pub stream: MStream,
-    pub msender: MSender,
-}
-// let mut reader: WavReader<BufReader<File>> = hound::WavReader::open(file_path).unwrap();
-
-const TEST_FILE_PATH: &str = "assets/test-file.wav";
-
-pub enum Waveform {
-    Sine,
-    Square,
-    Saw,
-    Triangle,
-}
-
-pub struct Oscillator {
-    pub sample_rate: f32,
-    pub waveform: Waveform,
-    pub current_sample_index: f32,
-    pub frequency_hz: f32,
-}
-
-impl Oscillator {
-    fn advance_sample(&mut self) {
-        self.current_sample_index = (self.current_sample_index + 1.0) % self.sample_rate;
-    }
-
-    fn set_waveform(&mut self, waveform: Waveform) {
-        self.waveform = waveform;
-    }
-
-    fn calculate_sine_output_from_freq(&self, freq: f32) -> f32 {
-        let two_pi = 2.0 * std::f32::consts::PI;
-        (self.current_sample_index * freq * two_pi / self.sample_rate).sin()
-    }
-
-    fn is_multiple_of_freq_above_nyquist(&self, multiple: f32) -> bool {
-        self.frequency_hz * multiple > self.sample_rate / 2.0
-    }
-
-    fn sine_wave(&mut self) -> f32 {
-        self.advance_sample();
-        self.calculate_sine_output_from_freq(self.frequency_hz)
-    }
-
-    fn generative_waveform(&mut self, harmonic_index_increment: i32, gain_exponent: f32) -> f32 {
-        self.advance_sample();
-        let mut output = 0.0;
-        let mut i = 1;
-        while !self.is_multiple_of_freq_above_nyquist(i as f32) {
-            let gain = 1.0 / (i as f32).powf(gain_exponent);
-            output += gain * self.calculate_sine_output_from_freq(self.frequency_hz * i as f32);
-            i += harmonic_index_increment;
-        }
-        output
-    }
-
-    fn square_wave(&mut self) -> f32 {
-        self.generative_waveform(2, 1.0)
-    }
-
-    fn saw_wave(&mut self) -> f32 {
-        self.generative_waveform(1, 1.0)
-    }
-
-    fn triangle_wave(&mut self) -> f32 {
-        self.generative_waveform(2, 2.0)
-    }
-
-    fn tick(&mut self) -> f32 {
-        match self.waveform {
-            Waveform::Sine => self.sine_wave(),
-            Waveform::Square => self.square_wave(),
-            Waveform::Saw => self.saw_wave(),
-            Waveform::Triangle => self.triangle_wave(),
-        }
-    }
+    samples.to_vec()
 }
 
 #[tauri::command]
@@ -157,12 +70,6 @@ where
     T: SizedSample + FromSample<f32>,
 {
     let num_channels = config.channels as usize;
-    // let mut oscillator = Oscillator {
-    //     waveform: Waveform::Triangle,
-    //     sample_rate: config.sample_rate.0 as f32,
-    //     current_sample_index: 0.0,
-    //     frequency_hz: 440.0,
-    // };
     let err_fn = |err| eprintln!("Error building output sound stream: {}", err);
 
     let (newtx, mut rx) = tauri::async_runtime::channel::<FilterBank>(1);
@@ -177,7 +84,6 @@ where
     let file_samples = get_wav_samples(TEST_FILE_PATH);
     let mut time = 0;
     let num_file_samples = file_samples.len();
-    println!("{:?}", num_file_samples);
 
     let stream = device.build_output_stream(
         config,
@@ -215,11 +121,15 @@ where
 }
 
 #[tauri::command]
-pub fn update_filters(alpha: f32, app_state: State<AppState>, mfilter_bank: State<MFilterBank>) {
+pub fn update_filters(
+    alpha: f32,
+    streamsend: State<MStreamSend>,
+    mfilter_bank: State<MFilterBank>,
+) {
     let mut filt = mfilter_bank.0.lock().unwrap();
 
     filt.coeffs = vec![alpha, 1.0 - alpha];
-    let _ = app_state
+    let _ = streamsend
         .0
         .lock()
         .unwrap()
@@ -228,36 +138,4 @@ pub fn update_filters(alpha: f32, app_state: State<AppState>, mfilter_bank: Stat
         .lock()
         .unwrap()
         .try_send(filt.clone());
-}
-
-#[derive(Clone)]
-pub struct FilterBank {
-    pub coeffs: Vec<f32>,
-    // pub input_history: Bounded<Vec<f32>>,
-}
-
-impl FilterBank {
-    pub fn new() -> Self {
-        // let rb = dasp_ring_buffer::Bounded::from(vec![0.0; 3]);
-
-        Self {
-            coeffs: vec![0.5, 0.5],
-            // input_history: rb,
-        }
-    }
-}
-
-// use options with everything...a little annoying but then use None when passing to ignore most sub-structs
-#[derive(Clone)]
-pub struct Message {
-    pub filter_bank: Option<FilterBank>,
-    // pub wav_file: Option<WavReader<BufReader<File>>>,
-    pub file_samples: Option<Vec<f32>>,
-}
-
-pub fn get_wav_samples(path: &str) -> Vec<f32> {
-    let mut wav: Wav<f32> = Wav::from_path(path).unwrap();
-    let samples: Samples<f32> = wav.read().unwrap();
-
-    samples.to_vec()
 }

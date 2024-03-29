@@ -3,20 +3,21 @@
 use std::sync::Mutex;
 
 use cpal::traits::StreamTrait;
-use hound::{WavReader, WavWriter};
 use tauri::State;
 mod oscillator;
 use oscillator::*;
+mod types;
+use types::*;
+mod constants;
 
 fn main() {
     tauri::Builder::default()
-        .manage(AppState({
+        .manage(MStreamSend({
             let (stream, tx) = oscillator::stream_setup_for().unwrap();
             let _ = stream.pause();
             let mtx = Mutex::new(tx);
-            let fbank = FilterBank::new();
 
-            Mutex::new(AppStruct {
+            Mutex::new(StreamSend {
                 stream: MStream(Mutex::new(stream)),
                 msender: MSender(mtx),
             })
@@ -31,13 +32,19 @@ fn main() {
 }
 
 #[tauri::command]
-fn play_wav(path: &str, appstate: State<AppState>) {
-    appstate.0.lock().unwrap().stream.0.lock().unwrap().play();
+fn play_wav(streamsend: State<MStreamSend>) {
+    let _ = streamsend.0.lock().unwrap().stream.0.lock().unwrap().play();
 }
 
 #[tauri::command]
-fn stop(appstate: State<AppState>) {
-    appstate.0.lock().unwrap().stream.0.lock().unwrap().pause();
-    // let stream = mstream.0.lock().unwrap();
-    // let _ = stream.pause();
+fn stop(streamsend: State<MStreamSend>) {
+    let _ = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .stream
+        .0
+        .lock()
+        .unwrap()
+        .pause();
 }
