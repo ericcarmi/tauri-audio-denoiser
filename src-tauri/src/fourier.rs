@@ -1,0 +1,126 @@
+use chrono::{self, DateTime, Utc};
+use dsp;
+
+use rustfft::{num_complex::Complex, FftPlanner};
+use std::sync::Mutex;
+use std::{fs::metadata, fs::File, io::BufWriter, process::Command};
+use tauri::command::CommandItem;
+use tauri::State;
+use tauri::{Manager, Window};
+
+const ASSETS_PATH: &str = "/assets";
+
+#[tauri::command]
+pub fn get_wav_data(
+    path: &str,
+    app_handle: tauri::AppHandle,
+) -> Result<(Vec<f32>, Vec<f32>), &str> {
+    let mut v = vec![];
+    let mut vfft: Vec<f32> = vec![];
+
+    let p = app_handle
+        .path_resolver()
+        .resolve_resource(ASSETS_PATH)
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    if let Ok(mut reader) = hound::WavReader::open(p + "/" + path) {
+        let itr = reader.samples::<f32>().into_iter().step_by(1);
+        let mut buffer = vec![];
+        let len = itr.len();
+        for s in itr {
+            let x = s.unwrap() as f32;
+            v.push(x.clone());
+            buffer.push(Complex { re: x, im: 0.0f32 })
+        }
+        let mut planner = FftPlanner::new();
+        let fft = planner.plan_fft_forward(len);
+
+        fft.process(&mut buffer);
+
+        let mut vfft = vec![];
+        for i in buffer[0..len / 2].iter() {
+            vfft.push(i.norm());
+        }
+        return Ok((v, vfft));
+    } else {
+        return Err("bad path");
+    }
+
+    Ok((v, vfft))
+}
+
+#[tauri::command]
+pub fn get_stft_data(
+    path: &str,
+    app_handle: tauri::AppHandle,
+) -> Result<(Vec<f32>, Vec<Vec<f32>>), &str> {
+    let mut v = vec![];
+    let mut vstft: Vec<Vec<f32>> = vec![];
+
+    let p = app_handle
+        .path_resolver()
+        .resolve_resource(ASSETS_PATH)
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    if let Ok(mut reader) = hound::WavReader::open(p + "/" + path) {
+        let itr = reader.samples::<f32>().into_iter().step_by(1);
+        let mut buffer = vec![];
+        let len = itr.len();
+        for s in itr {
+            let x = s.unwrap() as f32;
+            v.push(x.clone());
+            buffer.push(Complex { re: x, im: 0.0f32 })
+        }
+
+        let fftsize = 2048;
+        let vstft = stft(buffer.clone(), fftsize, fftsize / 2);
+
+        return Ok((v, vstft));
+    } else {
+        return Err("bad path");
+    }
+
+    Ok((v, vstft))
+}
+
+pub fn stft(mut buffer: Vec<Complex<f32>>, size: usize, hop: usize) -> Vec<Vec<f32>> {
+    let mut planner = FftPlanner::new();
+    let fft = planner.plan_fft_forward(size);
+
+    let win = dsp::window::hamming(size);
+    let frame = vec![1.0; size];
+    let mut output = vec![0.0; size];
+    win.apply(&frame, &mut output);
+
+    let l = buffer.len();
+    let num_slices = l / (size + hop);
+    let mut spectra: Vec<Vec<f32>> = vec![];
+    let mut last_spectrum = vec![Complex { re: 0.0, im: 0.0 }; size];
+    for slice in 0..num_slices {
+        let mut x = vec![Complex { re: 0.0, im: 0.0 }; size];
+        for (i, samp) in buffer[slice * size + hop * slice..(slice + 1) * size + hop * slice]
+            .iter()
+            .enumerate()
+        {
+            x[i] = (samp * win.samples[i] + last_spectrum[i]) / 2.0;
+        }
+
+        // last_spectrum = x.clone();
+
+        fft.process(&mut x);
+
+        let mut v = vec![];
+        for i in x[0..size / 2].iter() {
+            v.push(i.norm());
+        }
+        spectra.push(v);
+    }
+
+    spectra
+}

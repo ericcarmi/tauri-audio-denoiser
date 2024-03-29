@@ -1,31 +1,23 @@
-/* This example expose parameter to pass generator of sample.
-Good starting point for integration of cpal into your application.
-*/
-
-use wavers::{Samples, Wav};
-
-use anyhow;
-use cpal::{self};
-
 use crate::constants::*;
 use crate::types::*;
+use anyhow;
 use cpal::FromSample;
+use cpal::{self};
 use cpal::{
     traits::{DeviceTrait, HostTrait},
     SizedSample,
 };
 use tauri::State;
+use wavers::Wav;
 
 pub fn get_wav_samples(path: &str) -> Vec<f32> {
     let mut wav: Wav<f32> = Wav::from_path(path).unwrap();
-    let samples: Samples<f32> = wav.read().unwrap();
-
-    samples.to_vec()
+    wav.read().unwrap().to_vec()
 }
 
 #[tauri::command]
-pub fn stream_setup_for(
-) -> Result<(cpal::Stream, tauri::async_runtime::Sender<FilterBank>), anyhow::Error>
+pub fn setup_stream(
+) -> Result<(cpal::Stream, tauri::async_runtime::Sender<Message>), anyhow::Error>
 where
 {
     let (_host, device, config) = host_device_setup()?;
@@ -65,14 +57,14 @@ pub fn host_device_setup(
 pub fn make_stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
-) -> Result<(cpal::Stream, tauri::async_runtime::Sender<FilterBank>), anyhow::Error>
+) -> Result<(cpal::Stream, tauri::async_runtime::Sender<Message>), anyhow::Error>
 where
     T: SizedSample + FromSample<f32>,
 {
     let num_channels = config.channels as usize;
     let err_fn = |err| eprintln!("Error building output sound stream: {}", err);
 
-    let (newtx, mut rx) = tauri::async_runtime::channel::<FilterBank>(1);
+    let (newtx, mut rx) = tauri::async_runtime::channel::<Message>(1);
     let mut process_filterbank = FilterBank::new();
 
     let mut rb = dasp_ring_buffer::Bounded::from(vec![0.0; 1]);
@@ -89,8 +81,13 @@ where
         config,
         move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
             // check for messages sent to receiver...update things
-            if let Ok(p) = rx.try_recv() {
-                process_filterbank.coeffs = p.coeffs.clone();
+            if let Ok(msg) = rx.try_recv() {
+                if let Some(filterbank) = msg.filter_bank {
+                    process_filterbank.coeffs = filterbank.coeffs.clone();
+                }
+                if let Some(t) = msg.time {
+                    time = (num_file_samples as f32 * t) as usize;
+                }
             }
 
             // ...each frame has 2 samples
@@ -104,7 +101,6 @@ where
                     process_filterbank.coeffs[0] * sample - process_filterbank.coeffs[1] * rb[0];
                 let v: T = T::from_sample(filtered);
                 rb.push(sample);
-                // println!("{:?}", sample);
 
                 // copying to all channels for now
                 for out_sample in frame.iter_mut() {
@@ -128,6 +124,7 @@ pub fn update_filters(
 ) {
     let mut filt = mfilter_bank.0.lock().unwrap();
 
+    // filter bank shouldn't be needed as State if time isn't
     filt.coeffs = vec![alpha, 1.0 - alpha];
     let _ = streamsend
         .0
@@ -137,5 +134,24 @@ pub fn update_filters(
         .0
         .lock()
         .unwrap()
-        .try_send(filt.clone());
+        .try_send(Message {
+            filter_bank: Some(filt.clone()),
+            time: None,
+        });
+}
+
+#[tauri::command]
+pub fn update_time(t: f32, streamsend: State<MStreamSend>) {
+    let _ = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .msender
+        .0
+        .lock()
+        .unwrap()
+        .try_send(Message {
+            filter_bank: None,
+            time: Some(t),
+        });
 }

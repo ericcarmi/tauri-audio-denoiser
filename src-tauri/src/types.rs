@@ -9,7 +9,7 @@ pub struct MFilterBank(pub Mutex<FilterBank>);
 unsafe impl Sync for MStream {}
 unsafe impl Send for MStream {}
 
-pub struct MSender(pub Mutex<tauri::async_runtime::Sender<FilterBank>>);
+pub struct MSender(pub Mutex<tauri::async_runtime::Sender<Message>>);
 
 pub struct MStreamSend(pub Mutex<StreamSend>);
 
@@ -39,5 +39,6 @@ impl FilterBank {
 #[derive(Clone)]
 pub struct Message {
     pub filter_bank: Option<FilterBank>,
+    pub time: Option<f32>,
     // pub wav_file: Option<WavReader<BufReader<File>>>,
 }

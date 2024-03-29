@@ -4,16 +4,18 @@ use std::sync::Mutex;
 
 use cpal::traits::StreamTrait;
 use tauri::State;
-mod oscillator;
-use oscillator::*;
+mod audio;
+use audio::*;
 mod types;
 use types::*;
 mod constants;
+mod fourier;
+use fourier::*;
 
 fn main() {
     tauri::Builder::default()
         .manage(MStreamSend({
-            let (stream, tx) = oscillator::stream_setup_for().unwrap();
+            let (stream, tx) = setup_stream().unwrap();
             let _ = stream.pause();
             let mtx = Mutex::new(tx);
 
@@ -26,18 +28,25 @@ fn main() {
             let fbank = FilterBank::new();
             Mutex::new(fbank)
         }))
-        .invoke_handler(tauri::generate_handler![play_wav, stop, update_filters])
+        .invoke_handler(tauri::generate_handler![
+            play_stream,
+            pause_stream,
+            update_filters,
+            update_time,
+            get_stft_data,
+            get_wav_data,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
 #[tauri::command]
-fn play_wav(streamsend: State<MStreamSend>) {
+fn play_stream(streamsend: State<MStreamSend>) {
     let _ = streamsend.0.lock().unwrap().stream.0.lock().unwrap().play();
 }
 
 #[tauri::command]
-fn stop(streamsend: State<MStreamSend>) {
+fn pause_stream(streamsend: State<MStreamSend>) {
     let _ = streamsend
         .0
         .lock()

@@ -3,7 +3,8 @@
   import { invoke } from "@tauri-apps/api/tauri";
   import { resolveResource } from "@tauri-apps/api/path";
   import { readTextFile, readBinaryFile } from "@tauri-apps/api/fs";
-    import { onMount } from "svelte";
+  import { onMount } from "svelte";
+  import TimePlot from "./time-plot.svelte";
 
   listen("tauri://file-drop", async (event) => {
     // console.log(event.payload);
@@ -19,44 +20,58 @@
   });
 
   let alpha = 500;
+  let time = 0;
 </script>
 
 <main class="container">
-
-  <button
-    on:click={async () => {
-      await invoke("play_wav", { path: "/Users/eric/Music/heinlein.wav" });
-    }}
-  >
-    play
-  </button>
-
-  <button
-    on:click={async () => {
-      await invoke("stop");
-    }}
-  >
-    stop
-  </button>
-
-  <button
-    on:click={async () => {
-      await invoke("update_filters");
-    }}
-  >
-    update
-  </button>
-
+  <TimePlot selectedRecording="" />
   <input
+    style="width: 100%;"
     type="range"
     min={0}
-    max={1000}
-    bind:value={alpha}
+    max={100000}
+    bind:value={time}
     on:input={async () => {
-      await invoke("update_filters", { alpha: alpha / 1000 });
+      await invoke("update_time", { t: time / 100000 });
     }}
   />
+  <span>time</span>
+  <div style="display:flex;">
+    <button
+      on:click={async () => {
+        await invoke("play_stream");
+      }}
+    >
+      play
+    </button>
+
+    <button
+      on:click={async () => {
+        await invoke("pause_stream");
+      }}
+    >
+      pause
+    </button>
+  </div>
+
+  <div style="display:flex">
+    <span>filter coeff</span>
+    <input
+      style="width: 100%"
+      type="range"
+      min={0}
+      max={1000}
+      bind:value={alpha}
+      on:input={async () => {
+        await invoke("update_filters", { alpha: alpha / 1000 });
+      }}
+    />
+  </div>
+
 </main>
 
 <style>
+  button {
+    width: 100%;
+  }
 </style>
