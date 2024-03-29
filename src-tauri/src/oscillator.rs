@@ -2,8 +2,13 @@
 Good starting point for integration of cpal into your application.
 */
 
-use ringbuf::{HeapRb, Rb};
+// use dasp_ring_buffer::{Bounded, Fixed};
+use hound::{WavReader, WavSamples};
+use std::fs::File;
+use std::io::BufReader;
 use std::sync::{mpsc, Mutex};
+
+use wavers::{read, Samples, Wav};
 
 use anyhow;
 use cpal::{self, Stream};
@@ -21,7 +26,8 @@ pub struct MFilterBank(pub Mutex<FilterBank>);
 unsafe impl Sync for MStream {}
 unsafe impl Send for MStream {}
 
-pub struct MSender(pub Mutex<tauri::async_runtime::Sender<bool>>);
+pub struct MSender(pub Mutex<tauri::async_runtime::Sender<FilterBank>>);
+// pub struct MSender2(pub Mutex<tauri::async_runtime::Sender<bool>>);
 
 pub struct AppState(pub Mutex<AppStruct>);
 
@@ -29,6 +35,9 @@ pub struct AppStruct {
     pub stream: MStream,
     pub msender: MSender,
 }
+// let mut reader: WavReader<BufReader<File>> = hound::WavReader::open(file_path).unwrap();
+
+const TEST_FILE_PATH: &str = "assets/test-file.wav";
 
 pub enum Waveform {
     Sine,
@@ -103,7 +112,7 @@ impl Oscillator {
 
 #[tauri::command]
 pub fn stream_setup_for(
-) -> Result<(cpal::Stream, tauri::async_runtime::Sender<bool>), anyhow::Error>
+) -> Result<(cpal::Stream, tauri::async_runtime::Sender<FilterBank>), anyhow::Error>
 where
 {
     let (_host, device, config) = host_device_setup()?;
@@ -143,63 +152,59 @@ pub fn host_device_setup(
 pub fn make_stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
-) -> Result<(cpal::Stream, tauri::async_runtime::Sender<bool>), anyhow::Error>
+) -> Result<(cpal::Stream, tauri::async_runtime::Sender<FilterBank>), anyhow::Error>
 where
     T: SizedSample + FromSample<f32>,
 {
     let num_channels = config.channels as usize;
-    let mut oscillator = Oscillator {
-        waveform: Waveform::Sine,
-        sample_rate: config.sample_rate.0 as f32,
-        current_sample_index: 0.0,
-        frequency_hz: 440.0,
-    };
+    // let mut oscillator = Oscillator {
+    //     waveform: Waveform::Triangle,
+    //     sample_rate: config.sample_rate.0 as f32,
+    //     current_sample_index: 0.0,
+    //     frequency_hz: 440.0,
+    // };
     let err_fn = |err| eprintln!("Error building output sound stream: {}", err);
 
-    let time_at_start = std::time::Instant::now();
-    println!("Time at start: {:?}", time_at_start);
+    let (newtx, mut rx) = tauri::async_runtime::channel::<FilterBank>(1);
+    let mut process_filterbank = FilterBank::new();
 
-    let (newtx, mut rx) = tauri::async_runtime::channel::<bool>(1);
+    let mut rb = dasp_ring_buffer::Bounded::from(vec![0.0; 1]);
+    rb.push(0.0);
+    // rb.push(0.0);
+    // rb.push(0.0);
+    // rb.push(0.0);
 
-    // let tx = mtx.0.lock().unwrap();
+    let file_samples = get_wav_samples(TEST_FILE_PATH);
+    let mut time = 0;
+    let num_file_samples = file_samples.len();
+    println!("{:?}", num_file_samples);
 
     let stream = device.build_output_stream(
         config,
         move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
-            // for 0-1s play sine, 1-2s play square, 2-3s play saw, 3-4s play triangle_wave
-            let time_since_start = std::time::Instant::now()
-                .duration_since(time_at_start)
-                .as_secs_f32();
-            if time_since_start < 1.0 {
-                oscillator.set_waveform(Waveform::Sine);
-            } else if time_since_start < 2.0 {
-                oscillator.set_waveform(Waveform::Triangle);
-            } else if time_since_start < 3.0 {
-                oscillator.set_waveform(Waveform::Square);
-            } else if time_since_start < 4.0 {
-                oscillator.set_waveform(Waveform::Saw);
-            } else {
-                oscillator.set_waveform(Waveform::Sine);
+            // check for messages sent to receiver...update things
+            if let Ok(p) = rx.try_recv() {
+                process_filterbank.coeffs = p.coeffs.clone();
             }
-            // process_frame(output, &mut oscillator, num_channels)
-            // process_frame2(output, &mut oscillator, num_channels)
 
-            if let Err(p) = rx.try_recv() {
-                println!("{:?}", p);
-                // if !p {
-                //     return false;
-                // }
-            }
+            // ...each frame has 2 samples
             for frame in output.chunks_mut(num_channels) {
-                let f = oscillator.tick();
-                let value: T = T::from_sample(f);
-
-                // filter_bank.input_history.push(f);
-
-                // copy the same value to all channels
-                for sample in frame.iter_mut() {
-                    *sample = value;
+                if time >= num_file_samples {
+                    break;
                 }
+
+                let sample = file_samples[time];
+                let filtered =
+                    process_filterbank.coeffs[0] * sample - process_filterbank.coeffs[1] * rb[0];
+                let v: T = T::from_sample(filtered);
+                rb.push(sample);
+                // println!("{:?}", sample);
+
+                // copying to all channels for now
+                for out_sample in frame.iter_mut() {
+                    *out_sample = v;
+                }
+                time += 1;
             }
         },
         err_fn,
@@ -210,8 +215,11 @@ where
 }
 
 #[tauri::command]
-pub fn update_filters(app_state: State<AppState>) {
-    let r = app_state
+pub fn update_filters(alpha: f32, app_state: State<AppState>, mfilter_bank: State<MFilterBank>) {
+    let mut filt = mfilter_bank.0.lock().unwrap();
+
+    filt.coeffs = vec![alpha, 1.0 - alpha];
+    let _ = app_state
         .0
         .lock()
         .unwrap()
@@ -219,72 +227,37 @@ pub fn update_filters(app_state: State<AppState>) {
         .0
         .lock()
         .unwrap()
-        .blocking_send(false);
-
-    // let (tx, _) = tauri::async_runtime::channel::<bool>(1);
-    // let tx = sender.0.lock().unwrap();
-    // let r = tx.blocking_send(false);
-    println!("{:?}", r);
+        .try_send(filt.clone());
 }
 
-fn process_frame<SampleType>(
-    output: &mut [SampleType],
-    oscillator: &mut Oscillator,
-    num_channels: usize,
-) where
-    SampleType: Sample + FromSample<f32>,
-{
-    for frame in output.chunks_mut(num_channels) {
-        let value: SampleType = SampleType::from_sample(oscillator.tick());
-
-        // copy the same value to all channels
-        for sample in frame.iter_mut() {
-            *sample = value;
-        }
-    }
-}
-
-#[tauri::command]
-fn process_frame2<SampleType>(
-    output: &mut [SampleType],
-    oscillator: &mut Oscillator,
-    num_channels: usize,
-) where
-    SampleType: Sample + FromSample<f32>,
-{
-    for frame in output.chunks_mut(num_channels) {
-        let f = oscillator.tick();
-        let value: SampleType = SampleType::from_sample(f);
-
-        // filter_bank.input_history.push(f);
-
-        // copy the same value to all channels
-        for sample in frame.iter_mut() {
-            *sample = value;
-        }
-    }
-}
-
+#[derive(Clone)]
 pub struct FilterBank {
     pub coeffs: Vec<f32>,
-    pub input_history: HeapRb<f32>,
+    // pub input_history: Bounded<Vec<f32>>,
 }
 
 impl FilterBank {
     pub fn new() -> Self {
-        let rb = HeapRb::<f32>::new(2);
+        // let rb = dasp_ring_buffer::Bounded::from(vec![0.0; 3]);
 
         Self {
             coeffs: vec![0.5, 0.5],
-            input_history: rb,
+            // input_history: rb,
         }
     }
 }
 
-impl std::fmt::Debug for FilterBank {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        println!("{:?}", self.coeffs);
+// use options with everything...a little annoying but then use None when passing to ignore most sub-structs
+#[derive(Clone)]
+pub struct Message {
+    pub filter_bank: Option<FilterBank>,
+    // pub wav_file: Option<WavReader<BufReader<File>>>,
+    pub file_samples: Option<Vec<f32>>,
+}
 
-        Ok(())
-    }
+pub fn get_wav_samples(path: &str) -> Vec<f32> {
+    let mut wav: Wav<f32> = Wav::from_path(path).unwrap();
+    let samples: Samples<f32> = wav.read().unwrap();
+
+    samples.to_vec()
 }

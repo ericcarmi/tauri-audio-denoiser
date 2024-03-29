@@ -14,6 +14,7 @@ fn main() {
             let (stream, tx) = oscillator::stream_setup_for().unwrap();
             let _ = stream.pause();
             let mtx = Mutex::new(tx);
+            let fbank = FilterBank::new();
 
             Mutex::new(AppStruct {
                 stream: MStream(Mutex::new(stream)),
