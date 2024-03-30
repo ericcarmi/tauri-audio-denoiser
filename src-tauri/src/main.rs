@@ -3,7 +3,7 @@
 use std::sync::Mutex;
 
 use cpal::traits::StreamTrait;
-use tauri::State;
+use tauri::{Manager, State};
 mod audio;
 use audio::*;
 mod types;
@@ -34,8 +34,13 @@ fn main() {
             update_filters,
             update_time,
             get_stft_data,
-            get_wav_data,
+            get_time_onefft,
         ])
+        .setup(|app| {
+            let mainwindow = app.get_window("main").unwrap();
+            let _ = mainwindow.set_always_on_top(true);
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -4,8 +4,8 @@
   line-height: 24px;
   font-weight: 400;
 
-  color: var(--gray150);
-  background: rgb(70,70,80);
+  color: var(--gray200);
+  background: rgb(70,60,60);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -22,6 +22,11 @@
   --gray150: rgb(150,150,150);
   --gray200: rgb(200,200,200);
 
+  * {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
 }
 
 .container {
@@ -31,8 +36,6 @@
   justify-content: center;
   text-align: center;
 }
-
-
 
 button {
   border-radius: 8px;
@@ -45,6 +48,7 @@ button {
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
   text-align: center;
   cursor: pointer;
+  user-select: none;
 }
 
 button:hover {
@@ -57,8 +61,6 @@ button:active {
 input {
   outline: none;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-  }
 
+@media (prefers-color-scheme: dark) {
 }

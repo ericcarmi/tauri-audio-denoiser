@@ -16,8 +16,7 @@ pub fn get_wav_samples(path: &str) -> Vec<f32> {
 }
 
 #[tauri::command]
-pub fn setup_stream(
-) -> Result<(cpal::Stream, tauri::async_runtime::Sender<Message>), anyhow::Error>
+pub fn setup_stream() -> Result<(cpal::Stream, tauri::async_runtime::Sender<Message>), anyhow::Error>
 where
 {
     let (_host, device, config) = host_device_setup()?;
@@ -64,7 +63,7 @@ where
     let num_channels = config.channels as usize;
     let err_fn = |err| eprintln!("Error building output sound stream: {}", err);
 
-    let (newtx, mut rx) = tauri::async_runtime::channel::<Message>(1);
+    let (mut tx, mut rx) = tauri::async_runtime::channel::<Message>(1);
     let mut process_filterbank = FilterBank::new();
 
     let mut rb = dasp_ring_buffer::Bounded::from(vec![0.0; 1]);
@@ -107,13 +106,14 @@ where
                     *out_sample = v;
                 }
                 time += 1;
+                // tx.try_send(message)
             }
         },
         err_fn,
         None,
     )?;
 
-    Ok((stream, newtx))
+    Ok((stream, tx))
 }
 
 #[tauri::command]

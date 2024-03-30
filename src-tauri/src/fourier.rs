@@ -9,12 +9,12 @@ use wavers::Wav;
 const ASSETS_PATH: &str = "assets/";
 
 #[tauri::command]
-pub fn get_wav_data(
+pub async fn get_time_onefft(
     path: &str,
     app_handle: tauri::AppHandle,
 ) -> Result<(Vec<f32>, Vec<f32>), &str> {
-    let mut v = vec![];
-    let mut vfft: Vec<f32> = vec![];
+    let mut time_data = vec![];
+    let mut freq_data = vec![];
 
     let p = app_handle
         .path_resolver()
@@ -24,30 +24,32 @@ pub fn get_wav_data(
         .into_string()
         .unwrap();
 
-    if let Ok(mut reader) = hound::WavReader::open(p + "/" + path) {
-        let itr = reader.samples::<f32>().into_iter().step_by(1);
-        let mut buffer = vec![];
-        let len = itr.len();
-        for s in itr {
-            let x = s.unwrap() as f32;
-            v.push(x.clone());
-            buffer.push(Complex { re: x, im: 0.0f32 })
-        }
-        let mut planner = FftPlanner::new();
-        let fft = planner.plan_fft_forward(len);
+    let filepath = p + "/" + path;
 
-        fft.process(&mut buffer);
-
+    let thread = tauri::async_runtime::spawn(async move {
+        let w: Vec<f32> = Wav::from_path(filepath).unwrap().read().unwrap().to_vec();
         let mut vfft = vec![];
-        for i in buffer[0..len / 2].iter() {
-            vfft.push(i.norm());
-        }
-        return Ok((v, vfft));
-    } else {
-        return Err("bad path");
+        // let mut buffer = vec![];
+        // let len = w.len();
+        // for s in w.clone() {
+        //     let x = s;
+        //     buffer.push(Complex { re: x, im: 0.0f32 })
+        // }
+        // let mut planner = FftPlanner::new();
+        // let fft = planner.plan_fft_forward(len);
+
+        // fft.process(&mut buffer);
+        // for i in buffer[0..len / 2].iter() {
+        //     vfft.push(i.norm());
+        // }
+        return (w, vfft);
+    });
+
+    if let Ok(r) = thread.await {
+        (time_data, freq_data) = r;
     }
 
-    Ok((v, vfft))
+    Ok((time_data, freq_data))
 }
 
 #[tauri::command]

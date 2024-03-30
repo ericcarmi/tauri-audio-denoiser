@@ -150,15 +150,15 @@ void main() {
 
   async function getData() {
     if (selectedRecording === "") return;
-    invoke("get_stft_data", { path: selectedRecording }).then((res) => {
-      let data:any = res;
+    invoke("get_time_onefft", { path: selectedRecording }).then((res) => {
+      let data: any = res;
       let renderPlot = () => {
         line = new WebglLine(new ColorRGBA(1, 0.35, 0, 1), data[0].length);
 
         webglp.removeAllLines();
         webglp.addLine(line);
         line.arrangeX();
-        let hop = Math.round(data[0].length / plotWidth / 4);
+        let hop = Math.round(data[0].length / plotWidth / 8);
         for (let i = 0; i < data[0].length; i += hop) {
           line.setY(i, data[0][i] * 1);
         }
@@ -218,7 +218,7 @@ void main() {
     });
   }
 
-  $: selectedRecording, getData();
+  // $: selectedRecording, getData();
   // $: selectedRecording, getWavData();
 
   let timePosition = 0;

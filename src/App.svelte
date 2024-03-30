@@ -5,6 +5,7 @@
   import { readTextFile, readBinaryFile } from "@tauri-apps/api/fs";
   import { onMount } from "svelte";
   import TimePlot from "./time-plot.svelte";
+  import Slider from "./slider.svelte";
 
   listen("tauri://file-drop", async (event) => {
     // console.log(event.payload);
@@ -15,19 +16,48 @@
 
   let alpha = 500;
   let time = 0;
-  let selectedRecording=""
+  let selectedRecording = "";
+  let is_playing = false;
 
   onMount(async () => {
     const resourcePath = await resolveResource("assets/test-file.wav");
     // const langDe = JSON.parse(await readTextFile(resourcePath));
     // console.log(langDe);
-    selectedRecording = "test-file.wav"
+    selectedRecording = "test-file.wav";
+
+    resetInterval();
   });
 
+  let num_sliders = 5;
+
+  let slider_values = Array(num_sliders).fill(0);
+
+  let perf_time = performance.now();
+  let time_origin = 0;
+  let time_delta = 0;
+
+  let interval: any;
+
+  function resetInterval() {
+    clearInterval(interval);
+    interval = setInterval(
+      () => {
+        if (is_playing) {
+          perf_time = performance.now();
+          time_delta = perf_time - time_origin;
+          time += time_delta /1000;
+          console.log(time)
+
+        }
+      },
+      // this works for now, just have to call resetInterval after pressing buttons
+      is_playing ? 10 : 1000
+    );
+  }
 </script>
 
 <main class="container">
-  <TimePlot selectedRecording={selectedRecording} />
+  <TimePlot {selectedRecording} />
   <input
     style="width: 100%;"
     type="range"
@@ -39,42 +69,61 @@
     }}
   />
   <span>time</span>
-  <div style="display:flex;">
+  <div>
     <button
       on:click={async () => {
-        await invoke("play_stream");
+        if (!is_playing) {
+          await invoke("play_stream");
+          is_playing = true;
+          time_origin = performance.now();
+        } else {
+          await invoke("pause_stream");
+          is_playing = false;
+        }
+        resetInterval();
       }}
     >
-      play
-    </button>
-
-    <button
-      on:click={async () => {
-        await invoke("pause_stream");
-      }}
-    >
-      pause
+      {is_playing ? "pause" : "play"}
     </button>
   </div>
 
-  <div style="display:flex">
-    <span>filter coeff</span>
-    <input
-      style="width: 100%"
-      type="range"
-      min={0}
-      max={1000}
-      bind:value={alpha}
-      on:input={async () => {
-        await invoke("update_filters", { alpha: alpha / 1000 });
-      }}
-    />
+  <span>filters</span>
+  <div
+    class="filter-grid"
+    style="grid-template-columns:repeat({num_sliders}, auto)"
+  >
+    {#each slider_values as val, i}
+      <Slider value={val} />
+    {/each}
   </div>
-
 </main>
 
 <style>
   button {
-    width: 100%;
+  }
+  input[type="range"] {
+    appearance: none;
+    background: blue;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    background: black;
+    appearance: none;
+    -webkit-appearance: none;
+    height: 2em;
+    width: 3em;
+    border: 1px solid var(--purple);
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    background: var(--orange);
+    height: 2em;
+    width: 3em;
+  }
+  .filter-grid {
+    display: grid;
+    justify-items: center;
+    grid-template-rows: auto;
+    appearance: none;
+    height: 100px;
+    border: 5px solid var(--purple);
   }
 </style>
