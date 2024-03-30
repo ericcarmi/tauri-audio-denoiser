@@ -63,7 +63,7 @@ where
     let num_channels = config.channels as usize;
     let err_fn = |err| eprintln!("Error building output sound stream: {}", err);
 
-    let (mut tx, mut rx) = tauri::async_runtime::channel::<Message>(1);
+    let (tx, mut rx) = tauri::async_runtime::channel::<Message>(1);
     let mut process_filterbank = FilterBank::new();
 
     let mut rb = dasp_ring_buffer::Bounded::from(vec![0.0; 1]);

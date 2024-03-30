@@ -5,6 +5,7 @@
   import { loglin, linlog, linspace, setRectangle } from "./types.svelte";
   import { PLOT_HEIGHT, PLOT_WIDTH } from "./constants.svelte";
 
+  let is_loading = false;
 
   let webglp: WebglPlot;
   let line: WebglLine;
@@ -63,7 +64,7 @@ void main() {
   onMount(() => {
     canvasMain = document.getElementById("time_canvas");
     const devicePixelRatio = window.devicePixelRatio || 1;
-    canvasMain.width =PLOT_WIDTH;
+    canvasMain.width = PLOT_WIDTH;
     canvasMain.height = PLOT_HEIGHT;
 
     webglp = new WebglPlot(canvasMain);
@@ -149,6 +150,7 @@ void main() {
 
   async function getData() {
     if (selectedRecording === "") return;
+    is_loading = true;
     invoke("get_time_onefft", { path: selectedRecording }).then((res) => {
       let data: any = res;
       let renderPlot = () => {
@@ -162,6 +164,7 @@ void main() {
           line.setY(i, data[0][i] * 1);
         }
         webglp.update();
+        is_loading = false;
 
         // let stft = data[1];
         // let fftsize = stft[0].length;
@@ -217,13 +220,15 @@ void main() {
     });
   }
 
-  // $: selectedRecording, getData();
-
+  $: selectedRecording, getData();
 </script>
 
 <div>
   <canvas id="freq_canvas" />
   <canvas id="time_canvas" />
+  {#if is_loading}
+    <div class="spinner" />
+  {/if}
 </div>
 
 <style>
@@ -233,5 +238,18 @@ void main() {
   }
   div {
     user-select: none;
+  }
+  .spinner {
+    position: absolute;
+    top: calc(40% - 1em);
+    left: calc(50% - 1em);
+    width: 2em;
+    height: 2em;
+    border: 3px solid var(--gray150);
+    border-bottom-color: var(--purple);
+    border-top-color: var(--purple);
+    border-radius: 20px;
+    animation: 1s infinite linear spin;
+
   }
 </style>
