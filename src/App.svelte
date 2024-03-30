@@ -13,18 +13,21 @@
     // await invoke("play_wav", { path: s });
   });
 
+  let alpha = 500;
+  let time = 0;
+  let selectedRecording=""
+
   onMount(async () => {
     const resourcePath = await resolveResource("assets/test-file.wav");
     // const langDe = JSON.parse(await readTextFile(resourcePath));
     // console.log(langDe);
+    selectedRecording = "test-file.wav"
   });
 
-  let alpha = 500;
-  let time = 0;
 </script>
 
 <main class="container">
-  <TimePlot selectedRecording="test-file.wav" />
+  <TimePlot selectedRecording={selectedRecording} />
   <input
     style="width: 100%;"
     type="range"

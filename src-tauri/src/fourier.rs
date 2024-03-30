@@ -1,3 +1,5 @@
+use std::thread;
+
 use chrono::{self, DateTime, Utc};
 use dsp;
 
@@ -49,12 +51,12 @@ pub fn get_wav_data(
 }
 
 #[tauri::command]
-pub fn get_stft_data(
+pub async fn get_stft_data(
     path: &str,
     app_handle: tauri::AppHandle,
 ) -> Result<(Vec<f32>, Vec<Vec<f32>>), &str> {
-    let mut v = vec![];
     let mut vstft: Vec<Vec<f32>> = vec![];
+    let mut time_data = vec![];
 
     let p = app_handle
         .path_resolver()
@@ -63,28 +65,38 @@ pub fn get_stft_data(
         .into_os_string()
         .into_string()
         .unwrap();
-    println!("{:?}", p);
 
-    if let Ok(mut wav) = Wav::from_path(p + "/" + path) {
-        let itr: Vec<f32> = wav.read().unwrap().to_vec();
-        let mut buffer = vec![];
-        let len = itr.len();
+    let filepath = p + "/" + path;
 
-        for s in itr {
-            let x = s;
-            v.push(x.clone());
-            buffer.push(Complex { re: x, im: 0.0f32 })
-        }
+    let thread = tauri::async_runtime::spawn(async move {
+        let w: Vec<f32> = Wav::from_path(filepath).unwrap().read().unwrap().to_vec();
+        return w;
+    });
 
-        let fftsize = 2048;
-        let vstft = stft(buffer.clone(), fftsize, fftsize / 2);
-
-        return Ok((v, vstft));
-    } else {
-        return Err("bad path");
+    if let Ok(r) = thread.await {
+        time_data = r;
     }
 
-    Ok((v, vstft))
+    // if let Ok(mut wav) = Wav::from_path(p + "/" + path) {
+    //     let itr: Vec<f32> = wav.read().unwrap().to_vec();
+    //     let mut buffer = vec![];
+    //     let len = itr.len();
+
+    //     for s in itr {
+    //         let x = s;
+    //         time_data.push(x.clone());
+    //         buffer.push(Complex { re: x, im: 0.0f32 })
+    //     }
+
+    //     let fftsize = 2048;
+    //     let vstft = stft(buffer.clone(), fftsize, fftsize / 2);
+
+    //     return Ok((time_data, vstft));
+    // } else {
+    //     return Err("bad path");
+    // }
+
+    Ok((time_data, vstft))
 }
 
 pub fn stft(mut buffer: Vec<Complex<f32>>, size: usize, hop: usize) -> Vec<Vec<f32>> {

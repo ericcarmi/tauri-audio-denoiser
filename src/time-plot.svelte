@@ -149,79 +149,74 @@ void main() {
   });
 
   async function getData() {
+    if (selectedRecording === "") return;
+    invoke("get_stft_data", { path: selectedRecording }).then((res) => {
+      let data:any = res;
+      let renderPlot = () => {
+        line = new WebglLine(new ColorRGBA(1, 0.35, 0, 1), data[0].length);
 
-    if(selectedRecording === "") return
-    let data: any = await invoke("get_stft_data", { path: selectedRecording });
+        webglp.removeAllLines();
+        webglp.addLine(line);
+        line.arrangeX();
+        let hop = Math.round(data[0].length / plotWidth / 4);
+        for (let i = 0; i < data[0].length; i += hop) {
+          line.setY(i, data[0][i] * 1);
+        }
+        webglp.update();
 
-    let renderPlot = () => {
-      line = new WebglLine(new ColorRGBA(1, 0.35, 0, 1), data[0].length);
+        // let stft = data[1];
+        // let fftsize = stft[0].length;
 
-      webglp.removeAllLines();
-      webglp.addLine(line);
-      line.arrangeX();
-      let hop = Math.round(data[0].length / plotWidth / 4);
-      for (let i = 0; i < data[0].length; i += hop) {
-        line.setY(i, data[0][i] * 1);
-      }
-      webglp.update();
+        // // for log spacing, freqhop and fwidth are not constant
+        // let minfreq = 1;
+        // let maxfreq = 44100 / 2.0;
+        // let fr = 44100 / fftsize / 2;
+        // let infreqs = linspace(minfreq, maxfreq, fr);
+        // let logfreq = 20;
+        // let logfreq2 = 25;
 
-      // let stft = data[1];
-      // let fftsize = stft[0].length;
+        // var primitiveType = gl.TRIANGLES;
+        // var offset = 0;
+        // var count = 6;
+        // var indexType = gl.UNSIGNED_SHORT;
+        // // console.log(stft.length, fftsize)
 
+        // // need to handle both conditions, when lengths are shorter than grid and when they are longer
+        // var logfreqs=[]
+        // for (var t = 0; t < stft.length; t++) {
+        //   for (var freq = 0; freq < fftsize; freq++) {
+        //     // logfreq = loglin(infreqs[freq], minfreq, maxfreq);
+        //     // logfreq2 = loglin(infreqs[freq + 1], minfreq, maxfreq);
 
-      // // for log spacing, freqhop and fwidth are not constant
-      // let minfreq = 1;
-      // let maxfreq = 44100 / 2.0;
-      // let fr = 44100 / fftsize / 2;
-      // let infreqs = linspace(minfreq, maxfreq, fr);
-      // let logfreq = 20;
-      // let logfreq2 = 25;
+        //     // mel scale
+        //     logfreq = 2595 * Math.log10(1 + infreqs[freq] / 700);
+        //     if(t == 0) {
+        //     logfreqs.push(logfreq);
+        //     }
 
-      // var primitiveType = gl.TRIANGLES;
-      // var offset = 0;
-      // var count = 6;
-      // var indexType = gl.UNSIGNED_SHORT;
-      // // console.log(stft.length, fftsize)
+        //     logfreq2 = 2595 * Math.log10(1 + infreqs[freq + 1] / 700);
+        //     let i = Math.round((t / stft.length) * plotWidth);
+        //     let j = Math.round((logfreq / fftsize) * plotHeight/2);
+        //     let w = Math.round(((t + 1) / stft.length) * plotWidth);
+        //     let h = Math.round((logfreq2 / fftsize) * plotHeight/2);
+        //     // divide by 8 is ok but not sure why...seems to depend on fftsize tho...2 makes more sense
 
-      // // need to handle both conditions, when lengths are shorter than grid and when they are longer
-      // var logfreqs=[]
-      // for (var t = 0; t < stft.length; t++) {
-      //   for (var freq = 0; freq < fftsize; freq++) {
-      //     // logfreq = loglin(infreqs[freq], minfreq, maxfreq);
-      //     // logfreq2 = loglin(infreqs[freq + 1], minfreq, maxfreq);
+        //     setRectangle(gl, i, plotHeight - j, w, h);
 
-      //     // mel scale
-      //     logfreq = 2595 * Math.log10(1 + infreqs[freq] / 700);
-      //     if(t == 0) {
-      //     logfreqs.push(logfreq);
-      //     }
+        //     let amp = Math.log10(stft[t][freq] + 1e-6);
+        //     if (isNaN(amp)) {
+        //       amp = 0.0;
+        //     }
+        //     gl.uniform4f(colorUniformLocation, amp, amp, amp, 1);
 
-
-      //     logfreq2 = 2595 * Math.log10(1 + infreqs[freq + 1] / 700);
-      //     let i = Math.round((t / stft.length) * plotWidth);
-      //     let j = Math.round((logfreq / fftsize) * plotHeight/2);
-      //     let w = Math.round(((t + 1) / stft.length) * plotWidth);
-      //     let h = Math.round((logfreq2 / fftsize) * plotHeight/2);
-      //     // divide by 8 is ok but not sure why...seems to depend on fftsize tho...2 makes more sense
-        
-      //     setRectangle(gl, i, plotHeight - j, w, h);
-
-      //     let amp = Math.log10(stft[t][freq] + 1e-6);
-      //     if (isNaN(amp)) {
-      //       amp = 0.0;
-      //     }
-      //     gl.uniform4f(colorUniformLocation, amp, amp, amp, 1);
-
-      //     gl.drawElements(primitiveType, count, indexType, offset);
-      //   }
-      // }
-      // console.log(logfreqs)
-
-
-    };
-    requestAnimationFrame(renderPlot);
+        //     gl.drawElements(primitiveType, count, indexType, offset);
+        //   }
+        // }
+        // console.log(logfreqs)
+      };
+      requestAnimationFrame(renderPlot);
+    });
   }
-
 
   $: selectedRecording, getData();
   // $: selectedRecording, getWavData();
@@ -243,4 +238,3 @@ void main() {
     user-select: none;
   }
 </style>
-
