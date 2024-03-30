@@ -3,9 +3,8 @@
   import { onMount } from "svelte";
   import { WebglPlot, WebglLine, ColorRGBA, WebglSquare } from "webgl-plot";
   import { loglin, linlog, linspace, setRectangle } from "./types.svelte";
+  import { PLOT_HEIGHT, PLOT_WIDTH } from "./constants.svelte";
 
-  const plotWidth = 700;
-  const plotHeight = 150;
 
   let webglp: WebglPlot;
   let line: WebglLine;
@@ -64,8 +63,8 @@ void main() {
   onMount(() => {
     canvasMain = document.getElementById("time_canvas");
     const devicePixelRatio = window.devicePixelRatio || 1;
-    canvasMain.width = plotWidth;
-    canvasMain.height = plotHeight;
+    canvasMain.width =PLOT_WIDTH;
+    canvasMain.height = PLOT_HEIGHT;
 
     webglp = new WebglPlot(canvasMain);
     const numX = 1000;
@@ -75,8 +74,8 @@ void main() {
     line.arrangeX();
 
     freqcanvas = document.getElementById("freq_canvas");
-    freqcanvas.width = plotWidth;
-    freqcanvas.height = plotHeight;
+    freqcanvas.width = PLOT_WIDTH;
+    freqcanvas.height = PLOT_HEIGHT;
 
     freqwebglp = new WebglPlot(freqcanvas);
     gl = freqcanvas.getContext("webgl");
@@ -158,7 +157,7 @@ void main() {
         webglp.removeAllLines();
         webglp.addLine(line);
         line.arrangeX();
-        let hop = Math.round(data[0].length / plotWidth / 8);
+        let hop = Math.round(data[0].length / PLOT_WIDTH / 8);
         for (let i = 0; i < data[0].length; i += hop) {
           line.setY(i, data[0][i] * 1);
         }
@@ -219,9 +218,7 @@ void main() {
   }
 
   // $: selectedRecording, getData();
-  // $: selectedRecording, getWavData();
 
-  let timePosition = 0;
 </script>
 
 <div>

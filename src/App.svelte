@@ -6,6 +6,7 @@
   import { onMount } from "svelte";
   import TimePlot from "./time-plot.svelte";
   import Slider from "./slider.svelte";
+  import { PLOT_HEIGHT, PLOT_WIDTH } from "./constants.svelte";
 
   listen("tauri://file-drop", async (event) => {
     // console.log(event.payload);
@@ -36,6 +37,8 @@
   let time_origin = 0;
   let time_delta = 0;
 
+  let is_time_slider_dragging = false;
+
   let interval: any;
 
   function resetInterval() {
@@ -45,9 +48,7 @@
         if (is_playing) {
           perf_time = performance.now();
           time_delta = perf_time - time_origin;
-          time += time_delta /1000;
-          console.log(time)
-
+          time += time_delta / 1000;
         }
       },
       // this works for now, just have to call resetInterval after pressing buttons
@@ -59,11 +60,19 @@
 <main class="container">
   <TimePlot {selectedRecording} />
   <input
-    style="width: 100%;"
+    style="width: {PLOT_WIDTH}px;"
+    class="time-slider"
     type="range"
+    data-attribute={is_time_slider_dragging}
     min={0}
     max={100000}
     bind:value={time}
+    on:mousedown={() => {
+      is_time_slider_dragging = true;
+    }}
+    on:mouseup={() => {
+      is_time_slider_dragging = false;
+    }}
     on:input={async () => {
       await invoke("update_time", { t: time / 100000 });
     }}
@@ -99,31 +108,45 @@
 </main>
 
 <style>
-  button {
-  }
   input[type="range"] {
     appearance: none;
-    background: blue;
   }
   input[type="range"]::-webkit-slider-thumb {
     background: black;
     appearance: none;
     -webkit-appearance: none;
     height: 2em;
-    width: 3em;
-    border: 1px solid var(--purple);
+    width: 1em;
   }
-  input[type="range"]::-webkit-slider-runnable-track {
+
+  input[type="range"]::-webkit-slider-thumb:active {
     background: var(--orange);
+  }
+
+  input[type="range"]::-webkit-slider-runnable-track {
+    background: var(--gray100);
     height: 2em;
     width: 3em;
   }
+
   .filter-grid {
     display: grid;
     justify-items: center;
     grid-template-rows: auto;
     appearance: none;
     height: 100px;
-    border: 5px solid var(--purple);
+    border: 2px solid var(--purple);
+  }
+
+  .time-slider {
+    align-self: center;
+    border: 2px solid var(--purple);
+    transition: border 0.33s;
+  }
+  .time-slider[data-attribute="true"] {
+    border: 2px solid var(--orange);
+  }
+  .time-slider:hover {
+    border: 2px solid var(--orange);
   }
 </style>

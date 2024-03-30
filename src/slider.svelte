@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 
-
 	export let value;
 	// probably don't need to export this, just call invoke/update_filters from here
 
@@ -13,7 +12,6 @@
 			return;
 		}
 		el.addEventListener("mousedown", function (e: MouseEvent) {
-
 			// var offsetX = e.clientX - 10;
 			var offsetY = e.clientY - position;
 
@@ -32,6 +30,9 @@
 			}
 
 			function reset() {
+				// have to call this here...maybe want to change how this is handled later
+				is_dragging = false;
+
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}
@@ -43,25 +44,67 @@
 	onMount(() => {
 		draggable();
 	});
+
+	let is_dragging = false;
+	let is_hovering = false;
+
+	$:is_dragging, console.log(is_dragging)
+	$:is_hovering, console.log(is_hovering)
 </script>
 
-<div class="wrapper">
-	<div class="thumb" bind:this={el}/>
+<div
+	class="wrapper"
+	data-attribute={is_dragging}
+	role="button"
+	tabindex={-1}
+		on:mouseenter={() => {
+			is_hovering = true;
+		}}
+		on:mouseleave={() => {
+			is_hovering = false;
+		}}
+>
+	<div
+		class="thumb"
+		bind:this={el}
+		role="button"
+		tabindex={-1}
+		on:mousedown={() => {
+			is_dragging = true;
+		}}
+		on:mouseup={() => {
+			is_dragging = false;
+		}}
+	/>
 </div>
 
 <style>
 	.wrapper {
-		background: black;
+		background: var(--gray100);
 		width: 2.5em;
 		display: flex;
 		justify-content: center;
 		border: 1px solid var(--purple);
 		position: relative;
+		transition: border 0.33s;
 	}
+
+	.wrapper:hover {
+		border: 1px solid var(--orange);
+	}
+
+	.wrapper[data-attribute="true"] {
+		border: 1px solid var(--orange);
+	}
+
 	.thumb {
-		background: var(--orange);
-		width: 80%;
+		background: black;
+		width: 90%;
 		height: 1em;
 		position: absolute;
+	}
+
+	.thumb:active {
+		background: var(--orange);
 	}
 </style>
