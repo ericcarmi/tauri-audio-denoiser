@@ -24,7 +24,7 @@
 </script>
 
 <main class="container">
-  <TimePlot selectedRecording="" />
+  <TimePlot selectedRecording="test-file.wav" />
   <input
     style="width: 100%;"
     type="range"

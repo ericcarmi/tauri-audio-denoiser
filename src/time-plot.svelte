@@ -226,7 +226,6 @@ void main() {
   $: selectedRecording, getData();
   // $: selectedRecording, getWavData();
 
-  export let isDragging = false;
   let timePosition = 0;
 </script>
 
@@ -237,20 +236,8 @@ void main() {
 
 <style>
   canvas {
-    border: 2px solid rgb(0, 100, 0);
-  }
-  #drag-container {
-    background: #222222;
-    height: 20px;
-    display: flex;
-    cursor: pointer;
-  }
-  #draggable {
-    background: rgb(0, 100, 0);
-    width: 10px;
-    height: 20px;
-    position: relative;
-    cursor: pointer;
+    border: 2px solid var(--purple);
+    background: black;
   }
   div {
     user-select: none;

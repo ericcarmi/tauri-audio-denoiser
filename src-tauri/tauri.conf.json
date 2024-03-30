@@ -20,7 +20,7 @@
         "all": true
       },
       "fs": {
-        "readFile": true,
+        "all": true,
         "scope": ["$RESOURCE/**", "$RESOURCE/*", "*/**"]
 
       }

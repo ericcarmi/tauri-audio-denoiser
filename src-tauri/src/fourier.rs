@@ -2,13 +2,9 @@ use chrono::{self, DateTime, Utc};
 use dsp;
 
 use rustfft::{num_complex::Complex, FftPlanner};
-use std::sync::Mutex;
-use std::{fs::metadata, fs::File, io::BufWriter, process::Command};
-use tauri::command::CommandItem;
-use tauri::State;
-use tauri::{Manager, Window};
+use wavers::Wav;
 
-const ASSETS_PATH: &str = "/assets";
+const ASSETS_PATH: &str = "assets/";
 
 #[tauri::command]
 pub fn get_wav_data(
@@ -67,13 +63,15 @@ pub fn get_stft_data(
         .into_os_string()
         .into_string()
         .unwrap();
+    println!("{:?}", p);
 
-    if let Ok(mut reader) = hound::WavReader::open(p + "/" + path) {
-        let itr = reader.samples::<f32>().into_iter().step_by(1);
+    if let Ok(mut wav) = Wav::from_path(p + "/" + path) {
+        let itr: Vec<f32> = wav.read().unwrap().to_vec();
         let mut buffer = vec![];
         let len = itr.len();
+
         for s in itr {
-            let x = s.unwrap() as f32;
+            let x = s;
             v.push(x.clone());
             buffer.push(Complex { re: x, im: 0.0f32 })
         }
