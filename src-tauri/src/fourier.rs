@@ -1,5 +1,3 @@
-use std::thread;
-
 use chrono::{self, DateTime, Utc};
 use dsp;
 

@@ -1,9 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::sync::Mutex;
-
 use cpal::traits::StreamTrait;
-use tauri::{Manager, State};
+use std::sync::Mutex;
+use tauri::{AppHandle, Manager, State, Window};
 mod audio;
 use audio::*;
 mod types;
@@ -17,13 +16,16 @@ use server::*;
 fn main() {
     tauri::Builder::default()
         .manage(MStreamSend({
-            let (stream, tx) = setup_stream().unwrap();
+            let (ui_tx, rx) = tauri::async_runtime::channel::<Vec<f32>>(2);
+            let (stream, tx) = setup_stream(ui_tx).unwrap();
             let _ = stream.pause();
+            //...wait is this tx needed? thought that can be duplicated elsewhere...
             let mtx = Mutex::new(tx);
 
             Mutex::new(StreamSend {
                 stream: MStream(Mutex::new(stream)),
                 msender: MSender(mtx),
+                mreceiver: MUIReceiver(Mutex::new(rx)),
             })
         }))
         .manage(MFilterBank({
@@ -40,6 +42,7 @@ fn main() {
             get_integer,
             get_file_fft,
             set_file_fft,
+            get_fft_plot_data,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();
@@ -66,4 +69,27 @@ fn pause_stream(streamsend: State<MStreamSend>) {
         .lock()
         .unwrap()
         .pause();
+}
+
+#[tauri::command]
+fn get_fft_plot_data(streamsend: State<MStreamSend>) -> Result<Vec<f32>, String> {
+    let r = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .mreceiver
+        .0
+        .lock()
+        .unwrap()
+        .try_recv();
+    if r.is_ok() {
+        Ok(r.unwrap())
+    } else {
+        Err("recv error".into())
+    }
+}
+
+#[derive(Clone, serde::Serialize)]
+struct Payload {
+    message: String,
 }

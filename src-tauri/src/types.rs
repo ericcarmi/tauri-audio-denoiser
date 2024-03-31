@@ -9,6 +9,7 @@ pub struct MFilterBank(pub Mutex<FilterBank>);
 unsafe impl Sync for MStream {}
 unsafe impl Send for MStream {}
 
+pub struct MUIReceiver(pub Mutex<tauri::async_runtime::Receiver<Vec<f32>>>);
 pub struct MSender(pub Mutex<tauri::async_runtime::Sender<Message>>);
 
 pub struct MStreamSend(pub Mutex<StreamSend>);
@@ -16,6 +17,7 @@ pub struct MStreamSend(pub Mutex<StreamSend>);
 pub struct StreamSend {
     pub stream: MStream,
     pub msender: MSender,
+    pub mreceiver: MUIReceiver,
 }
 
 #[derive(Clone)]

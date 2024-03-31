@@ -16,22 +16,24 @@ pub fn get_wav_samples(path: &str) -> Vec<f32> {
 }
 
 #[tauri::command]
-pub fn setup_stream() -> Result<(cpal::Stream, tauri::async_runtime::Sender<Message>), anyhow::Error>
+pub fn setup_stream(
+    tx: tauri::async_runtime::Sender<Vec<f32>>,
+) -> Result<(cpal::Stream, tauri::async_runtime::Sender<Message>), anyhow::Error>
 where
 {
     let (_host, device, config) = host_device_setup()?;
 
     match config.sample_format() {
-        cpal::SampleFormat::I8 => make_stream::<i8>(&device, &config.into()),
-        cpal::SampleFormat::I16 => make_stream::<i16>(&device, &config.into()),
-        cpal::SampleFormat::I32 => make_stream::<i32>(&device, &config.into()),
-        cpal::SampleFormat::I64 => make_stream::<i64>(&device, &config.into()),
-        cpal::SampleFormat::U8 => make_stream::<u8>(&device, &config.into()),
-        cpal::SampleFormat::U16 => make_stream::<u16>(&device, &config.into()),
-        cpal::SampleFormat::U32 => make_stream::<u32>(&device, &config.into()),
-        cpal::SampleFormat::U64 => make_stream::<u64>(&device, &config.into()),
-        cpal::SampleFormat::F32 => make_stream::<f32>(&device, &config.into()),
-        cpal::SampleFormat::F64 => make_stream::<f64>(&device, &config.into()),
+        cpal::SampleFormat::I8 => make_stream::<i8>(&device, &config.into(), tx),
+        cpal::SampleFormat::I16 => make_stream::<i16>(&device, &config.into(), tx),
+        cpal::SampleFormat::I32 => make_stream::<i32>(&device, &config.into(), tx),
+        cpal::SampleFormat::I64 => make_stream::<i64>(&device, &config.into(), tx),
+        cpal::SampleFormat::U8 => make_stream::<u8>(&device, &config.into(), tx),
+        cpal::SampleFormat::U16 => make_stream::<u16>(&device, &config.into(), tx),
+        cpal::SampleFormat::U32 => make_stream::<u32>(&device, &config.into(), tx),
+        cpal::SampleFormat::U64 => make_stream::<u64>(&device, &config.into(), tx),
+        cpal::SampleFormat::F32 => make_stream::<f32>(&device, &config.into(), tx),
+        cpal::SampleFormat::F64 => make_stream::<f64>(&device, &config.into(), tx),
         sample_format => Err(anyhow::Error::msg(format!(
             "Unsupported sample format '{sample_format}'"
         ))),
@@ -56,6 +58,7 @@ pub fn host_device_setup(
 pub fn make_stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
+    tx_ui: tauri::async_runtime::Sender<Vec<f32>>,
 ) -> Result<(cpal::Stream, tauri::async_runtime::Sender<Message>), anyhow::Error>
 where
     T: SizedSample + FromSample<f32>,
@@ -90,6 +93,7 @@ where
             }
 
             // ...each frame has 2 samples
+            let mut out_buf = vec![];
             for frame in output.chunks_mut(num_channels) {
                 if time >= num_file_samples {
                     break;
@@ -97,17 +101,20 @@ where
 
                 let sample = file_samples[time];
                 let filtered =
-                    process_filterbank.coeffs[0] * sample - process_filterbank.coeffs[1] * rb[0];
+                    process_filterbank.coeffs[0] * sample + process_filterbank.coeffs[1] * rb[0];
                 let v: T = T::from_sample(filtered);
                 rb.push(sample);
+                out_buf.push(sample);
 
                 // copying to all channels for now
                 for out_sample in frame.iter_mut() {
                     *out_sample = v;
                 }
                 time += 1;
-                // tx.try_send(message)
             }
+            // send a chunk of the fft here
+            let r = tx_ui.try_send(out_buf);
+            println!("{:?}", r);
         },
         err_fn,
         None,

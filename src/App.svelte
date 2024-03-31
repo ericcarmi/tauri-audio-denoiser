@@ -44,11 +44,13 @@
   function resetInterval() {
     clearInterval(interval);
     interval = setInterval(
-      () => {
+      async() => {
         if (is_playing) {
           perf_time = performance.now();
           time_delta = perf_time - time_origin;
           time += time_delta / 1000;
+          let d = await invoke("get_fft_plot_data");
+          // console.log(d)
         }
       },
       // this works for now, just have to call resetInterval after pressing buttons
@@ -87,6 +89,7 @@
           time_origin = performance.now();
         } else {
           await invoke("pause_stream");
+
           is_playing = false;
         }
         resetInterval();
