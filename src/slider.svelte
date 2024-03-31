@@ -48,8 +48,6 @@
 	let is_dragging = false;
 	let is_hovering = false;
 
-	$:is_dragging, console.log(is_dragging)
-	$:is_hovering, console.log(is_hovering)
 </script>
 
 <div

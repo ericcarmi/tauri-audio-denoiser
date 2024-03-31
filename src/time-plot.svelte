@@ -150,6 +150,7 @@ void main() {
 
   async function getData() {
     if (selectedRecording === "") return;
+    // check cache
     is_loading = true;
     invoke("get_time_onefft", { path: selectedRecording }).then((res) => {
       let data: any = res;
@@ -164,6 +165,20 @@ void main() {
           line.setY(i, data[0][i] * 1);
         }
         webglp.update();
+
+
+        line = new WebglLine(new ColorRGBA(1, 0.35, 0, 1), data[0].length);
+
+        freqwebglp.removeAllLines();
+        freqwebglp.addLine(line);
+        line.arrangeX();
+        hop = Math.round(data[1].length / PLOT_WIDTH / 4);
+        for (let i = 0; i < data[1].length; i += hop) {
+          line.setY(i, data[1][i] * 1);
+        }
+        freqwebglp.update();
+
+
         is_loading = false;
 
         // let stft = data[1];
@@ -220,7 +235,7 @@ void main() {
     });
   }
 
-  $: selectedRecording, getData();
+  // $: selectedRecording, getData();
 </script>
 
 <div>

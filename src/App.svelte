@@ -94,6 +94,14 @@
     >
       {is_playing ? "pause" : "play"}
     </button>
+    <button
+      on:click={async () => {
+        let r = await invoke("get_file_fft", {fileName: selectedRecording});
+        console.log(r)
+      }}
+    >
+      server
+    </button>
   </div>
 
   <span>filters</span>

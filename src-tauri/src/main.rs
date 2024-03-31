@@ -11,6 +11,8 @@ use types::*;
 mod constants;
 mod fourier;
 use fourier::*;
+mod server;
+use server::*;
 
 fn main() {
     tauri::Builder::default()
@@ -35,6 +37,9 @@ fn main() {
             update_time,
             get_stft_data,
             get_time_onefft,
+            get_integer,
+            get_file_fft,
+            set_file_fft,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();

@@ -3,10 +3,9 @@ use std::thread;
 use chrono::{self, DateTime, Utc};
 use dsp;
 
+use crate::constants::*;
 use rustfft::{num_complex::Complex, FftPlanner};
 use wavers::Wav;
-
-const ASSETS_PATH: &str = "assets/";
 
 #[tauri::command]
 pub async fn get_time_onefft(
@@ -28,21 +27,24 @@ pub async fn get_time_onefft(
 
     let thread = tauri::async_runtime::spawn(async move {
         let w: Vec<f32> = Wav::from_path(filepath).unwrap().read().unwrap().to_vec();
-        let mut vfft = vec![];
-        // let mut buffer = vec![];
-        // let len = w.len();
-        // for s in w.clone() {
-        //     let x = s;
-        //     buffer.push(Complex { re: x, im: 0.0f32 })
-        // }
-        // let mut planner = FftPlanner::new();
-        // let fft = planner.plan_fft_forward(len);
+        let mut vfft: Vec<f32> = vec![];
+        let mut buffer = vec![];
+        let len = w.len();
+        for s in w.clone() {
+            let x = s;
+            buffer.push(Complex { re: x, im: 0.0f32 })
+        }
+        let mut planner = FftPlanner::new();
+        let fft = planner.plan_fft_forward(len);
 
-        // fft.process(&mut buffer);
-        // for i in buffer[0..len / 2].iter() {
-        //     vfft.push(i.norm());
-        // }
-        return (w, vfft);
+        fft.process(&mut buffer);
+        return (
+            w,
+            buffer[0..len / 2]
+                .iter()
+                .map(|x| x.norm())
+                .collect::<Vec<f32>>(),
+        );
     });
 
     if let Ok(r) = thread.await {
