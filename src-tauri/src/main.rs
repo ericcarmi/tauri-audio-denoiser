@@ -8,6 +8,7 @@ use audio::*;
 mod types;
 use types::*;
 mod constants;
+use constants::*;
 mod fourier;
 use fourier::*;
 mod server;
@@ -39,6 +40,7 @@ fn main() {
             update_time,
             get_stft_data,
             get_time_onefft,
+            get_time_data,
             get_integer,
             get_file_fft,
             set_file_fft,

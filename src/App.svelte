@@ -6,14 +6,15 @@
   import { onMount } from "svelte";
   import TimePlot from "./time-plot.svelte";
   import Slider from "./slider.svelte";
-  import { PLOT_HEIGHT, PLOT_WIDTH } from "./constants.svelte";
+  import { FREQ_PLOT_WIDTH } from "./constants.svelte";
+  import BandpassSlider from "./bandpass-slider.svelte";
 
-  listen("tauri://file-drop", async (event) => {
-    // console.log(event.payload);
-    // need to handle this getting history of all files dropped...
-    // let s = event.payload[0] as string;
-    // await invoke("play_wav", { path: s });
-  });
+  // listen("tauri://file-drop", async (event) => {
+  // console.log(event.payload);
+  // need to handle this getting history of all files dropped...
+  // let s = event.payload[0] as string;
+  // await invoke("play_wav", { path: s });
+  // });
 
   let alpha = 500;
   let time = 0;
@@ -40,17 +41,18 @@
   let is_time_slider_dragging = false;
 
   let interval: any;
+  let fft_data: any;
 
   function resetInterval() {
     clearInterval(interval);
     interval = setInterval(
-      async() => {
+      () => {
         if (is_playing) {
           perf_time = performance.now();
           time_delta = perf_time - time_origin;
           time += time_delta / 1000;
-          let d = await invoke("get_fft_plot_data");
-          // console.log(d)
+          fft_data = invoke("get_fft_plot_data");
+          // console.log(fft_data)
         }
       },
       // this works for now, just have to call resetInterval after pressing buttons
@@ -60,9 +62,9 @@
 </script>
 
 <main class="container">
-  <TimePlot {selectedRecording} />
+  <TimePlot {selectedRecording} {fft_data} />
   <input
-    style="width: {PLOT_WIDTH}px;"
+    style="width: {FREQ_PLOT_WIDTH}px;"
     class="time-slider"
     type="range"
     data-attribute={is_time_slider_dragging}
@@ -79,7 +81,6 @@
       await invoke("update_time", { t: time / 100000 });
     }}
   />
-  <span>time</span>
   <div>
     <button
       on:click={async () => {
@@ -99,21 +100,20 @@
     </button>
     <button
       on:click={async () => {
-        let r = await invoke("get_file_fft", {fileName: selectedRecording});
-        console.log(r)
+        let r = await invoke("get_file_fft", { fileName: selectedRecording });
+        // console.log(r)
       }}
     >
       server
     </button>
   </div>
 
-  <span>filters</span>
   <div
     class="filter-grid"
     style="grid-template-columns:repeat({num_sliders}, auto)"
   >
     {#each slider_values as val, i}
-      <Slider value={val} />
+      <BandpassSlider />
     {/each}
   </div>
 </main>
@@ -136,8 +136,6 @@
 
   input[type="range"]::-webkit-slider-runnable-track {
     background: var(--gray100);
-    height: 2em;
-    width: 3em;
   }
 
   .filter-grid {

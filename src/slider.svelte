@@ -5,7 +5,9 @@
 	// probably don't need to export this, just call invoke/update_filters from here
 
 	let position = 0;
-	let el: any;
+	let el: HTMLElement;
+
+	let height = 45;
 
 	function draggable() {
 		if (el === null) {
@@ -21,22 +23,20 @@
 				if (el === null) {
 					return;
 				}
+
 				position = e.clientY - offsetY;
-				position = Math.max(Math.min(position, 80), 0);
+				position = Math.max(Math.min(position, height), 0);
 				el.style.top = position + "px";
 				// el.style.left = e.clientX - offsetX + "px";
-				value = position / 80;
-				// could be an issue with only so much resolution? maybe not, idk...i wonder of regular inputs fake the range? those can increase number of values in between somehow
+				value = position / height;
 			}
 
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
 				is_dragging = false;
-
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}
-
 			window.addEventListener("mousemove", mouseMoveHandler);
 			window.addEventListener("mouseup", reset);
 		});

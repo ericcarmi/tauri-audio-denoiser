@@ -1,4 +1,5 @@
 use crate::constants::*;
+use crate::fourier::mfft;
 use crate::types::*;
 use anyhow;
 use cpal::FromSample;
@@ -113,8 +114,8 @@ where
                 time += 1;
             }
             // send a chunk of the fft here
-            let r = tx_ui.try_send(out_buf);
-            println!("{:?}", r);
+            let r = tx_ui.try_send(mfft(out_buf));
+            // println!("{:?}", r);
         },
         err_fn,
         None,

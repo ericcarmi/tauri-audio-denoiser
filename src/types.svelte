@@ -1,4 +1,6 @@
 <script context="module" lang="ts">
+    import { FREQ_PLOT_WIDTH } from "./constants.svelte";
+
 	export interface Recording {
 		created: string;
 		uid: number;
@@ -47,5 +49,14 @@
 			new Float32Array([x1, y1, x2, y1, x1, y2, x2, y2]),
 			gl.STATIC_DRAW
 		);
+	}
+
+	export function frequencyToXAxis(frequency: number) {
+		const minF = Math.log(20) / Math.log(10);
+		const maxF = Math.log(20000) / Math.log(10);
+
+		let range = maxF - minF;
+		let xAxis = ((Math.log(frequency) / Math.log(10) - minF) / range) * FREQ_PLOT_WIDTH;
+		return xAxis;
 	}
 </script>

@@ -136,3 +136,19 @@ pub fn stft(mut buffer: Vec<Complex<f32>>, size: usize, hop: usize) -> Vec<Vec<f
 
     spectra
 }
+
+pub fn mfft(mut signal: Vec<f32>) -> Vec<f32> {
+    let len = signal.len();
+    let mut buffer = vec![];
+    for s in signal.iter() {
+        buffer.push(Complex { re: *s, im: 0.0f32 })
+    }
+    let mut planner = FftPlanner::new();
+    let fft = planner.plan_fft_forward(len);
+
+    fft.process(&mut buffer);
+    buffer[0..len / 2]
+        .iter()
+        .map(|x| x.norm())
+        .collect::<Vec<f32>>()
+}
