@@ -5,11 +5,13 @@
 	let indicator_el: HTMLElement;
 	let is_mouse_down = false;
 
-	let is_hovering = false;
+	export let value;
+	let radius = 5;
 
 	let angle = 225;
+	$: angle, value = angle;
 
-	let radius = 5;
+
 
 	function draggable() {
 		if (el === null) {
@@ -60,12 +62,6 @@
 	bind:this={el}
 	tabindex={-1}
 	data-attribute={is_mouse_down}
-	on:mouseenter={() => {
-		is_hovering = true;
-	}}
-	on:mouseleave={() => {
-		is_hovering = false;
-	}}
 	on:mousedown={() => {
 		is_mouse_down = true;
 	}}

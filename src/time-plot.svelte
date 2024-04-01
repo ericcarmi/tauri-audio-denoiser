@@ -8,6 +8,8 @@
     linspace,
     setRectangle,
     frequencyToXAxis,
+    type FilterBank,
+    type BPF,
   } from "./types.svelte";
   import {
     FREQ_PLOT_HEIGHT,
@@ -15,6 +17,8 @@
     TIME_PLOT_HEIGHT,
     TIME_PLOT_WIDTH,
   } from "./constants.svelte";
+
+  export let filter_bank: Array<BPF>;
 
   let is_loading = false;
   export let fft_data: any;
@@ -75,7 +79,6 @@ void main() {
 
   onMount(() => {
     canvasMain = document.getElementById("time_canvas");
-    const devicePixelRatio = window.devicePixelRatio || 1;
     canvasMain.width = TIME_PLOT_WIDTH;
     canvasMain.height = TIME_PLOT_HEIGHT;
 
@@ -174,11 +177,10 @@ void main() {
         line.arrangeX();
         let hop = Math.round(data.length / TIME_PLOT_WIDTH / 8);
         for (let i = 0; i < data.length; i += hop) {
-          line.setY(i, data[i] * 1);
+          line.setY(i, data[i]);
         }
         webglp.update();
 
-        line = new WebglLine(new ColorRGBA(1, 0.35, 0, 1), data[0].length);
         is_loading = false;
       };
       requestAnimationFrame(renderPlot);
@@ -204,7 +206,7 @@ void main() {
           context.fillStyle = "rgb(220,100,0)";
           const length = data.length;
 
-          const barWidth = (width / length) * 0.5;
+          const barWidth = (width / length) * 1.0;
 
           for (let i = 0; i < data.length; i++) {
             let value = data[i];
@@ -213,7 +215,8 @@ void main() {
             let frequency = Math.round((i * 44100) / 2 / length);
             let barHeight = Math.log10(value + 1) * FREQ_PLOT_HEIGHT;
             //finding the x location px from the frequency
-            let x = frequencyToXAxis(frequency);
+            // let x = frequencyToXAxis(frequency);
+            let x = (i * FREQ_PLOT_WIDTH) / length;
             let h = height - barHeight / 2;
             if (h > 0) {
               context.fillRect(x, h, barWidth, barHeight);
@@ -227,7 +230,7 @@ void main() {
       });
   }
 
-  $: selectedRecording, get_time_data();
+  // $: selectedRecording, get_time_data();
   $: fft_data, update_fft();
 </script>
 

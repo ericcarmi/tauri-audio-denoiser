@@ -2,15 +2,18 @@
 	import Slider from "./slider.svelte";
 	import RotarySlider from "./rotary-slider.svelte";
 
-	let gain_val = 0;
+
+	export let gain = 0;
+	export let freq = 0;
+	export let Q = 0;
 </script>
 
 <div class="wrapper">
 	<div style="display:flex; height:4em; justify-content: space-evenly;">
-		<RotarySlider />
-		<Slider value={gain_val} />
+		<RotarySlider bind:value={Q} />
+		<Slider bind:value={gain} />
 	</div>
-	<input class="freq-slider" type="range" min={0} max={100000} />
+	<input class="freq-slider" type="range" min={20} max={10000} bind:value={freq} />
 </div>
 
 <style>

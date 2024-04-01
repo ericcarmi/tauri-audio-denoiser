@@ -1,13 +1,20 @@
 <script lang="ts">
-  import { listen } from "@tauri-apps/api/event";
   import { invoke } from "@tauri-apps/api/tauri";
   import { resolveResource } from "@tauri-apps/api/path";
-  import { readTextFile, readBinaryFile } from "@tauri-apps/api/fs";
   import { onMount } from "svelte";
   import TimePlot from "./time-plot.svelte";
-  import Slider from "./slider.svelte";
-  import { FREQ_PLOT_WIDTH } from "./constants.svelte";
+  import { FREQ_PLOT_WIDTH, num_sliders } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
+  import type { BPF, FilterBank } from "./types.svelte";
+
+  export const gains = [1, 1, 1, 1, 1];
+  export const freqs = [100, 100, 100, 100, 100];
+  export const Qs = [0.5, 0.5, 0.5, 0.5, 0.5];
+
+  let filter_bank: Array<BPF> = Array(num_sliders).fill(0).map(() => {
+    return { gain: 1, freq: 1000, Q: 0.5 };
+  });
+
 
   // listen("tauri://file-drop", async (event) => {
   // console.log(event.payload);
@@ -29,8 +36,6 @@
 
     resetInterval();
   });
-
-  let num_sliders = 5;
 
   let slider_values = Array(num_sliders).fill(0);
 
@@ -62,7 +67,7 @@
 </script>
 
 <main class="container">
-  <TimePlot {selectedRecording} {fft_data} />
+  <TimePlot bind:filter_bank={filter_bank} {selectedRecording} {fft_data} />
   <input
     style="width: {FREQ_PLOT_WIDTH}px;"
     class="time-slider"
@@ -113,7 +118,7 @@
     style="grid-template-columns:repeat({num_sliders}, auto)"
   >
     {#each slider_values as val, i}
-      <BandpassSlider />
+      <BandpassSlider bind:gain={filter_bank[i].gain} bind:freq={filter_bank[i].freq} bind:Q={filter_bank[i].Q} />
     {/each}
   </div>
 </main>

@@ -2,12 +2,10 @@
 	import { onMount } from "svelte";
 
 	export let value;
-	// probably don't need to export this, just call invoke/update_filters from here
-
 	let position = 0;
 	let el: HTMLElement;
 
-	let height = 45;
+	let height = 52;
 
 	function draggable() {
 		if (el === null) {
@@ -16,16 +14,13 @@
 		el.addEventListener("mousedown", function (e: MouseEvent) {
 			// var offsetX = e.clientX - 10;
 			var offsetY = e.clientY - position;
-
-			// offsetY = Math.max(offsetY, 0);
-
 			function mouseMoveHandler(e: any) {
 				if (el === null) {
 					return;
 				}
 
 				position = e.clientY - offsetY;
-				position = Math.max(Math.min(position, height), 0);
+				position = Math.max(Math.min(position, height), 1);
 				el.style.top = position + "px";
 				// el.style.left = e.clientX - offsetX + "px";
 				value = position / height;
@@ -98,8 +93,9 @@
 	.thumb {
 		background: black;
 		width: 90%;
-		height: 1em;
+		height: 0.5em;
 		position: absolute;
+		top: 1px;
 	}
 
 	.thumb:active {

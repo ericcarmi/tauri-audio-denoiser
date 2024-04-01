@@ -1,5 +1,13 @@
 <script context="module" lang="ts">
-    import { FREQ_PLOT_WIDTH } from "./constants.svelte";
+	import { FREQ_PLOT_WIDTH } from "./constants.svelte";
+
+	export type FilterBank = Record<string, Array<number>>;
+
+	export type BPF = {
+		gain: number,
+		freq: number,
+		Q: number,
+	}
 
 	export interface Recording {
 		created: string;
@@ -56,7 +64,8 @@
 		const maxF = Math.log(20000) / Math.log(10);
 
 		let range = maxF - minF;
-		let xAxis = ((Math.log(frequency) / Math.log(10) - minF) / range) * FREQ_PLOT_WIDTH;
+		let xAxis =
+			((Math.log(frequency) / Math.log(10) - minF) / range) * FREQ_PLOT_WIDTH;
 		return xAxis;
 	}
 </script>
