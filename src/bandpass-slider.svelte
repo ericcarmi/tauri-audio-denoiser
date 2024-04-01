@@ -4,8 +4,8 @@
 
 
 	export let gain = 0;
-	export let freq = 0;
-	export let Q = 0;
+	export let freq = 1000;
+	export let Q = 1;
 </script>
 
 <div class="wrapper">
@@ -13,7 +13,7 @@
 		<RotarySlider bind:value={Q} />
 		<Slider bind:value={gain} />
 	</div>
-	<input class="freq-slider" type="range" min={20} max={10000} bind:value={freq} />
+	<input class="freq-slider" type="range" min={40} max={20000} step={1} bind:value={freq} />
 </div>
 
 <style>
@@ -34,7 +34,7 @@
 	}
 
 	input[type="range"]::-webkit-slider-thumb:active {
-		background: var(--orange);
+		background: var(--purple);
 	}
 
 	input[type="range"]::-webkit-slider-runnable-track {
@@ -47,9 +47,9 @@
 		width: 10em;
 	}
 	.freq-slider[data-attribute="true"] {
-		border: 1px solid var(--orange);
+		border: 1px solid var(--lightpurple);
 	}
 	.freq-slider:hover {
-		border: 1px solid var(--orange);
+		border: 1px solid var(--lightpurple);
 	}
 </style>

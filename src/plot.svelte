@@ -6,18 +6,16 @@
     loglin,
     linlog,
     linspace,
-    setRectangle,
     frequencyToXAxis,
-    type FilterBank,
-    type BPF,
-  } from "./types.svelte";
+    biquad,
+    freq_response,
+  } from "./functions.svelte";
+  import { type BPF } from "./types.svelte";
   import {
     FREQ_PLOT_HEIGHT,
     FREQ_PLOT_WIDTH,
     TIME_PLOT_HEIGHT,
     TIME_PLOT_WIDTH,
-    biquad,
-    freq_response,
   } from "./constants.svelte";
 
   export let filter_bank: Array<BPF>;
@@ -36,7 +34,7 @@
   let canvasMain: any;
   let ctx: any;
   let freqcanvas: any;
-  export const freq = 420;
+  export const freq = 520;
   export const amp = 1;
 
   let gl: WebGL2RenderingContext;
@@ -192,99 +190,100 @@ void main() {
   var last_bar_heights = Array(256).fill(0);
 
   function update_fft() {
-    let data = Promise.resolve(fft_data);
-    data
-      .then((r: any) => {
-        let data = r;
+    if (fft_data === undefined) {
+      function renderPlot() {
+        const canvas = freqcanvas;
 
-        function renderPlot() {
-          const canvas = freqcanvas;
+        const height = canvas.height;
+        const width = canvas.width;
 
-          const height = canvas.height;
-          const width = canvas.width;
+        const context: CanvasRenderingContext2D = canvas.getContext("2d");
+        context.clearRect(0, 0, width, height);
+        context.fillStyle = "rgb(220,100,0)";
 
-          const context: CanvasRenderingContext2D = canvas.getContext("2d");
-          context.clearRect(0, 0, width, height);
-          context.fillStyle = "rgb(220,100,0)";
-          const length = data.length;
+        let coeffs = biquad(
+          filter_bank[0].gain,
+          filter_bank[0].freq,
+          filter_bank[0].Q
+        );
 
-          const barWidth = (width / length) * 1.0;
+        const curve = freq_response(coeffs, 256);
+        console.log(coeffs,curve)
 
-          for (let i = 0; i < data.length; i++) {
-            let value = data[i];
+        context.beginPath();
+        context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
+        for (let i = 0; i < curve.length; i++) {
+          context.lineTo(
+            (i / curve.length) * FREQ_PLOT_WIDTH,
+            -(curve[i] )*FREQ_PLOT_HEIGHT/32 + FREQ_PLOT_HEIGHT/2 
+          );
+        }
+        context.lineWidth = 2;
+        context.strokeStyle = "rgb(200,120,140)";
+        context.stroke();
+      }
+      requestAnimationFrame(renderPlot);
+    } else {
+      let data = Promise.resolve(fft_data);
+      data
+        .then((r: any) => {
+          let data = r;
 
-            //finding the frequency from the index
-            let frequency = Math.round((i * 44100) / 2 / length);
-            let barHeight = Math.log10(value + 1) * FREQ_PLOT_HEIGHT;
-            //finding the x location px from the frequency
-            // let x = frequencyToXAxis(frequency);
-            let x = (i * FREQ_PLOT_WIDTH) / length;
-            let h = height - barHeight / 2;
-            if (h > 0) {
-              // context.fillRect(x, h, barWidth, barHeight);
+          function renderPlot() {
+            const canvas = freqcanvas;
+
+            const height = canvas.height;
+            const width = canvas.width;
+
+            const context: CanvasRenderingContext2D = canvas.getContext("2d");
+            context.clearRect(0, 0, width, height);
+            context.fillStyle = "rgb(220,100,0)";
+            const length = data.length;
+
+            const barWidth = (width / length) * 1.0;
+
+            for (let i = 0; i < data.length; i++) {
+              let value = data[i];
+
+              //finding the frequency from the index
+              let frequency = Math.round((i * 44100) / 2 / length);
+              let barHeight = Math.log10(value + 1) * FREQ_PLOT_HEIGHT;
+              //finding the x location px from the frequency
+              // let x = frequencyToXAxis(frequency);
+              let x = (i * FREQ_PLOT_WIDTH) / length;
+              let h = height - barHeight / 2;
+              if (h > 0) {
+                // context.fillRect(x, h, barWidth, barHeight);
+              }
             }
-          }
 
-          let coeffs = biquad(
-            filter_bank[0].gain,
-            filter_bank[0].freq,
-            filter_bank[0].Q
-          );
-
-          const curve = freq_response(coeffs, 512);
-          // console.log(curve);
-
-          context.beginPath();
-          context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
-          for (let i = 1; i < curve.length; i++) {
-            context.lineTo(
-              (i / curve.length) * FREQ_PLOT_WIDTH,
-              (curve[i] * FREQ_PLOT_HEIGHT) / 4
+            let coeffs = biquad(
+              filter_bank[0].gain,
+              filter_bank[0].freq,
+              filter_bank[0].Q
             );
-            // context.lineTo(i, FREQ_PLOT_HEIGHT/2)
+
+            const curve = freq_response(coeffs, 256);
+
+            context.beginPath();
+            context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
+            for (let i = 0; i < curve.length; i++) {
+              context.lineTo(
+                (i / curve.length) * FREQ_PLOT_WIDTH,
+                (curve[i] * FREQ_PLOT_HEIGHT) / 8
+              );
+              // context.lineTo(i, FREQ_PLOT_HEIGHT/2)
+            }
+            context.lineWidth = 2;
+            context.strokeStyle = "rgb(200,120,140)";
+            context.stroke();
           }
-          context.lineWidth = 2;
-          context.strokeStyle = "rgb(200,120,140)";
-          context.stroke();
-        }
-        data && requestAnimationFrame(renderPlot);
-      })
-      .catch((e) => {
-        // console.log(e);
-        function renderPlot() {
-          const canvas = freqcanvas;
-
-          const height = canvas.height;
-          const width = canvas.width;
-
-          const context: CanvasRenderingContext2D = canvas.getContext("2d");
-          context.clearRect(0, 0, width, height);
-          context.fillStyle = "rgb(220,100,0)";
-
-          let coeffs = biquad(
-            filter_bank[0].gain,
-            filter_bank[0].freq,
-            filter_bank[0].Q
-          );
-
-          const curve = freq_response(coeffs, 512);
-          // console.log(curve);
-
-          context.beginPath();
-          context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
-          for (let i = 1; i < curve.length; i++) {
-            context.lineTo(
-              (i / curve.length) * FREQ_PLOT_WIDTH,
-              (curve[i] * FREQ_PLOT_HEIGHT) / 4
-            );
-            // context.lineTo(i, FREQ_PLOT_HEIGHT/2)
-          }
-          context.lineWidth = 2;
-          context.strokeStyle = "rgb(200,120,140)";
-          context.stroke();
-        }
-        requestAnimationFrame(renderPlot);
-      });
+          data && requestAnimationFrame(renderPlot);
+        })
+        .catch((e) => {
+          console.log(e);
+        });
+    }
   }
 
   // $: selectedRecording, get_time_data();

@@ -1,6 +1,5 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/tauri";
-  import { resolveResource } from "@tauri-apps/api/path";
   import { onMount } from "svelte";
   import Plot from "./plot.svelte";
   import { FREQ_PLOT_WIDTH, num_sliders } from "./constants.svelte";
@@ -12,7 +11,7 @@
   export const Qs = [0.5, 0.5, 0.5, 0.5, 0.5];
 
   let filter_bank: Array<BPF> = Array(num_sliders).fill(0).map(() => {
-    return { gain: 2, freq: 10000, Q: 0.2 };
+    return { gain: 10, freq: 1000, Q: 1 };
   });
 
 
@@ -23,17 +22,15 @@
   // await invoke("play_wav", { path: s });
   // });
 
-  let alpha = 500;
   let time = 0;
   let selectedRecording = "";
   let is_playing = false;
 
   onMount(async () => {
-    const resourcePath = await resolveResource("assets/test-file.wav");
+    // const resourcePath = await resolveResource("assets/test-file.wav");
     // const langDe = JSON.parse(await readTextFile(resourcePath));
     // console.log(langDe);
     selectedRecording = "test-file.wav";
-
     resetInterval();
   });
 

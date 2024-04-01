@@ -6,6 +6,8 @@
 	let el: HTMLElement;
 
 	let height = 52;
+	let is_dragging = false;
+	let is_hovering = false;
 
 	function draggable() {
 		if (el === null) {
@@ -15,7 +17,7 @@
 			// var offsetX = e.clientX - 10;
 			var offsetY = e.clientY - position;
 			function mouseMoveHandler(e: any) {
-				if (el === null) {
+				if (el === null || !is_hovering) {
 					return;
 				}
 
@@ -23,7 +25,9 @@
 				position = Math.max(Math.min(position, height), 1);
 				el.style.top = position + "px";
 				// el.style.left = e.clientX - offsetX + "px";
-				value = position / height;
+				value = (0.5-(position / height))*20;
+				console.log(value)
+
 			}
 
 			function reset() {
@@ -40,8 +44,6 @@
 		draggable();
 	});
 
-	let is_dragging = false;
-	let is_hovering = false;
 
 </script>
 
@@ -83,11 +85,11 @@
 	}
 
 	.wrapper:hover {
-		border: 1px solid var(--orange);
+		border: 1px solid var(--lightpurple);
 	}
 
 	.wrapper[data-attribute="true"] {
-		border: 1px solid var(--orange);
+		border: 1px solid var(--lightpurple);
 	}
 
 	.thumb {
@@ -99,6 +101,6 @@
 	}
 
 	.thumb:active {
-		background: var(--orange);
+		background: var(--purple);
 	}
 </style>
