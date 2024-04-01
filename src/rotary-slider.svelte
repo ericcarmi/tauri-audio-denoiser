@@ -5,12 +5,12 @@
 	let indicator_el: HTMLElement;
 	let is_mouse_down = false;
 
-	export let value;
+	export let value: any;
 	let radius = 5;
 
 	let angle = 225;
-	$: angle, value = angle;
-
+	$: angle, value = (angle + 45)/270;
+	$: value, console.log(value)
 
 
 	function draggable() {

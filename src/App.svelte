@@ -2,17 +2,17 @@
   import { invoke } from "@tauri-apps/api/tauri";
   import { resolveResource } from "@tauri-apps/api/path";
   import { onMount } from "svelte";
-  import TimePlot from "./time-plot.svelte";
+  import Plot from "./plot.svelte";
   import { FREQ_PLOT_WIDTH, num_sliders } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
-  import type { BPF, FilterBank } from "./types.svelte";
+  import type { BPF } from "./types.svelte";
 
   export const gains = [1, 1, 1, 1, 1];
   export const freqs = [100, 100, 100, 100, 100];
   export const Qs = [0.5, 0.5, 0.5, 0.5, 0.5];
 
   let filter_bank: Array<BPF> = Array(num_sliders).fill(0).map(() => {
-    return { gain: 1, freq: 1000, Q: 0.5 };
+    return { gain: 2, freq: 10000, Q: 0.2 };
   });
 
 
@@ -67,7 +67,7 @@
 </script>
 
 <main class="container">
-  <TimePlot bind:filter_bank={filter_bank} {selectedRecording} {fft_data} />
+  <Plot bind:filter_bank={filter_bank} {selectedRecording} {fft_data} />
   <input
     style="width: {FREQ_PLOT_WIDTH}px;"
     class="time-slider"
