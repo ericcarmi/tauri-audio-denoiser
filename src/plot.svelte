@@ -199,27 +199,39 @@ void main() {
 
         const context: CanvasRenderingContext2D = canvas.getContext("2d");
         context.clearRect(0, 0, width, height);
-        context.fillStyle = "rgb(220,100,0)";
 
-        let coeffs = biquad(
-          filter_bank[0].gain,
-          filter_bank[0].freq,
-          filter_bank[0].Q
-        );
+        let N = 256;
+        let sum_curve: Array<number> = Array(N).fill(0);
 
-        const curve = freq_response(coeffs, 256);
-        console.log(coeffs,curve)
+        filter_bank.map((filt) => {
+          let coeffs = biquad(filt.gain, filt.freq, filt.Q);
+
+          const curve = freq_response(coeffs, N);
+
+          context.beginPath();
+          context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
+          for (let i = 0; i < N; i++) {
+            sum_curve[i] += curve[i];
+            context.lineTo(
+              (i / curve.length) * FREQ_PLOT_WIDTH,
+              (-curve[i] * FREQ_PLOT_HEIGHT) / 32 + FREQ_PLOT_HEIGHT / 2
+            );
+          }
+          context.lineWidth = 2;
+          context.strokeStyle = "rgb(200,120,140)";
+          context.stroke();
+        });
 
         context.beginPath();
         context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
-        for (let i = 0; i < curve.length; i++) {
+        for (let i = 0; i < N; i++) {
           context.lineTo(
-            (i / curve.length) * FREQ_PLOT_WIDTH,
-            -(curve[i] )*FREQ_PLOT_HEIGHT/32 + FREQ_PLOT_HEIGHT/2 
+            (i / N) * FREQ_PLOT_WIDTH,
+            (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 32 / 1 + FREQ_PLOT_HEIGHT / 2
           );
         }
         context.lineWidth = 2;
-        context.strokeStyle = "rgb(200,120,140)";
+        context.strokeStyle = "rgb(200,220,240)";
         context.stroke();
       }
       requestAnimationFrame(renderPlot);
@@ -257,25 +269,39 @@ void main() {
               }
             }
 
-            let coeffs = biquad(
-              filter_bank[0].gain,
-              filter_bank[0].freq,
-              filter_bank[0].Q
-            );
+            let N = 256;
+            let sum_curve: Array<number> = Array(N).fill(0);
 
-            const curve = freq_response(coeffs, 256);
+            filter_bank.map((filt) => {
+              let coeffs = biquad(filt.gain, filt.freq, filt.Q);
+
+              const curve = freq_response(coeffs, N);
+
+              context.beginPath();
+              context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
+              for (let i = 0; i < N; i++) {
+                sum_curve[i] += curve[i];
+                context.lineTo(
+                  (i / curve.length) * FREQ_PLOT_WIDTH,
+                  (-curve[i] * FREQ_PLOT_HEIGHT) / 32 + FREQ_PLOT_HEIGHT / 2
+                );
+              }
+              context.lineWidth = 2;
+              context.strokeStyle = "rgb(200,120,140)";
+              context.stroke();
+            });
 
             context.beginPath();
             context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
-            for (let i = 0; i < curve.length; i++) {
+            for (let i = 0; i < N; i++) {
               context.lineTo(
-                (i / curve.length) * FREQ_PLOT_WIDTH,
-                (curve[i] * FREQ_PLOT_HEIGHT) / 8
+                (i / N) * FREQ_PLOT_WIDTH,
+                (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 32 / 1 +
+                  FREQ_PLOT_HEIGHT / 2
               );
-              // context.lineTo(i, FREQ_PLOT_HEIGHT/2)
             }
             context.lineWidth = 2;
-            context.strokeStyle = "rgb(200,120,140)";
+            context.strokeStyle = "rgb(200,220,240)";
             context.stroke();
           }
           data && requestAnimationFrame(renderPlot);
