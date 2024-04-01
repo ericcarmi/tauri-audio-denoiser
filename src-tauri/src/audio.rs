@@ -86,7 +86,7 @@ where
             // check for messages sent to receiver...update things
             if let Ok(msg) = rx.try_recv() {
                 if let Some(filterbank) = msg.filter_bank {
-                    process_filterbank.coeffs = filterbank.coeffs.clone();
+                    process_filterbank = filterbank.clone();
                 }
                 if let Some(t) = msg.time {
                     time = (num_file_samples as f32 * t) as usize;
@@ -101,8 +101,9 @@ where
                 }
 
                 let sample = file_samples[time];
-                let filtered =
-                    process_filterbank.coeffs[0] * sample + process_filterbank.coeffs[1] * rb[0];
+                // let filtered =
+                //     process_filterbank.bp1[0] * sample + process_filterbank.coeffs[1] * rb[0];
+                let filtered = 0.0;
                 let v: T = T::from_sample(filtered);
                 rb.push(sample);
                 out_buf.push(sample);
@@ -125,15 +126,10 @@ where
 }
 
 #[tauri::command]
-pub fn update_filters(
-    alpha: f32,
-    streamsend: State<MStreamSend>,
-    mfilter_bank: State<MFilterBank>,
-) {
-    let mut filt = mfilter_bank.0.lock().unwrap();
+pub fn update_filters(fbank: FilterBank, streamsend: State<MStreamSend>) {
+    let filt = fbank.clone();
+    println!("{:?}", filt);
 
-    // filter bank shouldn't be needed as State if time isn't
-    filt.coeffs = vec![alpha, 1.0 - alpha];
     let _ = streamsend
         .0
         .lock()

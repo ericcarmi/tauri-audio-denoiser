@@ -1,24 +1,29 @@
 <script context="module" lang="ts">
-	import { FREQ_PLOT_WIDTH } from "./constants.svelte";
-
-	export type FilterBank = Record<string, Array<number>>;
-
-	export type Complex = {re: number, im: number};
-
+	export type Complex = { re: number; im: number };
 	export type BPF = {
-		gain: number,
-		freq: number,
-		Q: number,
-	}
+		gain: number;
+		freq: number;
+		Q: number;
+	};
+
+	export type FilterBank = {
+		bp1: FilterCoeffs2;
+		bp2: FilterCoeffs2;
+		bp3: FilterCoeffs2;
+		bp4: FilterCoeffs2;
+		bp5: FilterCoeffs2;
+	};
 
 	export type FilterCoeffs2 = {
-		b0: number,
-		b1: number,
-		b2: number,
-		a0: number,
-		a1: number,
-		a2: number,
-	}
+		b0: number;
+		b1: number;
+		b2: number;
+		a0: number;
+		a1: number;
+		a2: number;
+		x: [number, number];
+		y: [number, number];
+	};
 
 	export interface Recording {
 		created: string;
@@ -29,5 +34,4 @@
 		files: Array<any>;
 		showing: boolean;
 	}
-
 </script>

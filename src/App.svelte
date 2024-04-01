@@ -4,16 +4,20 @@
   import Plot from "./plot.svelte";
   import { FREQ_PLOT_WIDTH, num_sliders } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
-  import type { BPF } from "./types.svelte";
+  import type { BPF, FilterBank, FilterCoeffs2 } from "./types.svelte";
+  import { biquad } from "./functions.svelte";
 
   export const gains = [1, 1, 1, 1, 1];
   export const freqs = [100, 100, 100, 100, 100];
   export const Qs = [0.5, 0.5, 0.5, 0.5, 0.5];
 
-  let filter_bank: Array<BPF> = Array(num_sliders).fill(0).map(() => {
-    return { gain: 10, freq: 1000, Q: 1 };
-  });
+  let bpf_filters: Array<BPF> = Array(num_sliders)
+    .fill(0)
+    .map(() => {
+      return { gain: 10, freq: 1000, Q: 1 };
+    });
 
+  let filter_bank: FilterBank;
 
   // listen("tauri://file-drop", async (event) => {
   // console.log(event.payload);
@@ -32,6 +36,20 @@
     // console.log(langDe);
     selectedRecording = "test-file.wav";
     resetInterval();
+
+    let fbank: any = {};
+    for (let i = 0; i < num_sliders; i++) {
+      let gain = 10;
+      let freq = 1000;
+      let Q = 1;
+      let bpf: BPF = { gain: gain, freq: freq, Q: Q };
+      let coeffs = biquad(gain, freq, Q);
+      coeffs .x = [0,0]
+      coeffs .y = [0,0]
+      fbank[`bp${i + 1}`] = coeffs;
+    }
+
+    filter_bank = fbank as FilterBank;
   });
 
   let slider_values = Array(num_sliders).fill(0);
@@ -61,10 +79,16 @@
       is_playing ? 10 : 1000
     );
   }
+
+  function update_bpf_filters() {
+    let r = invoke("update_filters", {fbank: filter_bank});
+    console.log(r);
+  }
+  $: bpf_filters, update_bpf_filters();
 </script>
 
 <main class="container">
-  <Plot bind:filter_bank={filter_bank} {selectedRecording} {fft_data} />
+  <Plot bind:bpf_filters {selectedRecording} {fft_data} />
   <input
     style="width: {FREQ_PLOT_WIDTH}px;"
     class="time-slider"
@@ -115,7 +139,11 @@
     style="grid-template-columns:repeat({num_sliders}, auto)"
   >
     {#each slider_values as val, i}
-      <BandpassSlider bind:gain={filter_bank[i].gain} bind:freq={filter_bank[i].freq} bind:Q={filter_bank[i].Q} />
+      <BandpassSlider
+        bind:gain={bpf_filters[i].gain}
+        bind:freq={bpf_filters[i].freq}
+        bind:Q={bpf_filters[i].Q}
+      />
     {/each}
   </div>
 </main>

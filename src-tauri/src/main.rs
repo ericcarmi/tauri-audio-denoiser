@@ -2,7 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use cpal::traits::StreamTrait;
 use std::sync::Mutex;
-use tauri::{AppHandle, Manager, State, Window};
+use tauri::{Manager, State};
 mod audio;
 use audio::*;
 mod types;
@@ -20,7 +20,6 @@ fn main() {
             let (ui_tx, rx) = tauri::async_runtime::channel::<Vec<f32>>(2);
             let (stream, tx) = setup_stream(ui_tx).unwrap();
             let _ = stream.pause();
-            //...wait is this tx needed? thought that can be duplicated elsewhere...
             let mtx = Mutex::new(tx);
 
             Mutex::new(StreamSend {
@@ -28,10 +27,6 @@ fn main() {
                 msender: MSender(mtx),
                 mreceiver: MUIReceiver(Mutex::new(rx)),
             })
-        }))
-        .manage(MFilterBank({
-            let fbank = FilterBank::new();
-            Mutex::new(fbank)
         }))
         .invoke_handler(tauri::generate_handler![
             play_stream,

@@ -18,7 +18,7 @@
     TIME_PLOT_WIDTH,
   } from "./constants.svelte";
 
-  export let filter_bank: Array<BPF>;
+  export let bpf_filters: Array<BPF>;
 
   let is_loading = false;
   export let fft_data: any;
@@ -191,50 +191,6 @@ void main() {
 
   function update_fft() {
     if (fft_data === undefined) {
-      function renderPlot() {
-        const canvas = freqcanvas;
-
-        const height = canvas.height;
-        const width = canvas.width;
-
-        const context: CanvasRenderingContext2D = canvas.getContext("2d");
-        context.clearRect(0, 0, width, height);
-
-        let N = 256;
-        let sum_curve: Array<number> = Array(N).fill(0);
-
-        filter_bank.map((filt) => {
-          let coeffs = biquad(filt.gain, filt.freq, filt.Q);
-
-          const curve = freq_response(coeffs, N);
-
-          context.beginPath();
-          context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
-          for (let i = 0; i < N; i++) {
-            sum_curve[i] += curve[i];
-            context.lineTo(
-              (i / curve.length) * FREQ_PLOT_WIDTH,
-              (-curve[i] * FREQ_PLOT_HEIGHT) / 32 + FREQ_PLOT_HEIGHT / 2
-            );
-          }
-          context.lineWidth = 2;
-          context.strokeStyle = "rgb(200,120,140)";
-          context.stroke();
-        });
-
-        context.beginPath();
-        context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
-        for (let i = 0; i < N; i++) {
-          context.lineTo(
-            (i / N) * FREQ_PLOT_WIDTH,
-            (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 32 / 1 + FREQ_PLOT_HEIGHT / 2
-          );
-        }
-        context.lineWidth = 2;
-        context.strokeStyle = "rgb(200,220,240)";
-        context.stroke();
-      }
-      requestAnimationFrame(renderPlot);
     } else {
       let data = Promise.resolve(fft_data);
       data
@@ -268,41 +224,6 @@ void main() {
                 // context.fillRect(x, h, barWidth, barHeight);
               }
             }
-
-            let N = 256;
-            let sum_curve: Array<number> = Array(N).fill(0);
-
-            filter_bank.map((filt) => {
-              let coeffs = biquad(filt.gain, filt.freq, filt.Q);
-
-              const curve = freq_response(coeffs, N);
-
-              context.beginPath();
-              context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
-              for (let i = 0; i < N; i++) {
-                sum_curve[i] += curve[i];
-                context.lineTo(
-                  (i / curve.length) * FREQ_PLOT_WIDTH,
-                  (-curve[i] * FREQ_PLOT_HEIGHT) / 32 + FREQ_PLOT_HEIGHT / 2
-                );
-              }
-              context.lineWidth = 2;
-              context.strokeStyle = "rgb(200,120,140)";
-              context.stroke();
-            });
-
-            context.beginPath();
-            context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
-            for (let i = 0; i < N; i++) {
-              context.lineTo(
-                (i / N) * FREQ_PLOT_WIDTH,
-                (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 32 / 1 +
-                  FREQ_PLOT_HEIGHT / 2
-              );
-            }
-            context.lineWidth = 2;
-            context.strokeStyle = "rgb(200,220,240)";
-            context.stroke();
           }
           data && requestAnimationFrame(renderPlot);
         })
@@ -312,9 +233,55 @@ void main() {
     }
   }
 
+  function update_filter_bank(should_clear: boolean) {
+    function renderPlot() {
+      const canvas = freqcanvas;
+
+      const height = canvas.height;
+      const width = canvas.width;
+
+      const context: CanvasRenderingContext2D = canvas.getContext("2d");
+      if(should_clear) context.clearRect(0, 0, width, height);
+
+      let N = 256;
+      let sum_curve: Array<number> = Array(N).fill(0);
+
+      bpf_filters.map((filt) => {
+        let coeffs = biquad(filt.gain, filt.freq, filt.Q);
+        const curve = freq_response(coeffs, N);
+
+        context.beginPath();
+        context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
+        for (let i = 0; i < N; i++) {
+          sum_curve[i] += curve[i];
+          context.lineTo(
+            (i / curve.length) * FREQ_PLOT_WIDTH,
+            (-curve[i] * FREQ_PLOT_HEIGHT) / 32 + FREQ_PLOT_HEIGHT / 2
+          );
+        }
+        context.lineWidth = 2;
+        context.strokeStyle = "rgb(200,120,140)";
+        context.stroke();
+      });
+
+      context.beginPath();
+      context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
+      for (let i = 0; i < N; i++) {
+        context.lineTo(
+          (i / N) * FREQ_PLOT_WIDTH,
+          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 32 / 1 + FREQ_PLOT_HEIGHT / 2
+        );
+      }
+      context.lineWidth = 2;
+      context.strokeStyle = "rgb(200,220,240)";
+      context.stroke();
+    }
+    requestAnimationFrame(renderPlot);
+  }
+
   // $: selectedRecording, get_time_data();
-  $: fft_data, update_fft();
-  $: filter_bank, update_fft();
+  $: fft_data, update_fft(), update_filter_bank(false);
+  $: bpf_filters, update_filter_bank(true);
 </script>
 
 <div>
