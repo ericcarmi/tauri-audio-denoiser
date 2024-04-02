@@ -61,7 +61,7 @@ impl IIR2 {
         self.b1 = iir.b1;
         self.b2 = iir.b2;
         self.a0 = iir.a0;
-        self.a1 = iir.a2;
+        self.a1 = iir.a1;
         self.a2 = iir.a2;
     }
 }
