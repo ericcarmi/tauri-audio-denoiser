@@ -14,7 +14,7 @@
   let bpf_filters: Array<BPF> = Array(num_sliders)
     .fill(0)
     .map(() => {
-      return { gain: 10, freq: 1000, Q: 1 };
+      return { gain: -1, freq: 1000, Q: 1 };
     });
 
   let filter_bank: FilterBank;
@@ -44,8 +44,8 @@
       let Q = 1;
       let bpf: BPF = { gain: gain, freq: freq, Q: Q };
       let coeffs = biquad(gain, freq, Q);
-      coeffs .x = [0,0]
-      coeffs .y = [0,0]
+      coeffs.x = [0, 0];
+      coeffs.y = [0, 0];
       fbank[`bp${i + 1}`] = coeffs;
     }
 
@@ -75,16 +75,17 @@
           // console.log(fft_data)
         }
       },
-      // this works for now, just have to call resetInterval after pressing buttons
+      // this works for now, just have to call resetInterval after pressing button
       is_playing ? 10 : 1000
     );
   }
 
   function update_bpf_filters() {
-    let r = invoke("update_filters", {fbank: filter_bank});
-    console.log(r);
+    // console.log("change");
+    // let r = invoke("update_filters", { bp1: b });
   }
-  $: bpf_filters, update_bpf_filters();
+
+  // $: bpf_filters, update_bpf_filters();
 </script>
 
 <main class="container">
@@ -94,6 +95,7 @@
     class="time-slider"
     type="range"
     data-attribute={is_time_slider_dragging}
+
     min={0}
     max={100000}
     bind:value={time}
@@ -143,6 +145,7 @@
         bind:gain={bpf_filters[i].gain}
         bind:freq={bpf_filters[i].freq}
         bind:Q={bpf_filters[i].Q}
+        index={i+1}
       />
     {/each}
   </div>

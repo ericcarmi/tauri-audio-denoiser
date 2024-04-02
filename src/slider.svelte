@@ -26,7 +26,7 @@
 				el.style.top = position + "px";
 				// el.style.left = e.clientX - offsetX + "px";
 				value = (0.5-(position / height))*20;
-				console.log(value)
+				// console.log(value)
 
 			}
 

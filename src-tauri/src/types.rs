@@ -46,7 +46,7 @@ impl IIR2 {
     pub fn process(&mut self, data: f32) -> f32 {
         let out = (self.b0 * data + self.b1 * self.x[0] + self.b2 * self.x[1]
             - self.a1 * self.y[0]
-            + self.a2 * self.y[1])
+            - self.a2 * self.y[1])
             / self.a0;
         self.x[1] = self.x[0];
         self.x[0] = data;
@@ -54,6 +54,15 @@ impl IIR2 {
         self.y[0] = out;
 
         out
+    }
+
+    pub fn update_coeffs(&mut self, iir: IIR2) {
+        self.b0 = iir.b0;
+        self.b1 = iir.b1;
+        self.b2 = iir.b2;
+        self.a0 = iir.a0;
+        self.a1 = iir.a2;
+        self.a2 = iir.a2;
     }
 }
 
@@ -69,7 +78,6 @@ pub struct FilterBank {
 impl FilterBank {
     pub fn new() -> Self {
         let bp = IIR2::new();
-
         Self {
             bp1: bp,
             bp2: bp,
@@ -78,11 +86,19 @@ impl FilterBank {
             bp5: bp,
         }
     }
+    // function to process filter bank in parallel
+    pub fn process(&self, data: f32) -> f32 {
+        0.0
+    }
 }
 
 // use options with everything...a little annoying but then use None when passing to ignore most sub-structs
 #[derive(Clone)]
 pub struct Message {
-    pub filter_bank: Option<FilterBank>,
     pub time: Option<f32>,
+    pub bp1: Option<IIR2>,
+    pub bp2: Option<IIR2>,
+    pub bp3: Option<IIR2>,
+    pub bp4: Option<IIR2>,
+    pub bp5: Option<IIR2>,
 }

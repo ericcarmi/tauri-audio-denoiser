@@ -10,7 +10,7 @@
 
 	let angle = -45;
 	$: angle, value = (1-((angle + 45) / 270))*10 + 0.01;
-	$: value, console.log(value);
+	// $: value, console.log(value);
 
 	function draggable() {
 		if (el === null) {

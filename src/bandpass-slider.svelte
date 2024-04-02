@@ -1,11 +1,40 @@
 <script lang="ts">
 	import Slider from "./slider.svelte";
 	import RotarySlider from "./rotary-slider.svelte";
-
+	import { invoke } from "@tauri-apps/api/tauri";
+    import { biquad } from "./functions.svelte";
 
 	export let gain = 0;
 	export let freq = 1000;
 	export let Q = 1;
+
+	export let index: number;
+
+	function update() {
+		console.log("change", index);
+		let b = biquad(gain, freq, Q)
+		b.x = [0,0]
+		b.y = [0,0]
+		if (index == 1) {
+			invoke("update_filters", { bp1: b });
+		}
+		else if (index == 2) {
+			invoke("update_filters", { bp2: b });
+		}
+		else if (index == 3) {
+			invoke("update_filters", { bp3: b });
+		}
+		else if (index == 4) {
+			invoke("update_filters", { bp4: b });
+		}
+		else if (index == 5) {
+			invoke("update_filters", { bp5: b });
+		}
+	}
+
+	$: gain, update();
+	$: freq, update();
+	$: Q, update();
 </script>
 
 <div class="wrapper">
@@ -13,7 +42,14 @@
 		<RotarySlider bind:value={Q} />
 		<Slider bind:value={gain} />
 	</div>
-	<input class="freq-slider" type="range" min={40} max={20000} step={1} bind:value={freq} />
+	<input
+		class="freq-slider"
+		type="range"
+		min={40}
+		max={10000}
+		step={0.1}
+		bind:value={freq}
+	/>
 </div>
 
 <style>

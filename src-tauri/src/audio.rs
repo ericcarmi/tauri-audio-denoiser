@@ -70,8 +70,8 @@ where
     let (tx, mut rx) = tauri::async_runtime::channel::<Message>(1);
     let mut process_filterbank = FilterBank::new();
 
-    let mut rb = dasp_ring_buffer::Bounded::from(vec![0.0; 1]);
-    rb.push(0.0);
+    // let mut rb = dasp_ring_buffer::Bounded::from(vec![0.0; 1]);
+    // rb.push(0.0);
     // rb.push(0.0);
     // rb.push(0.0);
     // rb.push(0.0);
@@ -85,13 +85,26 @@ where
         move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
             // check for messages sent to receiver...update things
             if let Ok(msg) = rx.try_recv() {
-                if let Some(filterbank) = msg.filter_bank {
-                    process_filterbank = filterbank.clone();
+                if let Some(bp) = msg.bp1 {
+                    process_filterbank.bp1.update_coeffs(bp);
+                }
+                if let Some(bp) = msg.bp2 {
+                    process_filterbank.bp2.update_coeffs(bp);
+                }
+                if let Some(bp) = msg.bp3 {
+                    process_filterbank.bp3.update_coeffs(bp);
+                }
+                if let Some(bp) = msg.bp4 {
+                    process_filterbank.bp4.update_coeffs(bp);
+                }
+                if let Some(bp) = msg.bp5 {
+                    process_filterbank.bp5.update_coeffs(bp);
                 }
                 if let Some(t) = msg.time {
                     time = (num_file_samples as f32 * t) as usize;
                 }
             }
+            // println!("{:?}", process_filterbank);
 
             // ...each frame has 2 samples
             let mut out_buf = vec![];
@@ -101,11 +114,9 @@ where
                 }
 
                 let sample = file_samples[time];
-                // let filtered =
-                //     process_filterbank.bp1[0] * sample + process_filterbank.coeffs[1] * rb[0];
-                let filtered = 0.0;
+                let filtered = process_filterbank.bp1.process(sample);
+                // let filtered = sample;
                 let v: T = T::from_sample(filtered);
-                rb.push(sample);
                 out_buf.push(sample);
 
                 // copying to all channels for now
@@ -115,7 +126,9 @@ where
                 time += 1;
             }
             // send a chunk of the fft here
-            let r = tx_ui.try_send(mfft(out_buf));
+            let r = tx_ui.try_send(mfft(out_buf.clone()));
+            // println!("{:?}", out_buf);
+
             // println!("{:?}", r);
         },
         err_fn,
@@ -126,10 +139,14 @@ where
 }
 
 #[tauri::command]
-pub fn update_filters(fbank: FilterBank, streamsend: State<MStreamSend>) {
-    let filt = fbank.clone();
-    println!("{:?}", filt);
-
+pub fn update_filters(
+    bp1: Option<IIR2>,
+    bp2: Option<IIR2>,
+    bp3: Option<IIR2>,
+    bp4: Option<IIR2>,
+    bp5: Option<IIR2>,
+    streamsend: State<MStreamSend>,
+) {
     let _ = streamsend
         .0
         .lock()
@@ -139,8 +156,12 @@ pub fn update_filters(fbank: FilterBank, streamsend: State<MStreamSend>) {
         .lock()
         .unwrap()
         .try_send(Message {
-            filter_bank: Some(filt.clone()),
             time: None,
+            bp1,
+            bp2,
+            bp3,
+            bp4,
+            bp5,
         });
 }
 
@@ -155,7 +176,11 @@ pub fn update_time(t: f32, streamsend: State<MStreamSend>) {
         .lock()
         .unwrap()
         .try_send(Message {
-            filter_bank: None,
             time: Some(t),
+            bp1: None,
+            bp2: None,
+            bp3: None,
+            bp4: None,
+            bp5: None,
         });
 }

@@ -190,47 +190,44 @@ void main() {
   var last_bar_heights = Array(256).fill(0);
 
   function update_fft() {
-    if (fft_data === undefined) {
-    } else {
-      let data = Promise.resolve(fft_data);
-      data
-        .then((r: any) => {
-          let data = r;
+    let data = Promise.resolve(fft_data);
+    data
+      .then((r: any) => {
+        let data = r;
 
-          function renderPlot() {
-            const canvas = freqcanvas;
+        function renderPlot() {
+          const canvas = freqcanvas;
 
-            const height = canvas.height;
-            const width = canvas.width;
+          const height = canvas.height;
+          const width = canvas.width;
 
-            const context: CanvasRenderingContext2D = canvas.getContext("2d");
-            context.clearRect(0, 0, width, height);
-            context.fillStyle = "rgb(220,100,0)";
-            const length = data.length;
+          const context: CanvasRenderingContext2D = canvas.getContext("2d");
+          context.clearRect(0, 0, width, height);
+          context.fillStyle = "rgb(220,100,0)";
+          const length = data.length;
 
-            const barWidth = (width / length) * 1.0;
+          const barWidth = (width / length) * 1.0;
 
-            for (let i = 0; i < data.length; i++) {
-              let value = data[i];
+          for (let i = 0; i < data.length; i++) {
+            let value = data[i];
 
-              //finding the frequency from the index
-              let frequency = Math.round((i * 44100) / 2 / length);
-              let barHeight = Math.log10(value + 1) * FREQ_PLOT_HEIGHT;
-              //finding the x location px from the frequency
-              // let x = frequencyToXAxis(frequency);
-              let x = (i * FREQ_PLOT_WIDTH) / length;
-              let h = height - barHeight / 2;
-              if (h > 0) {
-                // context.fillRect(x, h, barWidth, barHeight);
-              }
+            //finding the frequency from the index
+            let frequency = Math.round((i * 44100) / 2 / length);
+            let barHeight = Math.log10(value + 1) * FREQ_PLOT_HEIGHT;
+            //finding the x location px from the frequency
+            // let x = frequencyToXAxis(frequency);
+            let x = (i * FREQ_PLOT_WIDTH) / length;
+            let h = height - barHeight / 2;
+            if (h > 0) {
+              context.fillRect(x, h, barWidth, barHeight);
             }
           }
-          data && requestAnimationFrame(renderPlot);
-        })
-        .catch((e) => {
-          console.log(e);
-        });
-    }
+        }
+        data && requestAnimationFrame(renderPlot);
+      })
+      .catch((e) => {
+        console.log(e);
+      });
   }
 
   function update_filter_bank(should_clear: boolean) {
@@ -241,7 +238,7 @@ void main() {
       const width = canvas.width;
 
       const context: CanvasRenderingContext2D = canvas.getContext("2d");
-      if(should_clear) context.clearRect(0, 0, width, height);
+      if (should_clear) context.clearRect(0, 0, width, height);
 
       let N = 256;
       let sum_curve: Array<number> = Array(N).fill(0);
