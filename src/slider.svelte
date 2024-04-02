@@ -4,6 +4,7 @@
 	export let value;
 	let position = 0;
 	let el: HTMLElement;
+	let indicator: HTMLElement;
 
 	let height = 52;
 	let is_dragging = false;
