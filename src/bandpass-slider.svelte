@@ -2,32 +2,31 @@
 	import Slider from "./slider.svelte";
 	import RotarySlider from "./rotary-slider.svelte";
 	import { invoke } from "@tauri-apps/api/tauri";
-    import { biquad } from "./functions.svelte";
+	import { biquad } from "./functions.svelte";
+	import { onMount } from "svelte";
+	import type { BPF } from "./types.svelte";
 
 	export let gain = 0;
 	export let freq = 1000;
 	export let Q = 1;
 
+	export let bpf: BPF = { gain: gain, freq: freq, Q: Q };
+
 	export let index: number;
 
 	function update() {
-		console.log("change", index);
-		let b = biquad(gain, freq, Q)
-		b.x = [0,0]
-		b.y = [0,0]
+		let b = biquad(gain, freq, Q);
+		b.x = [0, 0];
+		b.y = [0, 0];
 		if (index == 1) {
 			invoke("update_filters", { bp1: b });
-		}
-		else if (index == 2) {
+		} else if (index == 2) {
 			invoke("update_filters", { bp2: b });
-		}
-		else if (index == 3) {
+		} else if (index == 3) {
 			invoke("update_filters", { bp3: b });
-		}
-		else if (index == 4) {
+		} else if (index == 4) {
 			invoke("update_filters", { bp4: b });
-		}
-		else if (index == 5) {
+		} else if (index == 5) {
 			invoke("update_filters", { bp5: b });
 		}
 	}
@@ -35,6 +34,9 @@
 	$: gain, update();
 	$: freq, update();
 	$: Q, update();
+	onMount(() => {
+		// console.log(gain, freq, Q, bpf);
+	});
 </script>
 
 <div class="wrapper">

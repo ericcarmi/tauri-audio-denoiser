@@ -18,6 +18,14 @@ pub struct StreamSend {
     pub mreceiver: MUIReceiver,
 }
 
+#[allow(non_snake_case)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug)]
+pub struct Bpf {
+    pub gain: f32,
+    pub freq: f32,
+    pub Q: f32,
+}
+
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct IIR2 {
     pub b0: f32,
@@ -93,6 +101,7 @@ impl FilterBank {
 }
 
 // use options with everything...a little annoying but then use None when passing to ignore most sub-structs
+// this struct is for messages sent from UI to audio thread
 #[derive(Clone)]
 pub struct Message {
     pub time: Option<f32>,

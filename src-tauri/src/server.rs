@@ -1,4 +1,7 @@
-use crate::constants::*;
+use crate::{
+    constants::*,
+    types::{Bpf, FilterBank},
+};
 use redis::AsyncCommands;
 use rustfft::{num_complex::Complex, FftPlanner};
 use tauri::{AppHandle, State};
@@ -129,5 +132,69 @@ async fn redis_set_file_fft(file_name: &str) -> redis::RedisResult<()> {
     x
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Thing {}
+async fn redis_save_global_state(bpfs: Vec<Bpf>) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+    // println!("{:?}", bpfs);
+
+    for (i, bpf) in bpfs.iter().enumerate() {
+        let a: Result<(), redis::RedisError> = con.set(format!("gain-{}", i + 1), bpf.gain).await;
+        if a.is_err() {
+            return a;
+        }
+        let b: Result<(), redis::RedisError> = con.set(format!("freq-{}", i + 1), bpf.freq).await;
+        if b.is_err() {
+            return b;
+        }
+        let c: Result<(), redis::RedisError> = con.set(format!("Q-{}", i + 1), bpf.Q).await;
+        if c.is_err() {
+            return c;
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn save_global_state(bpfs: Vec<Bpf>) {
+    let r = redis_save_global_state(bpfs).await;
+    println!("{:?}", r);
+}
+
+async fn redis_get_global_state() -> redis::RedisResult<Vec<Bpf>> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+
+    let mut bpfs = vec![];
+    for i in 0..5 {
+        let gain: Result<f32, redis::RedisError> = con.get(format!("gain-{}", i + 1)).await;
+        if gain.is_err() {
+            // this isn't good but weird since this needs to turn bpf and redis result
+            return Ok(bpfs);
+        }
+        let freq: Result<f32, redis::RedisError> = con.get(format!("freq-{}", i + 1)).await;
+        if freq.is_err() {
+            return Ok(bpfs);
+        }
+        let Q: Result<f32, redis::RedisError> = con.get(format!("Q-{}", i + 1)).await;
+        if Q.is_err() {
+            return Ok(bpfs);
+        }
+        bpfs.push(Bpf {
+            gain: gain.unwrap(),
+            freq: freq.unwrap(),
+            Q: Q.unwrap(),
+        })
+    }
+
+    Ok(bpfs)
+}
+
+#[tauri::command]
+pub async fn get_global_state() -> Result<Vec<Bpf>, String> {
+    if let Ok(bpfs) = redis_get_global_state().await {
+        Ok(bpfs)
+    } else {
+        Err("failed to get global state".to_string())
+    }
+}

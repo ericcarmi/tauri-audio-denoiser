@@ -7,13 +7,13 @@
   import type { BPF, FilterBank, FilterCoeffs2 } from "./types.svelte";
   import { biquad } from "./functions.svelte";
 
-  export const gains = [10, 0, 0, 0, 0];
-  export const freqs = [2000, 500, 1000, 200, 3000];
-  export const Qs = [0.5, 0.5, 0.5, 0.5, 0.5];
+  var gains = [10, 0, 0, 0, 0];
+  var freqs = [2000, 500, 1000, 200, 10000];
+  var Qs = [0.5, 0.5, 0.5, 0.5, 50.5];
 
   let bpf_filters: Array<BPF> = Array(num_sliders)
     .fill(0)
-    .map((_,i) => {
+    .map((_, i) => {
       return { gain: gains[i], freq: freqs[i], Q: Qs[i] };
     });
 
@@ -52,6 +52,12 @@
     }
 
     filter_bank = fbank as FilterBank;
+
+    // load from server
+    let bpfs: Array<BPF> = await invoke("get_global_state");
+    bpf_filters = [...bpfs]
+    console.log(bpf_filters)
+
   });
 
   let slider_values = Array(num_sliders).fill(0);
@@ -81,7 +87,6 @@
       is_playing ? 10 : 1000
     );
   }
-
 </script>
 
 <main class="container">
@@ -129,6 +134,23 @@
     >
       {clean ? "clean" : "dirty"}
     </button>
+
+    <button
+      on:click={() => {
+        let r = invoke("save_global_state", { bpfs: bpf_filters });
+        console.log(r);
+      }}
+    >
+      set
+    </button>
+    <button
+      on:click={async () => {
+        let r = await invoke("get_global_state");
+        console.log(r);
+      }}
+    >
+      get
+    </button>
   </div>
 
   <div
@@ -137,6 +159,7 @@
   >
     {#each slider_values as val, i}
       <BandpassSlider
+        bind:bpf={bpf_filters[i]}
         bind:gain={bpf_filters[i].gain}
         bind:freq={bpf_filters[i].freq}
         bind:Q={bpf_filters[i].Q}

@@ -41,6 +41,8 @@ fn main() {
             get_file_fft,
             set_file_fft,
             get_fft_plot_data,
+            save_global_state,
+            get_global_state,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();

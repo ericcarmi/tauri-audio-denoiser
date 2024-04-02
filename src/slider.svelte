@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 
-	export let value;
+	export let value: number;
 	let position = 0;
 	let el: HTMLElement;
 	let indicator: HTMLElement;
 
 	let height = 52;
 	let is_dragging = false;
-	let is_hovering = false;
+
+	// $: value, (value = (0.5 - position / height) * 30);
 
 	function draggable() {
 		if (el === null) {
@@ -66,6 +67,11 @@
 	}
 	onMount(() => {
 		draggable();
+		// console.log('huh', position, value);
+		position = ((value + 15) / 30) * el.clientHeight;
+		// console.log(el.clientHeight)
+
+		position = Math.max(Math.min(position, height), 1);
 	});
 </script>
 
@@ -75,12 +81,6 @@
 	data-attribute={is_dragging}
 	role="button"
 	tabindex={-1}
-	on:mouseenter={() => {
-		is_hovering = true;
-	}}
-	on:mouseleave={() => {
-		is_hovering = false;
-	}}
 	on:mousedown={(e) => {
 		is_dragging = true;
 		let wrap_position = el.offsetTop;

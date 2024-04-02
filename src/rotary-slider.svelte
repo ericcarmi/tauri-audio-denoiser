@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { invoke } from "@tauri-apps/api/tauri";
 	import { onMount } from "svelte";
 
 	let el: HTMLElement;
@@ -9,8 +10,31 @@
 	let radius = 12;
 
 	let angle = 225;
-	$: angle, (value = (1 - (angle + 45) / 270) * 10 + 0.01);
-	// $: value, console.log(value);
+	$: value, redraw();
+
+	function redraw() {
+		if (!is_mouse_down && indicator_el !== undefined && el !== undefined) {
+			angle = 1 + ((10.01 - value) / 10) * 270 - 45;
+			const x = radius * Math.cos((angle * Math.PI) / 180);
+			const y = -radius * Math.sin((angle * Math.PI) / 180);
+
+			indicator_el.style.transform = `scale(0.1) translate(${x}em, ${y}em)`;
+			indicator_el.style.background = `linear-gradient(${
+				90 - angle
+			}deg, var(--gray50) 0%,  var(--purple) 100%)`;
+			let a = (1 - (angle + 45) / 270) * 40;
+			let highlight = Math.round(a);
+			colors = Array(num_indicators)
+				.fill(0)
+				.map((_, idx) => {
+					if (highlight > idx) {
+						return "var(--lightpurple)";
+					} else {
+						return "black";
+					}
+				});
+		}
+	}
 
 	function draggable() {
 		if (el === null) {
@@ -31,6 +55,8 @@
 				angle += (-e.movementX + e.movementY) * 3;
 				angle = Math.max(Math.min(angle, 225), -45);
 
+				value = (1 - (angle + 45) / 270) * 10 + 0.01;
+
 				const x = radius * Math.cos((angle * Math.PI) / 180);
 				const y = -radius * Math.sin((angle * Math.PI) / 180);
 
@@ -38,8 +64,7 @@
 				indicator_el.style.background = `linear-gradient(${
 					90 - angle
 				}deg, var(--gray50) 0%,  var(--purple) 100%)`;
-				let a = (1-(angle + 45) / 270) * 40;
-				console.log(a);
+				let a = (1 - (angle + 45) / 270) * 40;
 				let highlight = Math.round(a);
 				colors = Array(num_indicators)
 					.fill(0)
@@ -50,11 +75,16 @@
 							return "black";
 						}
 					});
+				// if you want to color circle also...but ticks are enough for now
+				// let b = Math.round((a / 40) * 50);
+				// el.style.background = `radial-gradient(var(--gray150) ${b}% ,var(--gray100) 100%)`;
 			}
 
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
 				is_mouse_down = false;
+				console.log("save to db now");
+        // let r = invoke("save_global_state", { bpfs: bpf_filters });
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}
