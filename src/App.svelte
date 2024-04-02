@@ -165,6 +165,9 @@
   input[type="range"]::-webkit-slider-thumb:active {
     background: var(--lightpurple);
   }
+	input[type="range"][data-attribute="true"]::-webkit-slider-thumb{
+		background: var(--purple);
+	}
 
   input[type="range"]::-webkit-slider-runnable-track {
     background: var(--gray100);

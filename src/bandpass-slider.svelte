@@ -9,6 +9,8 @@
 	export let freq = 1000;
 	export let Q = 1;
 
+	let is_freq_dragging = false;
+
 	export let bpf: BPF = { gain: gain, freq: freq, Q: Q };
 
 	export let index: number;
@@ -47,8 +49,13 @@
 		max={20000}
 		step={0.1}
 		bind:value={freq}
+		data-attribute={is_freq_dragging}
 		on:mouseup={() => {
 			invoke("save_bpf_freq", { freq: freq, index: index });
+			is_freq_dragging = false;
+		}}
+		on:mousedown={() => {
+			is_freq_dragging = true;
 		}}
 	/>
 </div>
@@ -71,6 +78,9 @@
 	}
 
 	input[type="range"]::-webkit-slider-thumb:active {
+		background: var(--purple);
+	}
+	input[type="range"][data-attribute="true"]::-webkit-slider-thumb{
 		background: var(--purple);
 	}
 

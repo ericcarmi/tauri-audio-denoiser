@@ -172,7 +172,7 @@ void main() {
     invoke("get_time_data", { path: selectedRecording }).then((res) => {
       let data: any = res;
       let renderPlot = () => {
-        line = new WebglLine(new ColorRGBA(1, 0.35, 0, 1), data.length);
+        line = new WebglLine(new ColorRGBA(140/255, 0, 180/255, 1), data.length);
 
         webglp.removeAllLines();
         webglp.addLine(line);
@@ -205,7 +205,7 @@ void main() {
 
           const context: CanvasRenderingContext2D = canvas.getContext("2d");
           context.clearRect(0, 0, width, height);
-          context.fillStyle = "rgb(220,100,0)";
+          context.fillStyle = "rgb(140,0,180)";
           const length = data.length;
 
           const barWidth = (width / length) * 1.0;
