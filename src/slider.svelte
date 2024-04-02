@@ -52,11 +52,9 @@
 				}
 				indicator.style.top = position + "px";
 				value = (0.5 - position / height) * 30;
-				console.log(position, wrap_position, e.clientY);
 			}
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
-				console.log("reset");
 
 				is_dragging = false;
 				window.removeEventListener("mousemove", mouseMoveHandler);
@@ -83,8 +81,15 @@
 	on:mouseleave={() => {
 		is_hovering = false;
 	}}
-	on:mousedown={() => {
+	on:mousedown={(e) => {
 		is_dragging = true;
+		let wrap_position = el.offsetTop;
+		if (Math.abs(e.clientY - wrap_position) > 5) {
+			position = e.clientY - wrap_position - 5;
+			position = Math.max(Math.min(position, height), 1);
+		}
+		indicator.style.top = position + "px";
+		value = (0.5 - position / height) * 30;
 	}}
 	on:mouseup={() => {
 		is_dragging = false;
