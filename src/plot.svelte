@@ -280,7 +280,7 @@ void main() {
     requestAnimationFrame(renderPlot);
   }
 
-  // $: selectedRecording, get_time_data();
+  $: selectedRecording, get_time_data();
   $: fft_data, update_fft();
   $: bpf_filters, !is_playing && update_filter_bank(true);
 </script>
@@ -303,7 +303,7 @@ void main() {
   }
   .spinner {
     position: absolute;
-    top: calc(40% - 1em);
+    top: calc(60% - 1em);
     left: calc(50% - 1em);
     width: 2em;
     height: 2em;
@@ -311,6 +311,6 @@ void main() {
     border-bottom-color: var(--purple);
     border-top-color: var(--purple);
     border-radius: 20px;
-    animation: 1s infinite linear spin;
+    animation: 2s infinite linear spin;
   }
 </style>

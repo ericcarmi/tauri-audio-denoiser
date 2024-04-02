@@ -18,7 +18,14 @@ pub async fn get_time_data(path: &str, app_handle: tauri::AppHandle) -> Result<V
     let filepath = p + "/" + path;
 
     let thread = tauri::async_runtime::spawn(async move {
-        let w: Vec<f32> = Wav::from_path(filepath).unwrap().read().unwrap().to_vec();
+        let w: Vec<f32> = Wav::from_path(filepath)
+            .unwrap()
+            .read()
+            .unwrap()
+            .iter()
+            .step_by(16)
+            .cloned()
+            .collect();
         return w;
     });
 
