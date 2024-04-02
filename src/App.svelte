@@ -7,14 +7,14 @@
   import type { BPF, FilterBank, FilterCoeffs2 } from "./types.svelte";
   import { biquad } from "./functions.svelte";
 
-  export const gains = [1, 1, 1, 1, 1];
-  export const freqs = [100, 100, 100, 100, 100];
+  export const gains = [0, 0, 0, 0, 0];
+  export const freqs = [100, 500, 1000, 2000, 3000];
   export const Qs = [0.5, 0.5, 0.5, 0.5, 0.5];
 
   let bpf_filters: Array<BPF> = Array(num_sliders)
     .fill(0)
-    .map(() => {
-      return { gain: -1, freq: 1000, Q: 1 };
+    .map((_,i) => {
+      return { gain: gains[i], freq: freqs[i], Q: Qs[i] };
     });
 
   let filter_bank: FilterBank;
@@ -29,6 +29,8 @@
   let time = 0;
   let selectedRecording = "";
   let is_playing = false;
+
+  let clean = false;
 
   onMount(async () => {
     // const resourcePath = await resolveResource("assets/test-file.wav");
@@ -95,7 +97,6 @@
     class="time-slider"
     type="range"
     data-attribute={is_time_slider_dragging}
-
     min={0}
     max={100000}
     bind:value={time}
@@ -128,11 +129,11 @@
     </button>
     <button
       on:click={async () => {
-        let r = await invoke("get_file_fft", { fileName: selectedRecording });
-        // console.log(r)
+        clean = !clean;
+        invoke("update_clean", { clean: clean });
       }}
     >
-      server
+      {clean ? "clean" : "dirty"}
     </button>
   </div>
 
@@ -145,7 +146,7 @@
         bind:gain={bpf_filters[i].gain}
         bind:freq={bpf_filters[i].freq}
         bind:Q={bpf_filters[i].Q}
-        index={i+1}
+        index={i + 1}
       />
     {/each}
   </div>

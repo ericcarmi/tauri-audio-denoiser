@@ -79,6 +79,7 @@ where
     let file_samples = get_wav_samples(TEST_FILE_PATH);
     let mut time = 0;
     let num_file_samples = file_samples.len();
+    let mut clean = false;
 
     let stream = device.build_output_stream(
         config,
@@ -103,32 +104,51 @@ where
                 if let Some(t) = msg.time {
                     time = (num_file_samples as f32 * t) as usize;
                 }
+                if let Some(c) = msg.clean {
+                    clean = c;
+                    println!("{:?}", clean);
+                }
             }
             // println!("{:?}", process_filterbank);
 
-            // ...each frame has 2 samples
-            let mut out_buf = vec![];
-            for frame in output.chunks_mut(num_channels) {
-                if time >= num_file_samples {
-                    break;
-                }
+            // vec for fft, will make another for processed spectrum?
+            let mut spectrum = vec![];
+            if clean {
+                // ...each frame has 2 samples
+                for frame in output.chunks_mut(num_channels) {
+                    if time >= num_file_samples {
+                        break;
+                    }
+                    let sample = file_samples[time];
+                    let v: T = T::from_sample(sample);
+                    spectrum.push(sample);
 
-                let sample = file_samples[time];
-                let filtered = process_filterbank.bp1.process(sample);
-                // let filtered = sample;
-                let v: T = T::from_sample(filtered);
-                out_buf.push(sample);
-
-                // copying to all channels for now
-                for out_sample in frame.iter_mut() {
-                    *out_sample = v;
+                    // copying to all channels for now
+                    for out_sample in frame.iter_mut() {
+                        *out_sample = v;
+                    }
+                    time += 1;
                 }
-                time += 1;
+            } else {
+                for frame in output.chunks_mut(num_channels) {
+                    if time >= num_file_samples {
+                        break;
+                    }
+                    let sample = file_samples[time];
+                    let filtered = process_filterbank.bp1.process(sample);
+                    // let filtered = sample;
+                    let v: T = T::from_sample(filtered);
+                    spectrum.push(filtered);
+
+                    // copying to all channels for now
+                    for out_sample in frame.iter_mut() {
+                        *out_sample = v;
+                    }
+                    time += 1;
+                }
             }
             // send a chunk of the fft here
-            let r = tx_ui.try_send(mfft(out_buf.clone()));
-            // println!("{:?}", out_buf);
-
+            let r = tx_ui.try_send(mfft(spectrum.clone()));
             // println!("{:?}", r);
         },
         err_fn,
@@ -157,6 +177,7 @@ pub fn update_filters(
         .unwrap()
         .try_send(Message {
             time: None,
+            clean: None,
             bp1,
             bp2,
             bp3,
@@ -177,6 +198,28 @@ pub fn update_time(t: f32, streamsend: State<MStreamSend>) {
         .unwrap()
         .try_send(Message {
             time: Some(t),
+            clean: None,
+            bp1: None,
+            bp2: None,
+            bp3: None,
+            bp4: None,
+            bp5: None,
+        });
+}
+
+#[tauri::command]
+pub fn update_clean(clean: bool, streamsend: State<MStreamSend>) {
+    let _ = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .msender
+        .0
+        .lock()
+        .unwrap()
+        .try_send(Message {
+            time: None,
+            clean: Some(clean),
             bp1: None,
             bp2: None,
             bp3: None,

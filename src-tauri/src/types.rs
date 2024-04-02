@@ -96,6 +96,7 @@ impl FilterBank {
 #[derive(Clone)]
 pub struct Message {
     pub time: Option<f32>,
+    pub clean: Option<bool>,
     pub bp1: Option<IIR2>,
     pub bp2: Option<IIR2>,
     pub bp3: Option<IIR2>,

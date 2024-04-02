@@ -33,6 +33,7 @@ fn main() {
             pause_stream,
             update_filters,
             update_time,
+            update_clean,
             get_stft_data,
             get_time_onefft,
             get_time_data,
