@@ -7,8 +7,8 @@
   import type { BPF, FilterBank, FilterCoeffs2 } from "./types.svelte";
   import { biquad } from "./functions.svelte";
 
-  export const gains = [0, 0, 0, 0, 0];
-  export const freqs = [100, 500, 1000, 2000, 3000];
+  export const gains = [10, 0, 0, 0, 0];
+  export const freqs = [2000, 500, 1000, 200, 3000];
   export const Qs = [0.5, 0.5, 0.5, 0.5, 0.5];
 
   let bpf_filters: Array<BPF> = Array(num_sliders)
@@ -82,12 +82,6 @@
     );
   }
 
-  function update_bpf_filters() {
-    // console.log("change");
-    // let r = invoke("update_filters", { bp1: b });
-  }
-
-  // $: bpf_filters, update_bpf_filters();
 </script>
 
 <main class="container">

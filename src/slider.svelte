@@ -25,7 +25,7 @@
 				position = Math.max(Math.min(position, height), 1);
 				el.style.top = position + "px";
 				// el.style.left = e.clientX - offsetX + "px";
-				value = (0.5-(position / height))*20;
+				value = (0.5-(position / height))*44;
 				// console.log(value)
 
 			}

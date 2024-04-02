@@ -257,7 +257,7 @@ void main() {
           sum_curve[i] += curve[i];
           context.lineTo(
             (i / curve.length) * FREQ_PLOT_WIDTH,
-            (-curve[i] * FREQ_PLOT_HEIGHT) / 32 + FREQ_PLOT_HEIGHT / 2
+            (-curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2
           );
         }
         context.lineWidth = 2;
@@ -270,7 +270,7 @@ void main() {
       for (let i = 0; i < N; i++) {
         context.lineTo(
           (i / N) * FREQ_PLOT_WIDTH,
-          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 32 / 1 + FREQ_PLOT_HEIGHT / 2
+          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2
         );
       }
       context.lineWidth = 2;
