@@ -18,7 +18,6 @@ pub struct StreamSend {
     pub mreceiver: MUIReceiver,
 }
 
-#[allow(non_snake_case)]
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct Bpf {
     pub gain: f32,

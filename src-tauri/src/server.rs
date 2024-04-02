@@ -198,3 +198,42 @@ pub async fn get_global_state() -> Result<Vec<Bpf>, String> {
         Err("failed to get global state".to_string())
     }
 }
+
+async fn redis_save_bpf_gain(gain: f32, index: usize) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+    let a: Result<(), redis::RedisError> = con.set(format!("gain-{}", index), gain).await;
+    return a;
+}
+
+#[tauri::command]
+pub async fn save_bpf_gain(gain: f32, index: usize) {
+    let r = redis_save_bpf_gain(gain, index).await;
+    println!("{:?}", r);
+}
+
+async fn redis_save_bpf_freq(freq: f32, index: usize) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+    let a: Result<(), redis::RedisError> = con.set(format!("freq-{}", index), freq).await;
+    return a;
+}
+
+#[tauri::command]
+pub async fn save_bpf_freq(freq: f32, index: usize) {
+    let r = redis_save_bpf_freq(freq, index).await;
+    println!("{:?}", r);
+}
+
+async fn redis_save_bpf_Q(Q: f32, index: usize) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+    let a: Result<(), redis::RedisError> = con.set(format!("Q-{}", index), Q).await;
+    return a;
+}
+
+#[tauri::command]
+pub async fn save_bpf_Q(Q: f32, index: usize) {
+    let r = redis_save_bpf_Q(Q, index).await;
+    println!("{:?}", r);
+}

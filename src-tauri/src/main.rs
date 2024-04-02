@@ -1,5 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![allow(non_snake_case)]
 use cpal::traits::StreamTrait;
 use std::sync::Mutex;
 use tauri::{Manager, State};
@@ -43,6 +44,9 @@ fn main() {
             get_fft_plot_data,
             save_global_state,
             get_global_state,
+            save_bpf_gain,
+            save_bpf_freq,
+            save_bpf_Q,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();

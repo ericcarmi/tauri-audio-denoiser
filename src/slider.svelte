@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { invoke } from "@tauri-apps/api/tauri";
 	import { onMount } from "svelte";
 
 	export let value: number;
+	export let index: number;
+
 	let position = 0;
 	let el: HTMLElement;
 	let indicator: HTMLElement;
@@ -9,7 +12,14 @@
 	let height = 52;
 	let is_dragging = false;
 
-	// $: value, (value = (0.5 - position / height) * 30);
+	$: value, redraw();
+
+	function redraw() {
+		if (!is_dragging && indicator !== undefined && el !== undefined) {
+			position = height/2 - value/30 * height
+			indicator.style.top = position + "px";
+		}
+	}
 
 	function draggable() {
 		if (el === null) {
@@ -29,6 +39,7 @@
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
 				is_dragging = false;
+				invoke("save_bpf_gain", { gain: value, index: index });
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}
@@ -56,8 +67,8 @@
 			}
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
-
 				is_dragging = false;
+				invoke("save_bpf_gain", { gain: value, index: index });
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}
@@ -67,11 +78,6 @@
 	}
 	onMount(() => {
 		draggable();
-		// console.log('huh', position, value);
-		position = ((value + 15) / 30) * el.clientHeight;
-		// console.log(el.clientHeight)
-
-		position = Math.max(Math.min(position, height), 1);
 	});
 </script>
 

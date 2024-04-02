@@ -2,11 +2,13 @@
     import { invoke } from "@tauri-apps/api/tauri";
 	import { onMount } from "svelte";
 
+	export let value: any;
+	export let index: number;
+
 	let el: HTMLElement;
 	let indicator_el: HTMLElement;
 	let is_mouse_down = false;
 
-	export let value: any;
 	let radius = 12;
 
 	let angle = 225;
@@ -83,8 +85,9 @@
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
 				is_mouse_down = false;
-				console.log("save to db now");
-        // let r = invoke("save_global_state", { bpfs: bpf_filters });
+				// needs to be lowercase here...tauri does that
+        invoke("save_bpf_Q", { q: value, index: index });
+
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}

@@ -3,7 +3,6 @@
 	import RotarySlider from "./rotary-slider.svelte";
 	import { invoke } from "@tauri-apps/api/tauri";
 	import { biquad } from "./functions.svelte";
-	import { onMount } from "svelte";
 	import type { BPF } from "./types.svelte";
 
 	export let gain = 0;
@@ -14,6 +13,7 @@
 
 	export let index: number;
 
+	// one param changes all coefficients, so this goes here instead of inside individual sliders
 	function update() {
 		let b = biquad(gain, freq, Q);
 		b.x = [0, 0];
@@ -30,19 +30,15 @@
 			invoke("update_filters", { bp5: b });
 		}
 	}
-
 	$: gain, update();
 	$: freq, update();
 	$: Q, update();
-	onMount(() => {
-		// console.log(gain, freq, Q, bpf);
-	});
 </script>
 
 <div class="wrapper">
 	<div style="display:flex; height:4em; justify-content: space-evenly;">
-		<RotarySlider bind:value={Q} />
-		<Slider bind:value={gain} />
+		<RotarySlider bind:value={Q} bind:index />
+		<Slider bind:value={gain} bind:index />
 	</div>
 	<input
 		class="freq-slider"
@@ -51,6 +47,9 @@
 		max={20000}
 		step={0.1}
 		bind:value={freq}
+		on:mouseup={() => {
+			invoke("save_bpf_freq", { freq: freq, index: index });
+		}}
 	/>
 </div>
 

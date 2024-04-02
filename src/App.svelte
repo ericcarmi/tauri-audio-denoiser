@@ -56,8 +56,6 @@
     // load from server
     let bpfs: Array<BPF> = await invoke("get_global_state");
     bpf_filters = [...bpfs]
-    console.log(bpf_filters)
-
   });
 
   let slider_values = Array(num_sliders).fill(0);
