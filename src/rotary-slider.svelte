@@ -156,18 +156,18 @@
 			var(--gray100) 100%
 		);
 		border-radius: 50%;
-		border: 0px solid var(--purple);
-		transition: border-color 0.44s;
+		border: 1px solid var(--gray100);
+		transition: filter 0.44s, border 0.44s;
 		justify-content: center;
 		position: relative;
 		top: 12px;
 	}
 
 	.wrapper:hover {
-		border-color: var(--lightpurple);
+		border: 1px solid var(--lightpurple);
 	}
 	.wrapper[data-attribute="true"] {
-		border-color: var(--lightpurple);
+		border: 1px solid var(--lightpurple);
 	}
 
 	.indicator {

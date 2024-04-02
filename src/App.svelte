@@ -132,23 +132,6 @@
     >
       {clean ? "clean" : "dirty"}
     </button>
-
-    <button
-      on:click={() => {
-        let r = invoke("save_global_state", { bpfs: bpf_filters });
-        console.log(r);
-      }}
-    >
-      set
-    </button>
-    <button
-      on:click={async () => {
-        let r = await invoke("get_global_state");
-        console.log(r);
-      }}
-    >
-      get
-    </button>
   </div>
 
   <div
@@ -180,7 +163,7 @@
   }
 
   input[type="range"]::-webkit-slider-thumb:active {
-    background: var(--orange);
+    background: var(--lightpurple);
   }
 
   input[type="range"]::-webkit-slider-runnable-track {
@@ -202,9 +185,9 @@
     transition: border 0.33s;
   }
   .time-slider[data-attribute="true"] {
-    border: 2px solid var(--orange);
+    border: 2px solid var(--lightpurple);
   }
   .time-slider:hover {
-    border: 2px solid var(--orange);
+    border: 2px solid var(--lightpurple);
   }
 </style>

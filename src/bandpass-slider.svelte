@@ -81,7 +81,7 @@
 	.freq-slider {
 		border: 1px solid var(--purple);
 		transition: border 0.33s;
-		width: 10em;
+		width: 12em;
 	}
 	.freq-slider[data-attribute="true"] {
 		border: 1px solid var(--lightpurple);

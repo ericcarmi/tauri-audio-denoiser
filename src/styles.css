@@ -43,6 +43,7 @@
 }
 
 button {
+  font-family: monospace;
   border-radius: 8px;
   border: 1px solid var(--purple);
   padding: 0.6em 1.2em;
@@ -57,10 +58,7 @@ button {
 }
 
 button:hover {
-  border-color: var(--orange);
-}
-button:active {
-  border-color: var(--green);
+  border-color: var(--lightpurple);
 }
 
 input {
