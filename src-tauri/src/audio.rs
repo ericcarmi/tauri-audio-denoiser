@@ -140,13 +140,6 @@ where
                     let f4 = process_filterbank.bp4.process(sample.clone());
                     let f5 = process_filterbank.bp5.process(sample.clone());
                     let filtered = (f1 + f2 + f3 + f4 + f5) / 5.0;
-                    // let filtered = f2;
-                    // let filtered = (process_filterbank.bp1.process(sample)
-                    //     + process_filterbank.bp2.process(sample)
-                    //     + process_filterbank.bp3.process(sample)
-                    //     + process_filterbank.bp4.process(sample)
-                    //     + process_filterbank.bp5.process(sample))
-                    //     / 5.0;
                     let v: T = T::from_sample(filtered);
                     spectrum.push(filtered);
 

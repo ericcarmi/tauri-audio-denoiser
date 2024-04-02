@@ -2558,25 +2558,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2ff9a1f06a88b01621b7ae906ef0211290d1c8a168a15542486a8f61c0833b9"
 
 [[package]]
-name = "realtime-audio-test"
-version = "0.0.1"
-dependencies = [
- "anyhow",
- "chrono",
- "cpal",
- "dasp_ring_buffer",
- "dsp",
- "hound",
- "redis",
- "rustfft",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "wavers",
-]
-
-[[package]]
 name = "redis"
 version = "0.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3214,6 +3195,25 @@ dependencies = [
  "webkit2gtk",
  "webview2-com",
  "windows 0.39.0",
+]
+
+[[package]]
+name = "tauri-audio-eq"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "cpal",
+ "dasp_ring_buffer",
+ "dsp",
+ "hound",
+ "redis",
+ "rustfft",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "wavers",
 ]
 
 [[package]]
