@@ -23,6 +23,8 @@
   let is_loading = false;
   export let fft_data: any;
 
+  export let is_playing = false;
+
   let webglp: WebglPlot;
   let line: WebglLine;
   export let selectedRecording: string;
@@ -224,6 +226,8 @@ void main() {
           }
         }
         data && requestAnimationFrame(renderPlot);
+
+        update_filter_bank(false);
       })
       .catch((e) => {
         console.log(e);
@@ -277,8 +281,8 @@ void main() {
   }
 
   // $: selectedRecording, get_time_data();
-  $: fft_data, update_fft(), update_filter_bank(false);
-  $: bpf_filters, update_filter_bank(true);
+  $: fft_data, update_fft();
+  $: bpf_filters, !is_playing && update_filter_bank(true);
 </script>
 
 <div>

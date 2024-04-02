@@ -89,7 +89,7 @@
 </script>
 
 <main class="container">
-  <Plot bind:bpf_filters {selectedRecording} {fft_data} />
+  <Plot bind:is_playing bind:bpf_filters {selectedRecording} {fft_data} />
   <input
     style="width: {FREQ_PLOT_WIDTH}px;"
     class="time-slider"

@@ -9,7 +9,7 @@
 	let radius = 12;
 
 	let angle = -45;
-	$: angle, value = (1-((angle + 45) / 270))*10 + 0.01;
+	$: angle, value = (1-((angle + 45) / 270))*10 + 0.1;
 	// $: value, console.log(value);
 
 	function draggable() {

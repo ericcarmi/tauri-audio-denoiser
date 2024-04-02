@@ -45,7 +45,7 @@
 	<input
 		class="freq-slider"
 		type="range"
-		min={40}
+		min={100}
 		max={10000}
 		step={0.1}
 		bind:value={freq}
