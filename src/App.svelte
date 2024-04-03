@@ -16,6 +16,7 @@
     .map((_, i) => {
       return { gain: gains[i], freq: freqs[i], Q: Qs[i] };
     });
+  let bpf_hovering = Array(num_sliders).fill(false);
 
   let filter_bank: FilterBank;
 
@@ -55,7 +56,7 @@
 
     // load from server
     let bpfs: Array<BPF> = await invoke("get_global_state");
-    bpf_filters = [...bpfs]
+    bpf_filters = [...bpfs];
   });
 
   let slider_values = Array(num_sliders).fill(0);
@@ -88,7 +89,7 @@
 </script>
 
 <main class="container">
-  <Plot bind:is_playing bind:bpf_filters {selectedRecording} {fft_data} />
+  <Plot bind:bpf_hovering bind:is_playing bind:bpf_filters {selectedRecording} {fft_data} />
   <input
     style="width: {FREQ_PLOT_WIDTH}px;"
     class="time-slider"
@@ -139,13 +140,25 @@
     style="grid-template-columns:repeat({num_sliders}, auto)"
   >
     {#each slider_values as val, i}
-      <BandpassSlider
-        bind:bpf={bpf_filters[i]}
-        bind:gain={bpf_filters[i].gain}
-        bind:freq={bpf_filters[i].freq}
-        bind:Q={bpf_filters[i].Q}
-        index={i + 1}
-      />
+      <div
+        class="bpf-wrap"
+        role="button"
+        tabindex="0"
+        on:mouseenter={() => {
+          bpf_hovering[i] = true;
+        }}
+        on:mouseleave={() => {
+          bpf_hovering[i] = false;
+        }}
+      >
+        <BandpassSlider
+          bind:bpf={bpf_filters[i]}
+          bind:gain={bpf_filters[i].gain}
+          bind:freq={bpf_filters[i].freq}
+          bind:Q={bpf_filters[i].Q}
+          index={i + 1}
+        />
+      </div>
     {/each}
   </div>
 </main>
@@ -165,9 +178,9 @@
   input[type="range"]::-webkit-slider-thumb:active {
     background: var(--lightpurple);
   }
-	input[type="range"][data-attribute="true"]::-webkit-slider-thumb{
-		background: var(--purple);
-	}
+  input[type="range"][data-attribute="true"]::-webkit-slider-thumb {
+    background: var(--purple);
+  }
 
   input[type="range"]::-webkit-slider-runnable-track {
     background: var(--gray100);
@@ -192,5 +205,9 @@
   }
   .time-slider:hover {
     border: 2px solid var(--lightpurple);
+  }
+  .bpf-wrap {
+    display: flex;
+    border: 1px solid var(--purple);
   }
 </style>

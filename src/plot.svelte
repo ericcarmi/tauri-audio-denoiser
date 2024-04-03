@@ -16,18 +16,23 @@
     FREQ_PLOT_WIDTH,
     TIME_PLOT_HEIGHT,
     TIME_PLOT_WIDTH,
+    num_sliders,
   } from "./constants.svelte";
 
   export let bpf_filters: Array<BPF>;
+  export let fft_data: any;
+  export let is_playing = false;
+  export let selectedRecording: string;
+  export let bpf_hovering = Array(num_sliders).fill(false);
+
+  let eq_color: string;
+  let eq_hover_color: string;
+
 
   let is_loading = false;
-  export let fft_data: any;
-
-  export let is_playing = false;
 
   let webglp: WebglPlot;
   let line: WebglLine;
-  export let selectedRecording: string;
   let squ = new WebglSquare(new ColorRGBA(1, 0, 0, 1));
 
   let freqwebglp: WebglPlot;
@@ -80,6 +85,10 @@ void main() {
 }`;
 
   onMount(() => {
+    var style = getComputedStyle(document.body);
+    eq_color = style.getPropertyValue("--gray100");
+    eq_hover_color = style.getPropertyValue("--lightpurple");
+
     canvasMain = document.getElementById("time_canvas");
     canvasMain.width = TIME_PLOT_WIDTH;
     canvasMain.height = TIME_PLOT_HEIGHT;
@@ -172,7 +181,10 @@ void main() {
     invoke("get_time_data", { path: selectedRecording }).then((res) => {
       let data: any = res;
       let renderPlot = () => {
-        line = new WebglLine(new ColorRGBA(140/255, 0, 180/255, 1), data.length);
+        line = new WebglLine(
+          new ColorRGBA(140 / 255, 0, 180 / 255, 1),
+          data.length
+        );
 
         webglp.removeAllLines();
         webglp.addLine(line);
@@ -197,7 +209,6 @@ void main() {
       .then((r: any) => {
         let data = r;
 
-
         function renderPlot() {
           const canvas = freqcanvas;
 
@@ -216,7 +227,7 @@ void main() {
 
             //finding the frequency from the index
             let frequency = Math.round((i * 44100) / 2 / length);
-            let barHeight = Math.log10(value + 1) * FREQ_PLOT_HEIGHT*2;
+            let barHeight = Math.log10(value + 1) * FREQ_PLOT_HEIGHT;
             // finding the x location px from the frequency
             // let x = frequencyToXAxis(frequency);
             let x = (i * FREQ_PLOT_WIDTH) / length;
@@ -235,6 +246,8 @@ void main() {
       });
   }
 
+  $: bpf_hovering, update_filter_bank(true);
+
   function update_filter_bank(should_clear: boolean) {
     function renderPlot() {
       const canvas = freqcanvas;
@@ -248,7 +261,7 @@ void main() {
       let N = 256;
       let sum_curve: Array<number> = Array(N).fill(0);
 
-      bpf_filters.map((filt) => {
+      bpf_filters.map((filt, idx) => {
         let coeffs = biquad(filt.gain, filt.freq, filt.Q);
         const curve = freq_response(coeffs, N);
 
@@ -262,7 +275,7 @@ void main() {
           );
         }
         context.lineWidth = 2;
-        context.strokeStyle = "rgb(200,120,140)";
+        context.strokeStyle = bpf_hovering[idx] ? eq_hover_color: eq_color;
         context.stroke();
       });
 

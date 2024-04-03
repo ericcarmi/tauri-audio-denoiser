@@ -119,10 +119,7 @@ impl SDFT {
     }
 
     pub fn norm_vec(&self) -> Vec<f32> {
-        self.new_freq
-            .iter()
-            .map(|x| x.norm() / self.size as f32)
-            .collect()
+        self.new_freq.iter().map(|x| x.norm()).collect()
     }
 }
 
