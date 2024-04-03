@@ -222,11 +222,11 @@ void main() {
       context.beginPath();
       context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
       for (let i = 0; i < N; i++) {
-          let logfreq = 2595 * Math.log10(1 + (i * 44100) / 2 / N / 700);
-          let x = ((logfreq / FREQ_PLOT_WIDTH) * N) / 2;
+        let logfreq = 2595 * Math.log10(1 + (i * 44100) / 2 / N / 700);
+        let x = ((logfreq / FREQ_PLOT_WIDTH) * N) / 2;
         context.lineTo(
           x,
-          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2
+          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 128 + FREQ_PLOT_HEIGHT / 2
         );
       }
       context.lineWidth = 2;

@@ -15,6 +15,8 @@
 
 	export let index: number;
 
+	let bypass = false;
+
 	// one param changes all coefficients, so this goes here instead of inside individual sliders
 	function update() {
 		let b = biquad(gain, freq, Q);
@@ -47,7 +49,7 @@
 		type="range"
 		min={100}
 		max={20000}
-		step={0.1}
+		step={0.001}
 		bind:value={freq}
 		data-attribute={is_freq_dragging}
 		on:mouseup={() => {
@@ -58,12 +60,43 @@
 			is_freq_dragging = true;
 		}}
 	/>
+	<button
+		class="switch"
+		data-attribute={bypass}
+		on:click={() => {
+			invoke("update_bypass", { bypass: bypass, index: index - 1 });
+			bypass = !bypass;
+		}}
+	/>
 </div>
 
 <style>
 	.wrapper {
 		display: flex;
 		flex-direction: column;
+	}
+
+	.switch {
+		display: flex;
+		width: 1em;
+		height: 1em;
+		padding: 0;
+		border-radius: 50%;
+		background: var(--purple);
+		align-self: center;
+		transition: background 0.33s, border-color 0.33s;
+		border-color: var(--gray100);
+	}
+	.switch[data-attribute="true"]:hover {
+		border-color: var(--lightpurple);
+	}
+	.switch:hover {
+		border-color: var(--gray150);
+	}
+
+	.switch[data-attribute="true"] {
+		background: var(--gray150);
+		border-color: var(--purple);
 	}
 
 	input[type="range"] {
@@ -80,7 +113,7 @@
 	input[type="range"]::-webkit-slider-thumb:active {
 		background: var(--purple);
 	}
-	input[type="range"][data-attribute="true"]::-webkit-slider-thumb{
+	input[type="range"][data-attribute="true"]::-webkit-slider-thumb {
 		background: var(--purple);
 	}
 

@@ -35,6 +35,7 @@ fn main() {
             save_bpf_gain,
             save_bpf_freq,
             save_bpf_Q,
+            update_bypass,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();

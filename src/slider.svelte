@@ -11,12 +11,13 @@
 
 	let height = 52;
 	let is_dragging = false;
+	let range = 60;
 
 	$: value, redraw();
 
 	function redraw() {
 		if (!is_dragging && indicator !== undefined && el !== undefined) {
-			position = height/2 - value/30 * height
+			position = height/2 - value/range * height
 			indicator.style.top = position + "px";
 		}
 	}
@@ -34,7 +35,7 @@
 				position = e.clientY - offsetY;
 				position = Math.max(Math.min(position, height), 1);
 				indicator.style.top = position + "px";
-				value = (0.5 - position / height) * 30;
+				value = (0.5 - position / height) * range;
 			}
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
@@ -63,7 +64,7 @@
 					position = Math.max(Math.min(position, height), 1);
 				}
 				indicator.style.top = position + "px";
-				value = (0.5 - position / height) * 30;
+				value = (0.5 - position / height) * range;
 			}
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
@@ -95,7 +96,7 @@
 			position = Math.max(Math.min(position, height), 1);
 		}
 		indicator.style.top = position + "px";
-		value = (0.5 - position / height) * 30;
+		value = (0.5 - position / height) * range;
 	}}
 	on:mouseup={() => {
 		is_dragging = false;

@@ -97,6 +97,10 @@ impl FilterBank {
     pub fn process(&self, data: f32) -> f32 {
         0.0
     }
+
+    pub fn as_slice(&self) -> [IIR2; 5] {
+        [self.bp1, self.bp2, self.bp3, self.bp4, self.bp5]
+    }
 }
 
 // use options with everything...a little annoying but then use None when passing to ignore most sub-structs
@@ -110,4 +114,5 @@ pub struct Message {
     pub bp3: Option<IIR2>,
     pub bp4: Option<IIR2>,
     pub bp5: Option<IIR2>,
+    pub bypass: Option<Vec<Option<bool>>>,
 }

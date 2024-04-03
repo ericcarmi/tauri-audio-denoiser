@@ -83,16 +83,11 @@ where
     let (tx, mut rx) = tauri::async_runtime::channel::<Message>(1);
     let mut process_filterbank = FilterBank::new();
 
-    // let mut rb = dasp_ring_buffer::Bounded::from(vec![0.0; 1]);
-    // rb.push(0.0);
-    // rb.push(0.0);
-    // rb.push(0.0);
-    // rb.push(0.0);
-
     let file_samples = get_wav_samples(TEST_FILE_PATH, app_handle);
     let mut time = 0;
     let num_file_samples = file_samples.len();
     let mut clean = false;
+    let mut bypass_filters = vec![false; 5];
     let mut sdft = SDFT::new(512);
 
     let stream = device.build_output_stream(
@@ -120,6 +115,13 @@ where
                 }
                 if let Some(c) = msg.clean {
                     clean = c;
+                }
+                if let Some(v) = msg.bypass {
+                    for (i, bp) in v.iter().enumerate() {
+                        if let Some(b) = bp {
+                            bypass_filters[i] = *b;
+                        }
+                    }
                 }
             }
             // println!("{:?}", process_filterbank);
@@ -149,12 +151,21 @@ where
                         break;
                     }
                     let sample = file_samples[time];
-                    let f1 = process_filterbank.bp1.process(sample.clone());
-                    let f2 = process_filterbank.bp2.process(sample.clone());
-                    let f3 = process_filterbank.bp3.process(sample.clone());
-                    let f4 = process_filterbank.bp4.process(sample.clone());
-                    let f5 = process_filterbank.bp5.process(sample.clone());
-                    let filtered = (f1 + f2 + f3 + f4 + f5) / 5.0;
+                    // let f1 = process_filterbank.bp1.process(sample);
+                    // let f2 = process_filterbank.bp2.process(sample);
+                    // let f3 = process_filterbank.bp3.process(sample);
+                    // let f4 = process_filterbank.bp4.process(sample);
+                    // let f5 = process_filterbank.bp5.process(sample);
+                    let mut filtered = 0.0;
+                    for (bypass, mut slice) in bypass_filters
+                        .clone()
+                        .iter()
+                        .zip(process_filterbank.as_slice())
+                    {
+                        if !bypass {
+                            filtered += slice.process(sample);
+                        }
+                    }
                     let v: T = T::from_sample(filtered);
                     spectrum.push(filtered);
                     sdft.process(filtered);
@@ -177,74 +188,4 @@ where
     )?;
 
     Ok((stream, tx))
-}
-
-#[tauri::command]
-pub fn update_filters(
-    bp1: Option<IIR2>,
-    bp2: Option<IIR2>,
-    bp3: Option<IIR2>,
-    bp4: Option<IIR2>,
-    bp5: Option<IIR2>,
-    streamsend: State<MStreamSend>,
-) {
-    let _ = streamsend
-        .0
-        .lock()
-        .unwrap()
-        .msender
-        .0
-        .lock()
-        .unwrap()
-        .try_send(Message {
-            time: None,
-            clean: None,
-            bp1,
-            bp2,
-            bp3,
-            bp4,
-            bp5,
-        });
-}
-
-#[tauri::command]
-pub fn update_time(t: f32, streamsend: State<MStreamSend>) {
-    let _ = streamsend
-        .0
-        .lock()
-        .unwrap()
-        .msender
-        .0
-        .lock()
-        .unwrap()
-        .try_send(Message {
-            time: Some(t),
-            clean: None,
-            bp1: None,
-            bp2: None,
-            bp3: None,
-            bp4: None,
-            bp5: None,
-        });
-}
-
-#[tauri::command]
-pub fn update_clean(clean: bool, streamsend: State<MStreamSend>) {
-    let _ = streamsend
-        .0
-        .lock()
-        .unwrap()
-        .msender
-        .0
-        .lock()
-        .unwrap()
-        .try_send(Message {
-            time: None,
-            clean: Some(clean),
-            bp1: None,
-            bp2: None,
-            bp3: None,
-            bp4: None,
-            bp5: None,
-        });
 }
