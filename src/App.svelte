@@ -192,7 +192,7 @@
     grid-template-rows: auto;
     appearance: none;
     height: 100px;
-    border: 2px solid var(--purple);
+    border: 0px solid var(--purple);
   }
 
   .time-slider {
@@ -208,6 +208,6 @@
   }
   .bpf-wrap {
     display: flex;
-    border: 1px solid var(--purple);
+    border: 0px solid var(--purple);
   }
 </style>

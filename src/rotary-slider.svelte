@@ -153,10 +153,10 @@
 		background: radial-gradient(
 			var(--gray100) 0,
 			var(--gray150) 80%,
-			var(--gray100) 100%
+			var(--purple) 100%
 		);
 		border-radius: 50%;
-		border: 1px solid var(--gray100);
+		border: 2px solid var(--gray100);
 		transition: filter 0.44s, border 0.44s;
 		justify-content: center;
 		position: relative;
@@ -164,15 +164,13 @@
 	}
 
 	.wrapper:hover {
-		border: 1px solid var(--lightpurple);
+		border: 2px solid var(--lightpurple);
 	}
 	.wrapper[data-attribute="true"] {
-		border: 1px solid var(--lightpurple);
+		border: 2px solid var(--lightpurple);
 	}
 
 	.indicator {
-		width: 3em;
-		height: 3em;
 		transform: scale(0.1);
 		border-radius: 50%;
 		transform-origin: center;
