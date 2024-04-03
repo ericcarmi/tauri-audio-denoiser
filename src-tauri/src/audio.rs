@@ -161,7 +161,7 @@ where
 
                     // copying to all channels for now
                     for out_sample in frame.iter_mut() {
-                        // *out_sample = v;
+                        *out_sample = v;
                     }
                     time += 1;
                 }
@@ -169,7 +169,6 @@ where
             // send a chunk of the fft here
             // let _r = tx_ui.try_send(mfft(spectrum.clone()));
             let _r = tx_ui.try_send(sdft.norm_vec()[0..sdft.size / 2].to_vec());
-            // println!("{:?}", sdft.time_history);
 
             // println!("{:?}", r);
         },

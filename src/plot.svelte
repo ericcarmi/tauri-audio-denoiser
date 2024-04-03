@@ -28,7 +28,6 @@
   let eq_color: string;
   let eq_hover_color: string;
 
-
   let is_loading = false;
 
   let webglp: WebglPlot;
@@ -151,23 +150,26 @@ void main() {
           context.fillStyle = "rgb(140,0,180)";
           const length = data.length;
 
-          const barWidth = (width / length) * 1.0;
+          let barWidth = (width / length) * 1.0;
 
           for (let i = 0; i < data.length; i++) {
             let value = data[i];
 
-            //finding the frequency from the index
-            let frequency = Math.round((i * 44100) / 2 / length);
-            let barHeight = Math.log10(value + 1) * FREQ_PLOT_HEIGHT/2;
+            let logfreq = 2595 * Math.log10(1 + (i * 44100) / 2 / length / 700);
+            let l2 =
+              2595 * Math.log10(1 + ((i + 1) * 44100) / 2 / length / 700);
+
+            let barHeight = (Math.log10(value + 1) * FREQ_PLOT_HEIGHT) / 2;
             // finding the x location px from the frequency
-            // let x = frequencyToXAxis(frequency);
-            let x = (i * FREQ_PLOT_WIDTH) / length;
+            // let x = (i * FREQ_PLOT_WIDTH) / length;
+            let x = ((logfreq / FREQ_PLOT_WIDTH) * length) / 2;
+            // for filling space in between, vary the bar width...kinda looks better as stem plot
+            // let barWidth = (l2 - logfreq)/FREQ_PLOT_WIDTH*length/2
             let h = height - barHeight / 4;
-            console.log(last_bar_heights)
 
             if (h > 0) {
               last_bar_heights[i] += barHeight;
-              context.fillRect(x, height, barWidth, -last_bar_heights[i]/4);
+              context.fillRect(x, height, barWidth, -last_bar_heights[i] / 4);
               last_bar_heights[i] *= 0.77;
             }
           }
@@ -203,22 +205,27 @@ void main() {
         context.beginPath();
         context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
         for (let i = 0; i < N; i++) {
+          let logfreq = 2595 * Math.log10(1 + (i * 44100) / 2 / N / 700);
+          let x = ((logfreq / FREQ_PLOT_WIDTH) * N) / 2;
+
           sum_curve[i] += curve[i];
           context.lineTo(
-            (i / curve.length) * FREQ_PLOT_WIDTH,
+            x,
             (-curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2
           );
         }
         context.lineWidth = 2;
-        context.strokeStyle = bpf_hovering[idx] ? eq_hover_color: eq_color;
+        context.strokeStyle = bpf_hovering[idx] ? eq_hover_color : eq_color;
         context.stroke();
       });
 
       context.beginPath();
       context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
       for (let i = 0; i < N; i++) {
+          let logfreq = 2595 * Math.log10(1 + (i * 44100) / 2 / N / 700);
+          let x = ((logfreq / FREQ_PLOT_WIDTH) * N) / 2;
         context.lineTo(
-          (i / N) * FREQ_PLOT_WIDTH,
+          x,
           (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2
         );
       }
