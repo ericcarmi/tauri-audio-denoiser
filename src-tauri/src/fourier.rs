@@ -25,7 +25,6 @@ pub async fn get_time_onefft(
 
     let thread = tauri::async_runtime::spawn(async move {
         let w: Vec<f32> = Wav::from_path(filepath).unwrap().read().unwrap().to_vec();
-        let mut vfft: Vec<f32> = vec![];
         let mut buffer = vec![];
         let len = w.len();
         for s in w.clone() {

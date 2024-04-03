@@ -1,40 +1,12 @@
-use crate::{
-    constants::*,
-    types::{Bpf, FilterBank},
-};
+use crate::{constants::*, types::Bpf};
 use redis::AsyncCommands;
 use rustfft::{num_complex::Complex, FftPlanner};
-use tauri::{AppHandle, State};
+use tauri::AppHandle;
 
 use redis::Commands;
 use wavers::Wav;
 
-use serde::{Deserialize, Serialize};
-
-fn fetch_integer() -> redis::RedisResult<isize> {
-    // connect to redis
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_connection()?;
-    // throw away the result, just make sure it does not fail
-    // let _: () = con.set("my_key", 42)?;
-    // read back the key and return it.  Because the return value
-    // from the function is a result for integer this will automatically
-    // convert into one.
-    con.get("my_fey")
-}
-
-#[tauri::command]
-pub fn get_integer() -> Result<isize, String> {
-    let r = fetch_integer();
-    // println!("{:?}", r);
-
-    if r.is_ok() {
-        Ok(r.unwrap())
-    } else {
-        let s = r.err().unwrap();
-        Err(s.to_string())
-    }
-}
+// use serde::{Deserialize, Serialize};
 
 fn fetch_fft(file_name: String) -> redis::RedisResult<String> {
     let client = redis::Client::open("redis://127.0.0.1/")?;
@@ -84,7 +56,7 @@ pub async fn set_file_fft(file_name: &str, app_handle: AppHandle) -> Result<(), 
 
     let filepath = p + "/" + file_name;
 
-    let r = redis_set_file_fft(filepath.as_str()).await;
+    let _r = redis_set_file_fft(filepath.as_str()).await;
     // println!("set fft {:?}", r);
 
     Ok(())
@@ -96,7 +68,6 @@ async fn redis_set_file_fft(file_name: &str) -> redis::RedisResult<()> {
 
     let thread = tauri::async_runtime::spawn(async move {
         let w: Vec<f32> = Wav::from_path(filepath).unwrap().read().unwrap().to_vec();
-        let mut vfft: Vec<f32> = vec![];
         let mut buffer = vec![];
         let len = w.len();
         for s in w.clone() {
@@ -157,7 +128,7 @@ async fn redis_save_global_state(bpfs: Vec<Bpf>) -> redis::RedisResult<()> {
 
 #[tauri::command]
 pub async fn save_global_state(bpfs: Vec<Bpf>) {
-    let r = redis_save_global_state(bpfs).await;
+    let _r = redis_save_global_state(bpfs).await;
     // println!("{:?}", r);
 }
 
@@ -208,7 +179,7 @@ async fn redis_save_bpf_gain(gain: f32, index: usize) -> redis::RedisResult<()> 
 
 #[tauri::command]
 pub async fn save_bpf_gain(gain: f32, index: usize) {
-    let r = redis_save_bpf_gain(gain, index).await;
+    let _r = redis_save_bpf_gain(gain, index).await;
     // println!("{:?}", r);
 }
 
@@ -221,7 +192,7 @@ async fn redis_save_bpf_freq(freq: f32, index: usize) -> redis::RedisResult<()> 
 
 #[tauri::command]
 pub async fn save_bpf_freq(freq: f32, index: usize) {
-    let r = redis_save_bpf_freq(freq, index).await;
+    let _r = redis_save_bpf_freq(freq, index).await;
     // println!("{:?}", r);
 }
 
@@ -234,6 +205,6 @@ async fn redis_save_bpf_Q(Q: f32, index: usize) -> redis::RedisResult<()> {
 
 #[tauri::command]
 pub async fn save_bpf_Q(Q: f32, index: usize) {
-    let r = redis_save_bpf_Q(Q, index).await;
+    let _r = redis_save_bpf_Q(Q, index).await;
     // println!("{:?}", r);
 }

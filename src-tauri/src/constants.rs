@@ -1,6 +1,6 @@
 use wavers::Wav;
 
-pub const TEST_FILE_PATH: &str = "assets/test-file.wav";
+pub const TEST_FILE_PATH: &str = "assets/chirp.wav";
 pub const ASSETS_PATH: &str = "assets/";
 
 #[tauri::command]

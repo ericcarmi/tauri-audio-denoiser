@@ -1,5 +1,6 @@
 use crate::constants::*;
 use crate::fourier::mfft;
+use crate::sdft::SDFT;
 use crate::types::*;
 use anyhow;
 use cpal::FromSample;
@@ -8,33 +9,44 @@ use cpal::{
     traits::{DeviceTrait, HostTrait},
     SizedSample,
 };
-use tauri::State;
+use tauri::{AppHandle, State};
 use wavers::Wav;
 
-pub fn get_wav_samples(path: &str) -> Vec<f32> {
-    let mut wav: Wav<f32> = Wav::from_path(path).unwrap();
+pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> Vec<f32> {
+    let p = app_handle
+        .path_resolver()
+        .resolve_resource(path)
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    println!("{:?}", p);
+
+    let mut wav: Wav<f32> = Wav::from_path(p).unwrap();
     wav.read().unwrap().to_vec()
 }
 
 #[tauri::command]
 pub fn setup_stream(
     tx: tauri::async_runtime::Sender<Vec<f32>>,
+    app_handle: AppHandle,
 ) -> Result<(cpal::Stream, tauri::async_runtime::Sender<Message>), anyhow::Error>
 where
 {
     let (_host, device, config) = host_device_setup()?;
 
     match config.sample_format() {
-        cpal::SampleFormat::I8 => make_stream::<i8>(&device, &config.into(), tx),
-        cpal::SampleFormat::I16 => make_stream::<i16>(&device, &config.into(), tx),
-        cpal::SampleFormat::I32 => make_stream::<i32>(&device, &config.into(), tx),
-        cpal::SampleFormat::I64 => make_stream::<i64>(&device, &config.into(), tx),
-        cpal::SampleFormat::U8 => make_stream::<u8>(&device, &config.into(), tx),
-        cpal::SampleFormat::U16 => make_stream::<u16>(&device, &config.into(), tx),
-        cpal::SampleFormat::U32 => make_stream::<u32>(&device, &config.into(), tx),
-        cpal::SampleFormat::U64 => make_stream::<u64>(&device, &config.into(), tx),
-        cpal::SampleFormat::F32 => make_stream::<f32>(&device, &config.into(), tx),
-        cpal::SampleFormat::F64 => make_stream::<f64>(&device, &config.into(), tx),
+        cpal::SampleFormat::I8 => make_stream::<i8>(&device, &config.into(), tx, app_handle),
+        cpal::SampleFormat::I16 => make_stream::<i16>(&device, &config.into(), tx, app_handle),
+        cpal::SampleFormat::I32 => make_stream::<i32>(&device, &config.into(), tx, app_handle),
+        cpal::SampleFormat::I64 => make_stream::<i64>(&device, &config.into(), tx, app_handle),
+        cpal::SampleFormat::U8 => make_stream::<u8>(&device, &config.into(), tx, app_handle),
+        cpal::SampleFormat::U16 => make_stream::<u16>(&device, &config.into(), tx, app_handle),
+        cpal::SampleFormat::U32 => make_stream::<u32>(&device, &config.into(), tx, app_handle),
+        cpal::SampleFormat::U64 => make_stream::<u64>(&device, &config.into(), tx, app_handle),
+        cpal::SampleFormat::F32 => make_stream::<f32>(&device, &config.into(), tx, app_handle),
+        cpal::SampleFormat::F64 => make_stream::<f64>(&device, &config.into(), tx, app_handle),
         sample_format => Err(anyhow::Error::msg(format!(
             "Unsupported sample format '{sample_format}'"
         ))),
@@ -60,6 +72,7 @@ pub fn make_stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
     tx_ui: tauri::async_runtime::Sender<Vec<f32>>,
+    app_handle: AppHandle,
 ) -> Result<(cpal::Stream, tauri::async_runtime::Sender<Message>), anyhow::Error>
 where
     T: SizedSample + FromSample<f32>,
@@ -76,10 +89,11 @@ where
     // rb.push(0.0);
     // rb.push(0.0);
 
-    let file_samples = get_wav_samples(TEST_FILE_PATH);
+    let file_samples = get_wav_samples(TEST_FILE_PATH, app_handle);
     let mut time = 0;
     let num_file_samples = file_samples.len();
     let mut clean = false;
+    let mut sdft = SDFT::new(512);
 
     let stream = device.build_output_stream(
         config,
@@ -121,6 +135,7 @@ where
                     let sample = file_samples[time];
                     let v: T = T::from_sample(sample);
                     spectrum.push(sample);
+                    sdft.process(sample);
 
                     // copying to all channels for now
                     for out_sample in frame.iter_mut() {
@@ -142,16 +157,20 @@ where
                     let filtered = (f1 + f2 + f3 + f4 + f5) / 5.0;
                     let v: T = T::from_sample(filtered);
                     spectrum.push(filtered);
+                    sdft.process(filtered);
 
                     // copying to all channels for now
                     for out_sample in frame.iter_mut() {
-                        *out_sample = v;
+                        // *out_sample = v;
                     }
                     time += 1;
                 }
             }
             // send a chunk of the fft here
-            let r = tx_ui.try_send(mfft(spectrum.clone()));
+            // let _r = tx_ui.try_send(mfft(spectrum.clone()));
+            let _r = tx_ui.try_send(sdft.norm_vec()[0..sdft.size / 2].to_vec());
+            // println!("{:?}", sdft.time_history);
+
             // println!("{:?}", r);
         },
         err_fn,

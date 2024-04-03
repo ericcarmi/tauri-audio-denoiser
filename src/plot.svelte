@@ -197,6 +197,7 @@ void main() {
       .then((r: any) => {
         let data = r;
 
+
         function renderPlot() {
           const canvas = freqcanvas;
 
@@ -215,8 +216,8 @@ void main() {
 
             //finding the frequency from the index
             let frequency = Math.round((i * 44100) / 2 / length);
-            let barHeight = Math.log10(value + 1) * FREQ_PLOT_HEIGHT;
-            //finding the x location px from the frequency
+            let barHeight = Math.log10(value + 1) * FREQ_PLOT_HEIGHT*2;
+            // finding the x location px from the frequency
             // let x = frequencyToXAxis(frequency);
             let x = (i * FREQ_PLOT_WIDTH) / length;
             let h = height - barHeight / 2;

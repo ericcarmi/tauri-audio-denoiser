@@ -12,23 +12,12 @@ mod constants;
 use constants::*;
 mod fourier;
 use fourier::*;
+mod sdft;
 mod server;
 use server::*;
 
 fn main() {
     tauri::Builder::default()
-        .manage(MStreamSend({
-            let (ui_tx, rx) = tauri::async_runtime::channel::<Vec<f32>>(2);
-            let (stream, tx) = setup_stream(ui_tx).unwrap();
-            let _ = stream.pause();
-            let mtx = Mutex::new(tx);
-
-            Mutex::new(StreamSend {
-                stream: MStream(Mutex::new(stream)),
-                msender: MSender(mtx),
-                mreceiver: MUIReceiver(Mutex::new(rx)),
-            })
-        }))
         .invoke_handler(tauri::generate_handler![
             play_stream,
             pause_stream,
@@ -38,7 +27,6 @@ fn main() {
             get_stft_data,
             get_time_onefft,
             get_time_data,
-            get_integer,
             get_file_fft,
             set_file_fft,
             get_fft_plot_data,
@@ -51,6 +39,23 @@ fn main() {
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();
             let _ = mainwindow.set_always_on_top(true);
+
+            let app_handle = app.app_handle();
+
+            let mss = MStreamSend({
+                let (ui_tx, rx) = tauri::async_runtime::channel::<Vec<f32>>(2);
+                let (stream, tx) = setup_stream(ui_tx, app_handle).unwrap();
+                let _ = stream.pause();
+                let mtx = Mutex::new(tx);
+
+                Mutex::new(StreamSend {
+                    stream: MStream(Mutex::new(stream)),
+                    msender: MSender(mtx),
+                    mreceiver: MUIReceiver(Mutex::new(rx)),
+                })
+            });
+
+            let _ = app.manage(mss);
             Ok(())
         })
         .run(tauri::generate_context!())

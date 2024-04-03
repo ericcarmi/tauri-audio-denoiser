@@ -38,9 +38,10 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "com.audio-eq.dev",
       "resources": [
-        "assets/test-file.wav"
+        "assets/test-file.wav",
+        "assets/chirp.wav"
       ],
       "icon": [
         "icons/32x32.png",
