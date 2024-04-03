@@ -103,75 +103,6 @@ void main() {
     freqcanvas = document.getElementById("freq_canvas");
     freqcanvas.width = FREQ_PLOT_WIDTH;
     freqcanvas.height = FREQ_PLOT_HEIGHT;
-
-    // freqwebglp = new WebglPlot(freqcanvas);
-    // gl = freqcanvas.getContext("webgl");
-
-    // gl.clearColor(0, 0, 0, 1);
-    // gl.clear(gl.COLOR_BUFFER_BIT);
-    // gl.viewport(0, 0, freqcanvas.width, freqcanvas.height);
-
-    // vertShader = gl.createShader(gl.VERTEX_SHADER);
-    // gl.shaderSource(vertShader, vertCode);
-    // gl.compileShader(vertShader);
-
-    // fragShader = gl.createShader(gl.FRAGMENT_SHADER);
-
-    // gl.shaderSource(fragShader, fragCode);
-    // gl.compileShader(fragShader);
-    // shaderProgram = gl.createProgram();
-    // gl.attachShader(shaderProgram, vertShader);
-    // gl.attachShader(shaderProgram, fragShader);
-    // gl.linkProgram(shaderProgram);
-    // gl.useProgram(shaderProgram);
-
-    // positionAttributeLocation = gl.getAttribLocation(
-    //   shaderProgram,
-    //   "a_position"
-    // );
-
-    // // look up uniform locations
-    // resolutionUniformLocation = gl.getUniformLocation(
-    //   shaderProgram,
-    //   "u_resolution"
-    // );
-    // colorUniformLocation = gl.getUniformLocation(shaderProgram, "u_color");
-
-    // positionBuffer = gl.createBuffer();
-
-    // gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    // gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    // gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    // indexBuffer = gl.createBuffer();
-    // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
-    // const indices = [0, 1, 2, 2, 1, 3];
-    // gl.bufferData(
-    //   gl.ELEMENT_ARRAY_BUFFER,
-    //   new Uint16Array(indices),
-    //   gl.STATIC_DRAW
-    // );
-
-    // var size = 2; // 2 components per iteration
-    // var type = gl.FLOAT; // the data is 32bit floats
-    // var normalize = false; // don't normalize the data
-    // var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
-    // var offset = 0; // start at the beginning of the buffer
-    // gl.vertexAttribPointer(
-    //   positionAttributeLocation,
-    //   size,
-    //   type,
-    //   normalize,
-    //   stride,
-    //   offset
-    // );
-
-    // // bind the buffer containing the indices
-    // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
-    // // set the resolution
-    // gl.uniform2f(resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
-    // gl.enableVertexAttribArray(positionAttributeLocation);
   });
 
   async function get_time_data() {
@@ -227,13 +158,17 @@ void main() {
 
             //finding the frequency from the index
             let frequency = Math.round((i * 44100) / 2 / length);
-            let barHeight = Math.log10(value + 1) * FREQ_PLOT_HEIGHT;
+            let barHeight = Math.log10(value + 1) * FREQ_PLOT_HEIGHT/2;
             // finding the x location px from the frequency
             // let x = frequencyToXAxis(frequency);
             let x = (i * FREQ_PLOT_WIDTH) / length;
-            let h = height - barHeight / 2;
+            let h = height - barHeight / 4;
+            console.log(last_bar_heights)
+
             if (h > 0) {
-              context.fillRect(x, h, barWidth, barHeight);
+              last_bar_heights[i] += barHeight;
+              context.fillRect(x, height, barWidth, -last_bar_heights[i]/4);
+              last_bar_heights[i] *= 0.77;
             }
           }
         }
