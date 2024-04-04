@@ -42,21 +42,6 @@
 		<RotarySlider bind:value={Q} bind:index />
 		<Slider bind:value={gain} bind:index />
 	</div>
-	<input
-		class="freq-slider"
-		type="range"
-		min={100}
-		max={20000}
-		step={0.001}
-		data-attribute={is_freq_dragging}
-		on:mouseup={() => {
-			invoke("save_bpf_freq", { freq: freq, index: index });
-			is_freq_dragging = false;
-		}}
-		on:mousedown={() => {
-			is_freq_dragging = true;
-		}}
-	/>
 	<FreqSlider bind:value={freq} bind:index/>
 	<button
 		class="switch"

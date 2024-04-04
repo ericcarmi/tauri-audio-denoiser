@@ -28,7 +28,7 @@
     "windows": [
       {
         "title": "tauri-audio-eq",
-        "width": 800,
+        "width": 900,
         "height": 600
       }
     ],

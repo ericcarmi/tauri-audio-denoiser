@@ -160,15 +160,15 @@ void main() {
           for (let i = 0; i < data.length; i++) {
             let value = data[i];
 
-            let x = i/length *FREQ_PLOT_WIDTH;
+            let x = (i / length) * FREQ_PLOT_WIDTH;
             // let logfreq =
             //   (linlog(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) *
             //     (FREQ_PLOT_WIDTH + 1) -
             //   1;
             let logfreq =
               (loglin(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) *
-                (FREQ_PLOT_WIDTH+1)-1 
-              ;
+                (FREQ_PLOT_WIDTH + 1) -
+              1;
             let barHeight = (Math.log10(value + 1) * FREQ_PLOT_HEIGHT) / 2;
             // for filling space in between, vary the bar width...kinda looks better as stem plot
             // let barWidth = (l2 - logfreq)/FREQ_PLOT_WIDTH*length/2
@@ -176,13 +176,8 @@ void main() {
 
             if (h > 0) {
               last_bar_heights[i] += barHeight;
-              context.fillRect(
-                x,
-                height,
-                barWidth,
-                -last_bar_heights[i] / 5
-              );
-              last_bar_heights[i] *= 0.77;
+              context.fillRect(x, height, barWidth, -last_bar_heights[i] / 8);
+              last_bar_heights[i] *= 0.8;
             }
           }
         }
@@ -210,17 +205,49 @@ void main() {
       let N = FREQ_PLOT_WIDTH;
       let sum_curve: Array<number> = Array(N).fill(0);
 
+
+      bpf_filters.map((filt) => {
+        let coeffs = biquad(filt.gain, filt.freq, filt.Q);
+        const curve = freq_response(coeffs, N);
+        for (let i = 0; i < N; i++) {
+          sum_curve[i] += curve[i];
+        }
+      });
+
+
+      context.beginPath();
+      context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
+      for (let i = 0; i < N; i++) {
+        // let x = (i / N) * (MAX_FREQ - MIN_FREQ) + MIN_FREQ;
+        // let x = (i / N) * NYQUIST;
+        // let logfreq =
+        // (linlog(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) * (FREQ_PLOT_WIDTH + 1) -
+        // 1;
+        context.lineTo(
+          i,
+          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2
+        );
+      }
+      context.lineWidth = 2;
+      context.strokeStyle = "rgb(200,220,240)";
+      context.stroke();
+
+
       bpf_filters.map((filt, idx) => {
         let coeffs = biquad(filt.gain, filt.freq, filt.Q);
         const curve = freq_response(coeffs, N);
+
+        for (let i = 0; i < N; i++) {
+          sum_curve[i] += curve[i];
+        }
 
         context.beginPath();
         context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
         for (let i = 0; i < N; i++) {
           // let x = (i / N) * NYQUIST;
           // let logfreq =
-            // (linlog(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) * (FREQ_PLOT_WIDTH + 1) -
-            // 1;
+          // (linlog(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) * (FREQ_PLOT_WIDTH + 1) -
+          // 1;
 
           sum_curve[i] += curve[i];
           context.lineTo(
@@ -233,22 +260,6 @@ void main() {
         context.stroke();
       });
 
-      context.beginPath();
-      context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
-      for (let i = 0; i < N; i++) {
-        // let x = (i / N) * (MAX_FREQ - MIN_FREQ) + MIN_FREQ;
-        // let x = (i / N) * NYQUIST;
-        // let logfreq =
-          // (linlog(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) * (FREQ_PLOT_WIDTH + 1) -
-          // 1;
-        context.lineTo(
-          i,
-          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 128 + FREQ_PLOT_HEIGHT / 2
-        );
-      }
-      context.lineWidth = 2;
-      context.strokeStyle = "rgb(200,220,240)";
-      context.stroke();
     }
     requestAnimationFrame(renderPlot);
   }

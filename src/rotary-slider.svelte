@@ -13,6 +13,9 @@
 
 	let angle = 225;
 	$: value, redraw();
+	function update_value() {
+		
+	}
 
 	function redraw() {
 		if (!is_mouse_down && indicator_el !== undefined && el !== undefined) {
@@ -57,7 +60,7 @@
 				angle += (-e.movementX + e.movementY) * 3;
 				angle = Math.max(Math.min(angle, 225), -45);
 
-				value = (1 - (angle + 45) / 270) * 10 + 0.01;
+				value = (1 - (angle + 45) / 270) * 20 + 0.05;
 
 				const x = radius * Math.cos((angle * Math.PI) / 180);
 				const y = -radius * Math.sin((angle * Math.PI) / 180);

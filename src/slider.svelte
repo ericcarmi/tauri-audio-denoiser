@@ -17,6 +17,8 @@
 
 	function redraw() {
 		if (!is_dragging && indicator !== undefined && el !== undefined) {
+		// console.log(value)
+
 			position = height/2 - value/range * height
 			indicator.style.top = position + "px";
 		}
