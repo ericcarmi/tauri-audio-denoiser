@@ -3,15 +3,13 @@
 	import RotarySlider from "./rotary-slider.svelte";
 	import { invoke } from "@tauri-apps/api/tauri";
 	import { biquad } from "./functions.svelte";
-	import type { BPF } from "./types.svelte";
+    import FreqSlider from "./freq-slider.svelte";
 
 	export let gain = 0;
 	export let freq = 1000;
 	export let Q = 1;
 
 	let is_freq_dragging = false;
-
-	export let bpf: BPF = { gain: gain, freq: freq, Q: Q };
 
 	export let index: number;
 
@@ -50,7 +48,6 @@
 		min={100}
 		max={20000}
 		step={0.001}
-		bind:value={freq}
 		data-attribute={is_freq_dragging}
 		on:mouseup={() => {
 			invoke("save_bpf_freq", { freq: freq, index: index });
@@ -60,6 +57,7 @@
 			is_freq_dragging = true;
 		}}
 	/>
+	<FreqSlider bind:value={freq} bind:index/>
 	<button
 		class="switch"
 		data-attribute={bypass}

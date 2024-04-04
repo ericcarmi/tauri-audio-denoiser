@@ -67,8 +67,22 @@
 		return y;
 	}
 
-	export function linlog(x: number, x1: number, x2: number) {
-		return x1 * Math.pow(10, ((x - x1) / (x2 - x1)) * Math.log10(x2 / x1));
+	export function loglin2(x: number, minfreq: number, maxfreq: number) {
+		let y =
+			((maxfreq - minfreq) * Math.log2(x / minfreq)) /
+				Math.log2(maxfreq / minfreq) +
+			minfreq;
+		if (isNaN(y)) {
+			console.error("result is nan for", x);
+		}
+		return y;
+	}
+
+	export function linlog(x: number, minfreq: number, maxfreq: number) {
+		return minfreq * Math.pow(10, ((x - minfreq) / (maxfreq - minfreq)) * Math.log10(maxfreq / minfreq));
+	}
+	export function linlog2(x: number, minfreq: number, maxfreq: number) {
+		return minfreq * Math.pow(2, ((x - minfreq) / (maxfreq - minfreq)) * Math.log2(maxfreq / minfreq));
 	}
 
 	export const linspace = (start: number, stop: number, step: number) =>

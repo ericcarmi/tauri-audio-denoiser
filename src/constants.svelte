@@ -5,6 +5,8 @@
 	export const TIME_PLOT_WIDTH = 700;
 	export const TIME_PLOT_HEIGHT = 50;
 	export const SAMPLING_RATE = 44100;
-	import type { Complex, FilterCoeffs2 } from "./types.svelte";
+	export const NYQUIST = 44100/2;
+	export const MIN_FREQ = 20;
+	export const MAX_FREQ = 20000;
 
 </script>

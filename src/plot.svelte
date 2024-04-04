@@ -9,11 +9,16 @@
     frequencyToXAxis,
     biquad,
     freq_response,
+    linlog2,
+    loglin2,
   } from "./functions.svelte";
   import { type BPF } from "./types.svelte";
   import {
     FREQ_PLOT_HEIGHT,
     FREQ_PLOT_WIDTH,
+    MAX_FREQ,
+    MIN_FREQ,
+    NYQUIST,
     TIME_PLOT_HEIGHT,
     TIME_PLOT_WIDTH,
     num_sliders,
@@ -155,21 +160,28 @@ void main() {
           for (let i = 0; i < data.length; i++) {
             let value = data[i];
 
-            let logfreq = 2595 * Math.log10(1 + (i * 44100) / 2 / length / 700);
-            let l2 =
-              2595 * Math.log10(1 + ((i + 1) * 44100) / 2 / length / 700);
-
+            let x = i/length *FREQ_PLOT_WIDTH;
+            // let logfreq =
+            //   (linlog(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) *
+            //     (FREQ_PLOT_WIDTH + 1) -
+            //   1;
+            let logfreq =
+              (loglin(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) *
+                (FREQ_PLOT_WIDTH+1)-1 
+              ;
             let barHeight = (Math.log10(value + 1) * FREQ_PLOT_HEIGHT) / 2;
-            // finding the x location px from the frequency
-            // let x = (i * FREQ_PLOT_WIDTH) / length;
-            let x = ((logfreq / FREQ_PLOT_WIDTH) * length) / 2;
             // for filling space in between, vary the bar width...kinda looks better as stem plot
             // let barWidth = (l2 - logfreq)/FREQ_PLOT_WIDTH*length/2
             let h = height - barHeight / 4;
 
             if (h > 0) {
               last_bar_heights[i] += barHeight;
-              context.fillRect(x, height, barWidth, -last_bar_heights[i] / 4);
+              context.fillRect(
+                x,
+                height,
+                barWidth,
+                -last_bar_heights[i] / 5
+              );
               last_bar_heights[i] *= 0.77;
             }
           }
@@ -195,7 +207,7 @@ void main() {
       const context: CanvasRenderingContext2D = canvas.getContext("2d");
       if (should_clear) context.clearRect(0, 0, width, height);
 
-      let N = 256;
+      let N = FREQ_PLOT_WIDTH;
       let sum_curve: Array<number> = Array(N).fill(0);
 
       bpf_filters.map((filt, idx) => {
@@ -205,12 +217,14 @@ void main() {
         context.beginPath();
         context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
         for (let i = 0; i < N; i++) {
-          let logfreq = 2595 * Math.log10(1 + (i * 44100) / 2 / N / 700);
-          let x = ((logfreq / FREQ_PLOT_WIDTH) * N) / 2;
+          // let x = (i / N) * NYQUIST;
+          // let logfreq =
+            // (linlog(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) * (FREQ_PLOT_WIDTH + 1) -
+            // 1;
 
           sum_curve[i] += curve[i];
           context.lineTo(
-            x,
+            i,
             (-curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2
           );
         }
@@ -222,10 +236,13 @@ void main() {
       context.beginPath();
       context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
       for (let i = 0; i < N; i++) {
-        let logfreq = 2595 * Math.log10(1 + (i * 44100) / 2 / N / 700);
-        let x = ((logfreq / FREQ_PLOT_WIDTH) * N) / 2;
+        // let x = (i / N) * (MAX_FREQ - MIN_FREQ) + MIN_FREQ;
+        // let x = (i / N) * NYQUIST;
+        // let logfreq =
+          // (linlog(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) * (FREQ_PLOT_WIDTH + 1) -
+          // 1;
         context.lineTo(
-          x,
+          i,
           (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 128 + FREQ_PLOT_HEIGHT / 2
         );
       }

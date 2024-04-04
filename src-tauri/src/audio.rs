@@ -172,7 +172,7 @@ where
 
                     // copying to all channels for now
                     for out_sample in frame.iter_mut() {
-                        *out_sample = v;
+                        // *out_sample = v;
                     }
                     time += 1;
                 }

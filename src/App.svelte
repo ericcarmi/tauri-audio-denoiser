@@ -152,7 +152,6 @@
         }}
       >
         <BandpassSlider
-          bind:bpf={bpf_filters[i]}
           bind:gain={bpf_filters[i].gain}
           bind:freq={bpf_filters[i].freq}
           bind:Q={bpf_filters[i].Q}
