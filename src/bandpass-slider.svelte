@@ -3,7 +3,7 @@
 	import RotarySlider from "./rotary-slider.svelte";
 	import { invoke } from "@tauri-apps/api/tauri";
 	import { biquad } from "./functions.svelte";
-    import FreqSlider from "./freq-slider.svelte";
+	import FreqSlider from "./freq-slider.svelte";
 
 	export let gain = 0;
 	export let freq = 1000;
@@ -17,14 +17,12 @@
 
 	// one param changes all coefficients, so this goes here instead of inside individual sliders
 	function update() {
-
 		let b = biquad(gain, freq, Q);
 		b.x = [0, 0];
 		b.y = [0, 0];
 		if (index == 1) {
 			let r = invoke("update_filters", { bp1: b });
-			console.log(r)
-
+			console.log(r);
 		} else if (index == 2) {
 			invoke("update_filters", { bp2: b });
 		} else if (index == 3) {
@@ -45,15 +43,26 @@
 		<RotarySlider bind:value={Q} bind:index />
 		<Slider bind:value={gain} bind:index />
 	</div>
-	<FreqSlider bind:value={freq} bind:index/>
-	<button
-		class="switch"
-		data-attribute={bypass}
-		on:click={() => {
-			invoke("update_bypass", { bypass: bypass, index: index - 1 });
-			bypass = !bypass;
-		}}
-	/>
+	<FreqSlider bind:value={freq} bind:index />
+	<div style="display: flex; justify-content: space-evenly;">
+		<button
+			class="switch"
+			title="bypass: {bypass ? 'on': 'off'}"
+			data-attribute={bypass}
+			on:click={() => {
+				invoke("update_bypass", { bypass: bypass, index: index - 1 });
+				bypass = !bypass;
+			}}
+		/>
+
+		<button
+			class="reset-gain-switch"
+			title="reset to 0 dB"
+			on:click={() => {
+				gain = 1;
+			}}
+		/>
+	</div>
 </div>
 
 <style>
@@ -85,37 +94,19 @@
 		border-color: var(--purple);
 	}
 
-	input[type="range"] {
-		appearance: none;
-	}
-	input[type="range"]::-webkit-slider-thumb {
-		background: black;
-		appearance: none;
-		-webkit-appearance: none;
-		height: 2em;
+	.reset-gain-switch {
+		display: flex;
 		width: 1em;
+		height: 1em;
+		padding: 0;
+		border-radius: 50%;
+		background: var(--orange);
+		align-self: center;
+		transition: background 0.33s, border-color 0.33s;
+		border-color: var(--gray100);
+	}
+	.reset-gain-switch:hover {
+		background: var(--lightorange);
 	}
 
-	input[type="range"]::-webkit-slider-thumb:active {
-		background: var(--purple);
-	}
-	input[type="range"][data-attribute="true"]::-webkit-slider-thumb {
-		background: var(--purple);
-	}
-
-	input[type="range"]::-webkit-slider-runnable-track {
-		background: var(--gray100);
-	}
-
-	.freq-slider {
-		border: 1px solid var(--purple);
-		transition: border 0.33s;
-		width: 12em;
-	}
-	.freq-slider[data-attribute="true"] {
-		border: 1px solid var(--lightpurple);
-	}
-	.freq-slider:hover {
-		border: 1px solid var(--lightpurple);
-	}
 </style>
