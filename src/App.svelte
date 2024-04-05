@@ -171,8 +171,17 @@
     {/each}
   </div>
   <div
-    style="display: flex; flex-direction: row; justify-content: space-evenly;"
+    style="display: flex; flex-direction: row; justify-content: space-evenly;height: 100%;"
   >
+    <button
+      class="reset-gain-switch"
+      title="reset all gains to 0 dB"
+      on:click={() => {
+        bpf_filters = bpf_filters.map((filt) => {
+          return {gain: 0.0, freq: filt.freq, Q: filt.Q}
+        });
+      }}
+    />
     <RotarySlider
       bind:value={output_gain}
       index={-1}
@@ -182,14 +191,13 @@
       }}
       update_server={() => {
         invoke("save_output_gain", { gain: output_gain });
-
       }}
     />
     <RotarySlider
       bind:value={noise_gain}
       index={-1}
       label="noise"
-      max_val={0.1}
+      max_val={1.1}
       min_val={0}
       update_backend={() => {
         invoke("update_noise_gain", { gain: noise_gain });
@@ -247,5 +255,12 @@
   .bpf-wrap {
     display: flex;
     border: 0px solid var(--purple);
+  }
+
+  .reset-gain-switch {
+    width: 2em;
+    height: 2em;
+    align-self: flex-end;
+    
   }
 </style>

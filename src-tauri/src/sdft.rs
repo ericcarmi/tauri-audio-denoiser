@@ -44,14 +44,14 @@ impl SDFT {
             };
             size
         ];
-        let mut new_freq = vec![
+        let new_freq = vec![
             Complex {
                 re: 0.0f32,
                 im: 0.0f32
             };
             size
         ];
-        let mut inv_time = Complex {
+        let inv_time = Complex {
             re: 0.0f32,
             im: 0.0f32,
         };
@@ -70,7 +70,7 @@ impl SDFT {
             size,
             time_history,
             freq_history: freq_history.clone(),
-            new_freq: freq_history,
+            new_freq,
             inv_time,
             fkernel,
             ikernel,
@@ -119,12 +119,18 @@ impl SDFT {
             //pre process the magnitude spectrum? filter out variations...do they mean remove from the spectrum as if it was a time signal? or just remove high frequencies in the spectrum
 
             out = mag - noise_gain * noise_spectrum[freq];
-            denoise = Complex32::from_polar(out.abs(), arg);
+            // don't do abs()? clamp to zero instead?
+            denoise = Complex32::from_polar(out.clamp(0.0, 10000.0), arg);
             // might need to do some post processing, it is nonlinear...what about upsampling? upsample the original file, process that
 
             // inverse
             self.inv_time += denoise * self.ikernel[freq];
         }
+        self.freq_history = self.new_freq.clone();
+        self.time_history.push(Complex {
+            re: signal,
+            im: 0.0,
+        });
 
         self.inv_time.re
     }

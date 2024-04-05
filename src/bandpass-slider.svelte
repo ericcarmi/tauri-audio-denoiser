@@ -59,7 +59,7 @@
 			class="reset-gain-switch"
 			title="reset to 0 dB"
 			on:click={() => {
-				gain = 1;
+				gain = 0;
 			}}
 		/>
 	</div>
@@ -71,42 +71,5 @@
 		flex-direction: column;
 	}
 
-	.switch {
-		display: flex;
-		width: 1em;
-		height: 1em;
-		padding: 0;
-		border-radius: 50%;
-		background: var(--purple);
-		align-self: center;
-		transition: background 0.33s, border-color 0.33s;
-		border-color: var(--gray100);
-	}
-	.switch[data-attribute="true"]:hover {
-		border-color: var(--lightpurple);
-	}
-	.switch:hover {
-		border-color: var(--gray150);
-	}
-
-	.switch[data-attribute="true"] {
-		background: var(--gray150);
-		border-color: var(--purple);
-	}
-
-	.reset-gain-switch {
-		display: flex;
-		width: 1em;
-		height: 1em;
-		padding: 0;
-		border-radius: 50%;
-		background: var(--orange);
-		align-self: center;
-		transition: background 0.33s, border-color 0.33s;
-		border-color: var(--gray100);
-	}
-	.reset-gain-switch:hover {
-		background: var(--lightorange);
-	}
 
 </style>

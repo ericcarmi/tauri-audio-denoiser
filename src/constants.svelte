@@ -1,6 +1,6 @@
 <script context="module" lang="ts">
 	export const num_sliders = 5;
-	export const FREQ_PLOT_WIDTH = 1150;
+	export const FREQ_PLOT_WIDTH = 950;
 	export const FREQ_PLOT_HEIGHT = 300;
 	export const TIME_PLOT_WIDTH = FREQ_PLOT_WIDTH;
 	export const TIME_PLOT_HEIGHT = 50;

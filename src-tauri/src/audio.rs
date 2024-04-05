@@ -9,6 +9,8 @@ use cpal::{
     traits::{DeviceTrait, HostTrait},
     SizedSample,
 };
+use dasp_ring_buffer::Fixed;
+use rustfft::num_complex::Complex;
 use tauri::{AppHandle, State};
 use wavers::Wav;
 
@@ -123,18 +125,18 @@ where
                 if let Some(t) = msg.time {
                     time = (num_file_samples as f32 * t) as usize;
                     sdft.freq_history = czerov(dft_size);
+                    sdft.time_history = Fixed::from(vec![Complex::new(0.0, 0.0); dft_size]);
                 }
                 if let Some(c) = msg.clean {
                     clean = c;
                     sdft.freq_history = czerov(dft_size);
+                    sdft.time_history = Fixed::from(vec![Complex::new(0.0, 0.0); dft_size]);
                 }
                 if let Some(g) = msg.output_gain {
                     output_gain = g;
-                    println!("out gain{:?}", g);
                 }
                 if let Some(g) = msg.noise_gain {
                     noise_gain = g;
-                    println!("noise gain{:?}", g);
                 }
                 if let Some(v) = msg.bypass {
                     for (i, bp) in v.iter().enumerate() {

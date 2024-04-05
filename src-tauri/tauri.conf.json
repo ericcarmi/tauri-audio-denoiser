@@ -28,8 +28,8 @@
     "windows": [
       {
         "title": "tauri-audio-eq",
-        "width": 1200,
-        "height": 800
+        "width": 1000,
+        "height": 670
       }
     ],
     "security": {
