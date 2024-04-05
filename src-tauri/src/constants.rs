@@ -1,3 +1,4 @@
+use rustfft::num_complex::Complex;
 use tauri::State;
 use wavers::Wav;
 
@@ -6,6 +7,11 @@ use crate::types::{MStreamSend, Message, IIR2};
 // pub const TEST_FILE_PATH: &str = "assets/chirp.wav";
 pub const TEST_FILE_PATH: &str = "assets/test-file.wav";
 pub const ASSETS_PATH: &str = "assets/";
+
+pub const CZERO: Complex<f32> = Complex { re: 0.0, im: 0.0 };
+pub fn czerov(n: usize) -> Vec<Complex<f32>> {
+    vec![Complex { re: 0.0, im: 0.0 }; n]
+}
 
 #[tauri::command]
 pub async fn get_time_data(path: &str, app_handle: tauri::AppHandle) -> Result<Vec<f32>, &str> {
@@ -66,6 +72,8 @@ pub fn update_filters(
             bp4,
             bp5,
             bypass: None,
+            output_gain: None,
+            noise_gain: None,
         });
 }
 
@@ -88,6 +96,8 @@ pub fn update_time(t: f32, streamsend: State<MStreamSend>) {
             bp4: None,
             bp5: None,
             bypass: None,
+            output_gain: None,
+            noise_gain: None,
         });
 }
 
@@ -110,6 +120,8 @@ pub fn update_clean(clean: bool, streamsend: State<MStreamSend>) {
             bp4: None,
             bp5: None,
             bypass: None,
+            output_gain: None,
+            noise_gain: None,
         });
 }
 
@@ -134,5 +146,55 @@ pub fn update_bypass(bypass: bool, index: usize, streamsend: State<MStreamSend>)
             bp4: None,
             bp5: None,
             bypass: Some(bp),
+            output_gain: None,
+            noise_gain: None,
+        });
+}
+
+#[tauri::command]
+pub fn update_output_gain(gain: f32, streamsend: State<MStreamSend>) {
+    let _ = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .msender
+        .0
+        .lock()
+        .unwrap()
+        .try_send(Message {
+            time: None,
+            clean: None,
+            bp1: None,
+            bp2: None,
+            bp3: None,
+            bp4: None,
+            bp5: None,
+            bypass: None,
+            output_gain: Some(gain),
+            noise_gain: None,
+        });
+}
+
+#[tauri::command]
+pub fn update_noise_gain(gain: f32, streamsend: State<MStreamSend>) {
+    let _ = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .msender
+        .0
+        .lock()
+        .unwrap()
+        .try_send(Message {
+            time: None,
+            clean: None,
+            bp1: None,
+            bp2: None,
+            bp3: None,
+            bp4: None,
+            bp5: None,
+            bypass: None,
+            output_gain: None,
+            noise_gain: Some(gain),
         });
 }

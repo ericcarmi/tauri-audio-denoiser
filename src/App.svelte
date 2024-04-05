@@ -4,8 +4,9 @@
   import Plot from "./plot.svelte";
   import { FREQ_PLOT_WIDTH, num_sliders } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
-  import type { BPF, FilterBank, FilterCoeffs2 } from "./types.svelte";
+  import type { BPF, FilterBank } from "./types.svelte";
   import { biquad } from "./functions.svelte";
+  import RotarySlider from "./rotary-slider.svelte";
 
   var gains = [10, 0, 0, 0, 0];
   var freqs = [2000, 500, 1000, 200, 10000];
@@ -18,7 +19,7 @@
     });
   let bpf_hovering = Array(num_sliders).fill(false);
 
-  let filter_bank: FilterBank;
+  // let filter_bank: FilterBank;
 
   // listen("tauri://file-drop", async (event) => {
   // console.log(event.payload);
@@ -52,12 +53,11 @@
       fbank[`bp${i + 1}`] = coeffs;
     }
 
-    filter_bank = fbank as FilterBank;
+    // filter_bank = fbank as FilterBank;
 
     // load from server
     let bpfs: Array<BPF> = await invoke("get_global_state");
     bpf_filters = [...bpfs];
-
   });
 
   let slider_values = Array(num_sliders).fill(0);
@@ -70,6 +70,9 @@
 
   let interval: any;
   let fft_data: any;
+
+  let output_gain = 1.0;
+  let noise_gain = 0.0;
 
   function resetInterval() {
     clearInterval(interval);
@@ -90,7 +93,13 @@
 </script>
 
 <main class="container">
-  <Plot bind:bpf_hovering bind:is_playing bind:bpf_filters {selectedRecording} {fft_data} />
+  <Plot
+    bind:bpf_hovering
+    bind:is_playing
+    bind:bpf_filters
+    {selectedRecording}
+    {fft_data}
+  />
   <input
     style="width: {FREQ_PLOT_WIDTH}px;"
     class="time-slider"
@@ -160,6 +169,35 @@
         />
       </div>
     {/each}
+  </div>
+  <div
+    style="display: flex; flex-direction: row; justify-content: space-evenly;"
+  >
+    <RotarySlider
+      bind:value={output_gain}
+      index={-1}
+      label="out"
+      update_backend={() => {
+        invoke("update_output_gain", { gain: output_gain });
+      }}
+      update_server={() => {
+        invoke("save_output_gain", { gain: output_gain });
+
+      }}
+    />
+    <RotarySlider
+      bind:value={noise_gain}
+      index={-1}
+      label="noise"
+      max_val={0.1}
+      min_val={0}
+      update_backend={() => {
+        invoke("update_noise_gain", { gain: noise_gain });
+      }}
+      update_server={() => {
+        invoke("save_noise_gain", { gain: noise_gain });
+      }}
+    />
   </div>
 </main>
 

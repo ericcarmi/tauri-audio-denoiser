@@ -1,6 +1,9 @@
 use cpal::Stream;
+use rustfft::num_complex::Complex32;
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
+use std::{f32::consts::PI, sync::Mutex};
+
+use crate::constants::CZERO;
 
 pub struct MStream(pub Mutex<Stream>);
 
@@ -71,6 +74,20 @@ impl IIR2 {
         self.a1 = iir.a1;
         self.a2 = iir.a2;
     }
+    pub fn freq_response(&self, n: usize) -> Vec<Complex32> {
+        let mut H = vec![];
+        let L = n as f32;
+        for i in 0..n {
+            let x = (-PI * i as f32 / L).cos();
+            let y = (-PI * i as f32 / L).sin();
+            let z = Complex32 { re: x, im: y };
+            let z2 = z * z;
+
+            let w = (self.b0 + self.b1 * z + self.b2 * z2) / (self.a0 + self.a1 * z + self.a2 * z2);
+            H.push(w);
+        }
+        H
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -98,8 +115,24 @@ impl FilterBank {
         0.0
     }
 
+    /// to iterate over all the filters
     pub fn as_slice(&self) -> [IIR2; 5] {
         [self.bp1, self.bp2, self.bp3, self.bp4, self.bp5]
+    }
+
+    pub fn parallel_transfer(&self, n: usize) -> Vec<f32> {
+        let mut H: Vec<Complex32> = vec![CZERO; n];
+        let l = self.as_slice().len();
+        // loop over all filters first
+        for filt in self.as_slice() {
+            let h = filt.freq_response(n);
+            H.iter_mut()
+                .enumerate()
+                .for_each(|(i, x)| *x += h[i] / l as f32);
+        }
+        // take norm after summing filters
+
+        H.iter().map(|x| x.norm()).collect()
     }
 }
 
@@ -115,4 +148,6 @@ pub struct Message {
     pub bp4: Option<IIR2>,
     pub bp5: Option<IIR2>,
     pub bypass: Option<Vec<Option<bool>>>,
+    pub output_gain: Option<f32>,
+    pub noise_gain: Option<f32>,
 }

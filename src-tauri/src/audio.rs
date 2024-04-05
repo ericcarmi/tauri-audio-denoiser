@@ -21,7 +21,7 @@ pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> Vec<f32> {
         .into_string()
         .unwrap();
 
-    println!("{:?}", p);
+    // println!("{:?}", p);
 
     let mut wav: Wav<f32> = Wav::from_path(p).unwrap();
     wav.read().unwrap().to_vec()
@@ -60,10 +60,10 @@ pub fn host_device_setup(
     let device = host
         .default_output_device()
         .ok_or_else(|| anyhow::Error::msg("Default output device is not available"))?;
-    println!("Output device : {}", device.name()?);
+    // println!("Output device : {}", device.name()?);
 
     let config = device.default_output_config()?;
-    println!("Default output config : {:?}", config);
+    // println!("Default output config : {:?}", config);
 
     Ok((host, device, config))
 }
@@ -88,7 +88,11 @@ where
     let num_file_samples = file_samples.len();
     let mut clean = false;
     let mut bypass_filters = vec![false; 5];
-    let mut sdft = SDFT::new(512);
+    let dft_size = 512;
+    let mut sdft = SDFT::new(dft_size);
+    let mut noise_spectrum = process_filterbank.parallel_transfer(256);
+    let mut noise_gain = 0.0;
+    let mut output_gain = 1.0;
 
     let stream = device.build_output_stream(
         config,
@@ -97,24 +101,40 @@ where
             if let Ok(msg) = rx.try_recv() {
                 if let Some(bp) = msg.bp1 {
                     process_filterbank.bp1.update_coeffs(bp);
+                    noise_spectrum = process_filterbank.parallel_transfer(dft_size);
+                    // println!("{:?}", noise_spectrum);
                 }
                 if let Some(bp) = msg.bp2 {
                     process_filterbank.bp2.update_coeffs(bp);
+                    noise_spectrum = process_filterbank.parallel_transfer(dft_size);
                 }
                 if let Some(bp) = msg.bp3 {
                     process_filterbank.bp3.update_coeffs(bp);
+                    noise_spectrum = process_filterbank.parallel_transfer(dft_size);
                 }
                 if let Some(bp) = msg.bp4 {
                     process_filterbank.bp4.update_coeffs(bp);
+                    noise_spectrum = process_filterbank.parallel_transfer(dft_size);
                 }
                 if let Some(bp) = msg.bp5 {
                     process_filterbank.bp5.update_coeffs(bp);
+                    noise_spectrum = process_filterbank.parallel_transfer(dft_size);
                 }
                 if let Some(t) = msg.time {
                     time = (num_file_samples as f32 * t) as usize;
+                    sdft.freq_history = czerov(dft_size);
                 }
                 if let Some(c) = msg.clean {
                     clean = c;
+                    sdft.freq_history = czerov(dft_size);
+                }
+                if let Some(g) = msg.output_gain {
+                    output_gain = g;
+                    println!("out gain{:?}", g);
+                }
+                if let Some(g) = msg.noise_gain {
+                    noise_gain = g;
+                    println!("noise gain{:?}", g);
                 }
                 if let Some(v) = msg.bypass {
                     for (i, bp) in v.iter().enumerate() {
@@ -127,17 +147,15 @@ where
             // println!("{:?}", process_filterbank);
 
             // vec for fft, will make another for processed spectrum?
-            let mut spectrum = vec![];
+            // let mut spectrum: Vec<f32> = vec![];
             if clean {
                 // ...each frame has 2 samples
                 for frame in output.chunks_mut(num_channels) {
                     if time >= num_file_samples {
                         break;
                     }
-                    let sample = file_samples[time];
+                    let sample = file_samples[time] * output_gain;
                     let v: T = T::from_sample(sample);
-                    spectrum.push(sample);
-                    sdft.process(sample);
 
                     // copying to all channels for now
                     for out_sample in frame.iter_mut() {
@@ -150,35 +168,21 @@ where
                     if time >= num_file_samples {
                         break;
                     }
-                    let sample = file_samples[time];
-                    // let f1 = process_filterbank.bp1.process(sample);
-                    // let f2 = process_filterbank.bp2.process(sample);
-                    // let f3 = process_filterbank.bp3.process(sample);
-                    // let f4 = process_filterbank.bp4.process(sample);
-                    // let f5 = process_filterbank.bp5.process(sample);
-                    let mut filtered = 0.0;
-                    for (bypass, mut slice) in bypass_filters
-                        .clone()
-                        .iter()
-                        .zip(process_filterbank.as_slice())
-                    {
-                        if !bypass {
-                            filtered += slice.process(sample);
-                        }
-                    }
+                    let sample = file_samples[time] * output_gain;
+                    let filtered = sdft.spectral_subtraction(sample, &noise_spectrum, noise_gain);
+
                     let v: T = T::from_sample(filtered);
-                    spectrum.push(filtered);
-                    sdft.process(filtered);
 
                     // copying to all channels for now
                     for out_sample in frame.iter_mut() {
-                        // *out_sample = v;
+                        *out_sample = v;
                     }
                     time += 1;
                 }
             }
             // send a chunk of the fft here
             // let _r = tx_ui.try_send(mfft(spectrum.clone()));
+            // let _r = tx_ui.try_send(freq_filter.clone());
             let _r = tx_ui.try_send(sdft.norm_vec()[0..sdft.size / 2].to_vec());
 
             // println!("{:?}", r);

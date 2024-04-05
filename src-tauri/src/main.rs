@@ -36,10 +36,14 @@ fn main() {
             save_bpf_freq,
             save_bpf_Q,
             update_bypass,
+            update_output_gain,
+            update_noise_gain,
+            save_output_gain,
+            save_noise_gain,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();
-            let _ = mainwindow.set_always_on_top(true);
+            // let _ = mainwindow.set_always_on_top(true);
 
             let app_handle = app.app_handle();
 

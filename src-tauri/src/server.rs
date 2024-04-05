@@ -208,3 +208,29 @@ pub async fn save_bpf_Q(Q: f32, index: usize) {
     let _r = redis_save_bpf_Q(Q, index).await;
     // println!("{:?}", r);
 }
+
+async fn redis_save_output_gain(gain: f32) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+    let a: Result<(), redis::RedisError> = con.set("output_gain", gain).await;
+    return a;
+}
+
+#[tauri::command]
+pub async fn save_output_gain(gain: f32) {
+    let _r = redis_save_output_gain(gain).await;
+    // println!("{:?}", r);
+}
+
+async fn redis_save_noise_gain(gain: f32) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+    let a: Result<(), redis::RedisError> = con.set("noise_gain", gain).await;
+    return a;
+}
+
+#[tauri::command]
+pub async fn save_noise_gain(gain: f32) {
+    let _r = redis_save_noise_gain(gain).await;
+    // println!("{:?}", r);
+}

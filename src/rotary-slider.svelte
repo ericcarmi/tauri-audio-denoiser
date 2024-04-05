@@ -1,9 +1,15 @@
 <script lang="ts">
-    import { invoke } from "@tauri-apps/api/tauri";
+	import { invoke } from "@tauri-apps/api/tauri";
 	import { onMount } from "svelte";
 
 	export let value: any;
 	export let index: number;
+	export let label = "";
+	export let update_backend = () => {};
+	export let update_server = () => {};
+
+	export let min_val = 0.1;
+	export let max_val = 10;
 
 	let el: HTMLElement;
 	let indicator_el: HTMLElement;
@@ -12,14 +18,11 @@
 	let radius = 12;
 
 	let angle = 225;
-	$: value, redraw();
-	function update_value() {
-		
-	}
+	$: value, redraw(), update_backend();
 
 	function redraw() {
 		if (!is_mouse_down && indicator_el !== undefined && el !== undefined) {
-			angle = 1 + ((10.01 - value) / 10) * 270 - 45;
+			angle = -(value - max_val - min_val) / ((angle + 45) / 270);
 			const x = radius * Math.cos((angle * Math.PI) / 180);
 			const y = -radius * Math.sin((angle * Math.PI) / 180);
 
@@ -60,7 +63,8 @@
 				angle += (-e.movementX + e.movementY) * 3;
 				angle = Math.max(Math.min(angle, 225), -45);
 
-				value = (1 - (angle + 45) / 270) * 20 + 0.05;
+				value = max_val - ((angle + 45) / 270) * max_val + min_val;
+				// console.log(value);
 
 				const x = radius * Math.cos((angle * Math.PI) / 180);
 				const y = -radius * Math.sin((angle * Math.PI) / 180);
@@ -89,7 +93,10 @@
 				// have to call this here...maybe want to change how this is handled later
 				is_mouse_down = false;
 				// needs to be lowercase here...tauri does that
-        invoke("save_bpf_Q", { q: value, index: index });
+				if (index !== -1) invoke("save_bpf_Q", { q: value, index: index });
+				else {
+					update_server();
+				}
 
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
@@ -146,9 +153,14 @@
 		/>
 	{/each}
 	<div bind:this={indicator_el} class="indicator" />
+	<span>{label}</span>
 </div>
 
 <style>
+	span {
+		position: relative;
+		top: 100%;
+	}
 	.wrapper {
 		display: flex;
 		width: 3em;

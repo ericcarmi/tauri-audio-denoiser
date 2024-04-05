@@ -17,11 +17,14 @@
 
 	// one param changes all coefficients, so this goes here instead of inside individual sliders
 	function update() {
+
 		let b = biquad(gain, freq, Q);
 		b.x = [0, 0];
 		b.y = [0, 0];
 		if (index == 1) {
-			invoke("update_filters", { bp1: b });
+			let r = invoke("update_filters", { bp1: b });
+			console.log(r)
+
 		} else if (index == 2) {
 			invoke("update_filters", { bp2: b });
 		} else if (index == 3) {

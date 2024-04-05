@@ -1,9 +1,12 @@
 #![allow(dead_code, unused_imports)]
 use dasp_ring_buffer as ring_buf;
+use rustfft::num_complex::{Complex32, ComplexFloat};
 use rustfft::{num_complex::Complex, FftPlanner};
 use std::f32::consts::PI;
 // use std::simd::f32x4;
 use std::time::Instant;
+
+use crate::constants::CZERO;
 
 #[derive(Clone, Debug)]
 pub struct SDFT {
@@ -15,6 +18,7 @@ pub struct SDFT {
     pub fkernel: Vec<Complex<f32>>,
     pub ikernel: Vec<Complex<f32>>,
     pub time_output: Complex<f32>,
+    pub filter: Vec<f32>,
 }
 
 impl SDFT {
@@ -60,6 +64,7 @@ impl SDFT {
             ikernel[i] = Complex::new(0.0, 2.0 * PI * i as f32 / size as f32).exp() / size as f32;
             time_history.push(Complex::new(0.0, 0.0));
         }
+        let filter: Vec<f32> = vec![0.0; size];
 
         Self {
             size,
@@ -70,6 +75,7 @@ impl SDFT {
             fkernel,
             ikernel,
             time_output: Complex { re: 0.0, im: 0.0 },
+            filter,
         }
     }
 
@@ -78,48 +84,63 @@ impl SDFT {
         // inverse should also be simd eventually
         let oldest_input = self.time_history.get(0);
         let delta = signal - oldest_input;
+        self.inv_time = CZERO;
         for freq in 0..self.size {
             self.new_freq[freq] = (self.freq_history[freq] + delta) * self.fkernel[freq];
             self.inv_time += self.new_freq[freq] * self.ikernel[freq];
         }
-
         self.freq_history = self.new_freq.clone();
-
         self.time_history.push(Complex {
             re: signal,
             im: 0.0,
         });
-
         return self.inv_time.re;
     }
-    // this is wrong, should return time vec
-    pub fn process_vec(&mut self, signal: &Vec<f32>) -> f32 {
-        for t in 0..signal.len() {
-            let oldest_input = self.time_history.get(self.size - 1).clone();
-            for freq in 0..self.size {
-                self.new_freq[freq] =
-                    (self.freq_history[freq] + signal[t] - oldest_input) * self.fkernel[freq];
-                self.freq_history[freq] = self.new_freq[freq];
-            }
-            for freq in 0..self.size {
-                self.time_output += self.new_freq[freq] * self.ikernel[freq];
-            }
 
-            self.time_history.push(Complex {
-                re: signal[t],
-                im: 0.0,
-            });
-            self.freq_history[t] = Complex {
-                re: signal[t],
-                im: 0.0,
-            };
+    pub fn spectral_subtraction(
+        &mut self,
+        signal: f32,
+        noise_spectrum: &Vec<f32>,
+        noise_gain: f32,
+    ) -> f32 {
+        let oldest_input = self.time_history.get(0);
+        let delta = signal - oldest_input;
+        let mut out;
+        let mut denoise;
+        let mut arg;
+        let mut mag;
+        self.inv_time = CZERO;
+
+        for freq in 0..self.size {
+            // get spectrum of input
+            self.new_freq[freq] = (self.freq_history[freq] + delta) * self.fkernel[freq];
+            mag = self.new_freq[freq].norm();
+            arg = self.new_freq[freq].arg();
+            //pre process the magnitude spectrum? filter out variations...do they mean remove from the spectrum as if it was a time signal? or just remove high frequencies in the spectrum
+
+            out = mag - noise_gain * noise_spectrum[freq];
+            denoise = Complex32::from_polar(out.abs(), arg);
+            // might need to do some post processing, it is nonlinear...what about upsampling? upsample the original file, process that
+
+            // inverse
+            self.inv_time += denoise * self.ikernel[freq];
         }
 
-        return self.time_output.re;
+        self.inv_time.re
     }
 
+    /// magnitude of frequency spectrum
     pub fn norm_vec(&self) -> Vec<f32> {
         self.new_freq.iter().map(|x| x.norm()).collect()
+    }
+    pub fn phase_vec(&self) -> Vec<f32> {
+        self.new_freq.iter().map(|x| x.arg()).collect()
+    }
+    pub fn norm(&self, n: usize) -> f32 {
+        self.new_freq[n].norm()
+    }
+    pub fn phase(&self, n: usize) -> f32 {
+        self.new_freq[n].arg()
     }
 }
 
