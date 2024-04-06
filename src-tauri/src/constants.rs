@@ -1,11 +1,14 @@
+use std::fs::File;
+
 use rustfft::num_complex::Complex;
 use tauri::State;
-use wavers::Wav;
 
 use crate::types::{MStreamSend, Message, IIR2};
 
 // pub const TEST_FILE_PATH: &str = "assets/chirp.wav";
-pub const TEST_FILE_PATH: &str = "assets/test-file.wav";
+pub const TEST_FILE_PATH: &str = "assets/440-7040-whitenoise.wav";
+// pub const TEST_FILE_PATH: &str = "assets/440-whitenoise.wav";
+// pub const TEST_FILE_PATH: &str = "assets/test-file.wav";
 pub const ASSETS_PATH: &str = "assets/";
 
 pub const CZERO: Complex<f32> = Complex { re: 0.0, im: 0.0 };
@@ -26,20 +29,18 @@ pub async fn get_time_data(path: &str, app_handle: tauri::AppHandle) -> Result<V
         .unwrap();
 
     let filepath = p + "/" + path;
+    println!("{:?}", filepath);
 
     let thread = tauri::async_runtime::spawn(async move {
-        let w: Vec<f32> = Wav::from_path(filepath)
-            .unwrap()
-            .read()
-            .unwrap()
-            .iter()
-            .step_by(16)
-            .cloned()
-            .collect();
-        return w;
+        let file_in = File::open(filepath).unwrap();
+        let (head, samples) = wav_io::read_from_file(file_in).unwrap();
+
+        return samples.iter().step_by(16).cloned().collect::<Vec<f32>>();
     });
 
     if let Ok(r) = thread.await {
+        println!("{:?}", r.len());
+
         time_data = r;
     }
 

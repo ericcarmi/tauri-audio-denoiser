@@ -1,10 +1,11 @@
+use std::fs::File;
+
 use crate::{constants::*, types::Bpf};
 use redis::AsyncCommands;
 use rustfft::{num_complex::Complex, FftPlanner};
 use tauri::AppHandle;
 
 use redis::Commands;
-use wavers::Wav;
 
 // use serde::{Deserialize, Serialize};
 
@@ -67,7 +68,8 @@ async fn redis_set_file_fft(file_name: &str) -> redis::RedisResult<()> {
     let filepath = file_name.to_string();
 
     let thread = tauri::async_runtime::spawn(async move {
-        let w: Vec<f32> = Wav::from_path(filepath).unwrap().read().unwrap().to_vec();
+        let file_in = File::open(filepath).unwrap();
+        let (head, w) = wav_io::read_from_file(file_in).unwrap();
         let mut buffer = vec![];
         let len = w.len();
         for s in w.clone() {
@@ -159,6 +161,42 @@ async fn redis_get_global_state() -> redis::RedisResult<Vec<Bpf>> {
     }
 
     Ok(bpfs)
+}
+
+async fn redis_get_noise_gain() -> redis::RedisResult<f32> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+
+    let gain: Result<f32, redis::RedisError> = con.get("noise_gain").await;
+
+    gain
+}
+
+#[tauri::command]
+pub async fn get_noise_gain() -> Result<f32, String> {
+    if let Ok(gain) = redis_get_noise_gain().await {
+        Ok(gain)
+    } else {
+        Err("failed to get noise gain".to_string())
+    }
+}
+
+async fn redis_get_output_gain() -> redis::RedisResult<f32> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+
+    let gain: Result<f32, redis::RedisError> = con.get("output_gain").await;
+
+    gain
+}
+
+#[tauri::command]
+pub async fn get_output_gain() -> Result<f32, String> {
+    if let Ok(gain) = redis_get_output_gain().await {
+        Ok(gain)
+    } else {
+        Err("failed to get output gain".to_string())
+    }
 }
 
 #[tauri::command]

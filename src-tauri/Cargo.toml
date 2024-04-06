@@ -18,11 +18,11 @@ hound = "3.5.1"
 anyhow = "1.0.81"
 cpal = "0.15.3"
 dasp_ring_buffer = "0.11.0"
-wavers = "1.4.0"
 chrono = "0.4.37"
 rustfft = "6.2.0"
 dsp = "0.11.0"
 redis = { version = "0.25.2", features = ["tokio-comp"] }
+wav_io = "0.1.14"
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!

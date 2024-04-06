@@ -119,7 +119,6 @@ impl SDFT {
             //pre process the magnitude spectrum? filter out variations...do they mean remove from the spectrum as if it was a time signal? or just remove high frequencies in the spectrum
 
             out = mag - noise_gain * noise_spectrum[freq];
-            // don't do abs()? clamp to zero instead?
             denoise = Complex32::from_polar(out.clamp(0.0, 10000.0), arg);
             // might need to do some post processing, it is nonlinear...what about upsampling? upsample the original file, process that
 

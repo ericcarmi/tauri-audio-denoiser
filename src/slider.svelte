@@ -147,10 +147,10 @@
 	}
 
 	.thumb:active {
-		background: var(--purple);
+		background: var(--green);
 	}
 
 	.thumb[data-attribute="true"] {
-		background: var(--purple);
+		background: var(--green);
 	}
 </style>

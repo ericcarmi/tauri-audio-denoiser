@@ -167,8 +167,8 @@
 		height: 3em;
 		background: radial-gradient(
 			var(--gray100) 0,
-			var(--gray150) 80%,
-			var(--purple) 100%
+			var(--gray150) 60%,
+			var(--orange) 100%
 		);
 		border-radius: 50%;
 		border: 2px solid var(--gray100);
@@ -179,10 +179,10 @@
 	}
 
 	.wrapper:hover {
-		border: 2px solid var(--lightpurple);
+		border: 2px solid var(--green);
 	}
 	.wrapper[data-attribute="true"] {
-		border: 2px solid var(--lightpurple);
+		border: 2px solid var(--green);
 	}
 
 	.indicator {
@@ -192,7 +192,6 @@
 	}
 
 	.tick {
-		background: red;
 		width: 2px;
 		height: 6px;
 		position: absolute;

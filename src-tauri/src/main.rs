@@ -40,6 +40,8 @@ fn main() {
             update_noise_gain,
             save_output_gain,
             save_noise_gain,
+            get_noise_gain,
+            get_output_gain,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();

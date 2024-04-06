@@ -41,7 +41,9 @@
       "identifier": "com.audio-eq.dev",
       "resources": [
         "assets/test-file.wav",
-        "assets/chirp.wav"
+        "assets/chirp.wav",
+        "assets/*.wav",
+        "assets/440-whitenoise.wav"
       ],
       "icon": [
         "icons/32x32.png",

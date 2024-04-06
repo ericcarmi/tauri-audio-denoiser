@@ -1,3 +1,5 @@
+use std::fs::File;
+
 use crate::constants::*;
 use crate::fourier::mfft;
 use crate::sdft::SDFT;
@@ -12,7 +14,6 @@ use cpal::{
 use dasp_ring_buffer::Fixed;
 use rustfft::num_complex::Complex;
 use tauri::{AppHandle, State};
-use wavers::Wav;
 
 pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> Vec<f32> {
     let p = app_handle
@@ -25,8 +26,9 @@ pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> Vec<f32> {
 
     // println!("{:?}", p);
 
-    let mut wav: Wav<f32> = Wav::from_path(p).unwrap();
-    wav.read().unwrap().to_vec()
+    let file_in = File::open(p).unwrap();
+    let (head, samples) = wav_io::read_from_file(file_in).unwrap();
+    samples
 }
 
 #[tauri::command]
@@ -62,10 +64,10 @@ pub fn host_device_setup(
     let device = host
         .default_output_device()
         .ok_or_else(|| anyhow::Error::msg("Default output device is not available"))?;
-    // println!("Output device : {}", device.name()?);
+    println!("Output device : {}", device.name()?);
 
     let config = device.default_output_config()?;
-    // println!("Default output config : {:?}", config);
+    println!("Default output config : {:?}", config);
 
     Ok((host, device, config))
 }
@@ -149,7 +151,7 @@ where
             // println!("{:?}", process_filterbank);
 
             // vec for fft, will make another for processed spectrum?
-            // let mut spectrum: Vec<f32> = vec![];
+            let mut spectrum: Vec<f32> = vec![];
             if clean {
                 // ...each frame has 2 samples
                 for frame in output.chunks_mut(num_channels) {
@@ -158,6 +160,7 @@ where
                     }
                     let sample = file_samples[time] * output_gain;
                     let v: T = T::from_sample(sample);
+                    spectrum.push(sample);
 
                     // copying to all channels for now
                     for out_sample in frame.iter_mut() {
@@ -174,6 +177,7 @@ where
                     let filtered = sdft.spectral_subtraction(sample, &noise_spectrum, noise_gain);
 
                     let v: T = T::from_sample(filtered);
+                    spectrum.push(filtered);
 
                     // copying to all channels for now
                     for out_sample in frame.iter_mut() {
@@ -183,9 +187,9 @@ where
                 }
             }
             // send a chunk of the fft here
-            // let _r = tx_ui.try_send(mfft(spectrum.clone()));
+            let _r = tx_ui.try_send(mfft(spectrum.clone()));
             // let _r = tx_ui.try_send(freq_filter.clone());
-            let _r = tx_ui.try_send(sdft.norm_vec()[0..sdft.size / 2].to_vec());
+            // let _r = tx_ui.try_send(sdft.norm_vec()[0..sdft.size / 2].to_vec());
 
             // println!("{:?}", r);
         },

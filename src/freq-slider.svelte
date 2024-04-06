@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { invoke } from "@tauri-apps/api/tauri";
 	import { onMount } from "svelte";
 	import { linlog, linlog2, loglin } from "./functions.svelte";
 	import { MAX_FREQ, MIN_FREQ } from "./constants.svelte";
@@ -10,6 +9,7 @@
 	let position = 0;
 	let el: HTMLElement;
 	let indicator: HTMLElement;
+	export let update_server = () => {}
 
 	let width = 150;
 	let is_dragging = false;
@@ -60,7 +60,6 @@
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
 				is_dragging = false;
-				invoke("save_bpf_gain", { gain: value, index: index });
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}
@@ -90,7 +89,6 @@
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
 				is_dragging = false;
-				invoke("save_bpf_freq", { freq: value, index: index });
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}

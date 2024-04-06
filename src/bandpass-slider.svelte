@@ -21,8 +21,7 @@
 		b.x = [0, 0];
 		b.y = [0, 0];
 		if (index == 1) {
-			let r = invoke("update_filters", { bp1: b });
-			console.log(r);
+			invoke("update_filters", { bp1: b });
 		} else if (index == 2) {
 			invoke("update_filters", { bp2: b });
 		} else if (index == 3) {
@@ -43,11 +42,17 @@
 		<RotarySlider bind:value={Q} bind:index />
 		<Slider bind:value={gain} bind:index />
 	</div>
-	<FreqSlider bind:value={freq} bind:index />
+	<FreqSlider
+		bind:value={freq}
+		bind:index
+		update_server={() => {
+			invoke("save_bpf_freq", { gain: freq, index: index });
+		}}
+	/>
 	<div style="display: flex; justify-content: space-evenly;">
 		<button
 			class="switch"
-			title="bypass: {bypass ? 'on': 'off'}"
+			title="bypass: {bypass ? 'on' : 'off'}"
 			data-attribute={bypass}
 			on:click={() => {
 				invoke("update_bypass", { bypass: bypass, index: index - 1 });
@@ -70,6 +75,4 @@
 		display: flex;
 		flex-direction: column;
 	}
-
-
 </style>
