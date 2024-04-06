@@ -106,7 +106,7 @@
         }
       },
       // this works for now, just have to call resetInterval after pressing button
-      is_playing ? 10 : 1000,
+      is_playing ? 10 : 1000
     );
   }
 
@@ -188,11 +188,11 @@
     on:input={async () => {
       // time_position = (time / DOWN_RATE) * SAMPLING_RATE;
       // time_origin = time_position*DOWN_RATE/SAMPLING_RATE
-      time = time_position*DOWN_RATE/SAMPLING_RATE
+      time = (time_position * DOWN_RATE) / SAMPLING_RATE;
       await invoke("update_time", {
-        t: time /num_time_samples,
+        t: time * SAMPLING_RATE / num_time_samples/DOWN_RATE,
       });
-      console.log(time, time_position);
+      // console.log(time, time * SAMPLING_RATE / num_time_samples/DOWN_RATE);
     }}
   />
   <div>
