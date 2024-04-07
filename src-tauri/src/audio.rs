@@ -94,9 +94,11 @@ where
     let mut bypass_filters = vec![false; 5];
     let dft_size = 512;
     let mut sdft = SDFT::new(dft_size);
-    let mut noise_spectrum = process_filterbank.parallel_transfer(256);
+    let mut noise_spectrum = process_filterbank.parallel_transfer(512);
     let mut noise_gain = 0.0;
     let mut output_gain = 1.0;
+    let mut smooth_gain = 0.5;
+    let mut clamp = 0.0;
 
     let stream = device.build_output_stream(
         config,
@@ -140,6 +142,9 @@ where
                 if let Some(g) = msg.noise_gain {
                     noise_gain = g;
                 }
+                if let Some(g) = msg.smooth_gain {
+                    smooth_gain = g;
+                }
                 if let Some(v) = msg.bypass {
                     for (i, bp) in v.iter().enumerate() {
                         if let Some(b) = bp {
@@ -174,7 +179,8 @@ where
                         break;
                     }
                     let sample = file_samples[time] * output_gain;
-                    let filtered = sdft.spectral_subtraction(sample, &noise_spectrum, noise_gain);
+                    let filtered =
+                        sdft.spectral_subtraction(sample, &noise_spectrum, noise_gain, smooth_gain);
 
                     let v: T = T::from_sample(filtered);
                     spectrum.push(filtered);

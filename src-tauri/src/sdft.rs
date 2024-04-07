@@ -1,5 +1,7 @@
 #![allow(dead_code, unused_imports)]
 use dasp_ring_buffer as ring_buf;
+use rand::Rng;
+
 use rustfft::num_complex::{Complex32, ComplexFloat};
 use rustfft::{num_complex::Complex, FftPlanner};
 use std::f32::consts::PI;
@@ -13,6 +15,7 @@ pub struct SDFT {
     pub size: usize,
     pub time_history: ring_buf::Fixed<Vec<Complex<f32>>>,
     pub freq_history: Vec<Complex<f32>>,
+    pub smooth_noise_history: Vec<Complex<f32>>,
     pub inv_time: Complex<f32>,
     pub new_freq: Vec<Complex<f32>>,
     pub fkernel: Vec<Complex<f32>>,
@@ -70,6 +73,7 @@ impl SDFT {
             size,
             time_history,
             freq_history: freq_history.clone(),
+            smooth_noise_history: freq_history.clone(),
             new_freq,
             inv_time,
             fkernel,
@@ -102,11 +106,13 @@ impl SDFT {
         signal: f32,
         noise_spectrum: &Vec<f32>,
         noise_gain: f32,
+        smooth_gain: f32,
     ) -> f32 {
         let oldest_input = self.time_history.get(0);
         let delta = signal - oldest_input;
         let mut out;
         let mut denoise;
+        let mut smoothed_noise = CZERO;
         let mut arg;
         let mut mag;
         self.inv_time = CZERO;
@@ -118,12 +124,20 @@ impl SDFT {
             arg = self.new_freq[freq].arg();
             //pre process the magnitude spectrum? filter out variations...do they mean remove from the spectrum as if it was a time signal? or just remove high frequencies in the spectrum
 
+            // arg += rand::thread_rng().gen_range(0..1000000) as f32 / 1000000.0 - 0.5;
+
             out = mag - noise_gain * noise_spectrum[freq];
-            denoise = Complex32::from_polar(out.clamp(0.0, 10000.0), arg);
+            denoise = Complex32::from_polar(out.clamp(0.0, f32::MAX), arg);
+            // if out < 0.0 {
+            //     denoise *= -1.0;
+            // }
             // might need to do some post processing, it is nonlinear...what about upsampling? upsample the original file, process that
+            smoothed_noise =
+                smooth_gain * self.smooth_noise_history[freq] + (1.0 - smooth_gain) * denoise;
+            self.smooth_noise_history[freq] = smoothed_noise;
 
             // inverse
-            self.inv_time += denoise * self.ikernel[freq];
+            self.inv_time += smoothed_noise * self.ikernel[freq];
         }
         self.freq_history = self.new_freq.clone();
         self.time_history.push(Complex {

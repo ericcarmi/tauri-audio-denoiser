@@ -44,18 +44,22 @@
   let interval: any;
   let fft_data: any;
 
+  // these values should also be synced with backend on startup, should not require changing sliders...these values are initialized in audio stream setup, might need to call from server from both places?
   let output_gain = 1.0;
   let noise_gain = 0.0;
+  let smooth_gain = 0.5;
+  let clamp = 0;
 
-  function get_time_data() {
+  async function get_time_data() {
     if (selectedRecording === "") return;
-    // is_loading = true;
-    return invoke("get_time_data", { path: selectedRecording }).then((res) => {
-      let data: any = res;
-      // need to sync this and the downsample rate from the backend
-      // or not...when it reads the correct number of samples
-      num_time_samples = data.length;
-    });
+    return await invoke("get_time_data", { path: selectedRecording }).then(
+      (res) => {
+        let data: any = res;
+        // need to sync this and the downsample rate from the backend
+        // or not...when it reads the correct number of samples
+        num_time_samples = data.length;
+      }
+    );
   }
 
   let time_slider_max = num_time_samples;
@@ -65,7 +69,8 @@
     // const resourcePath = await resolveResource("assets/test-file.wav");
     // const langDe = JSON.parse(await readTextFile(resourcePath));
     // console.log(langDe);
-    selectedRecording = "440-7040-whitenoise.wav";
+    // selectedRecording = "440-7040-whitenoise.wav";
+    selectedRecording = "reisman.wav";
     // selected recording also needs to be in sync with backend file...should be resolved once files are imported correctly instead of one by default, tho should still have that for loading saved state?
     get_time_data();
     resetInterval();
@@ -190,7 +195,7 @@
       // time_origin = time_position*DOWN_RATE/SAMPLING_RATE
       time = (time_position * DOWN_RATE) / SAMPLING_RATE;
       await invoke("update_time", {
-        t: time * SAMPLING_RATE / num_time_samples/DOWN_RATE,
+        t: (time * SAMPLING_RATE) / num_time_samples / DOWN_RATE,
       });
       // console.log(time, time * SAMPLING_RATE / num_time_samples/DOWN_RATE);
     }}
@@ -275,13 +280,39 @@
       bind:value={noise_gain}
       index={-1}
       label="noise"
-      max_val={1.1}
+      max_val={-120}
       min_val={0}
       update_backend={() => {
         invoke("update_noise_gain", { gain: noise_gain });
       }}
       update_server={() => {
         invoke("save_noise_gain", { gain: noise_gain });
+      }}
+    />
+    <RotarySlider
+      bind:value={smooth_gain}
+      index={-1}
+      label="smoother"
+      max_val={1}
+      min_val={0}
+      update_backend={() => {
+        invoke("update_smooth_gain", { gain: smooth_gain });
+      }}
+      update_server={() => {
+        // invoke("save_smooth_gain", { gain: smooth_gain });
+      }}
+    />
+    <RotarySlider
+      bind:value={clamp}
+      index={-1}
+      label="clamp"
+      max_val={0.5}
+      min_val={0}
+      update_backend={() => {
+        invoke("update_clamp", { clamp: clamp });
+      }}
+      update_server={() => {
+        // invoke("save_clamp", { clamp: clamp });
       }}
     />
   </div>
