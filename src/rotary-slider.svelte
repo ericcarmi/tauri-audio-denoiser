@@ -10,6 +10,9 @@
 
 	export let min_val = 0.1;
 	export let max_val = 10;
+	let vals_inverted = Math.sign(max_val - min_val);
+	$: min_val, vals_inverted = Math.sign(max_val - min_val)
+	$: max_val, vals_inverted = Math.sign(max_val - min_val)
 
 	let el: HTMLElement;
 	let indicator_el: HTMLElement;
@@ -21,6 +24,8 @@
 	$: value, redraw(), update_backend();
 
 	function redraw() {
+	console.log(value)
+
 		if (!is_mouse_down && indicator_el !== undefined && el !== undefined) {
 			angle = -(value - max_val - min_val) / ((angle + 45) / 270);
 			const x = radius * Math.cos((angle * Math.PI) / 180);
@@ -63,8 +68,7 @@
 				angle += (-e.movementX + e.movementY) * 3;
 				angle = Math.max(Math.min(angle, 225), -45);
 
-				value = max_val - ((angle + 45) / 270) * max_val + min_val;
-				// console.log(value);
+				value = max_val - ((angle + 45) / 270) * Math.abs(max_val - min_val);
 
 				const x = radius * Math.cos((angle * Math.PI) / 180);
 				const y = -radius * Math.sin((angle * Math.PI) / 180);

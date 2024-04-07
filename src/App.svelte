@@ -264,7 +264,7 @@
           return { gain: 0.0, freq: filt.freq, Q: filt.Q };
         });
       }}
-    />
+    >reset gains</button>
     <RotarySlider
       bind:value={output_gain}
       index={-1}
@@ -280,8 +280,8 @@
       bind:value={noise_gain}
       index={-1}
       label="noise"
-      max_val={-120}
-      min_val={0}
+      max_val={0}
+      min_val={-120}
       update_backend={() => {
         invoke("update_noise_gain", { gain: noise_gain });
       }}
@@ -300,19 +300,6 @@
       }}
       update_server={() => {
         // invoke("save_smooth_gain", { gain: smooth_gain });
-      }}
-    />
-    <RotarySlider
-      bind:value={clamp}
-      index={-1}
-      label="clamp"
-      max_val={0.5}
-      min_val={0}
-      update_backend={() => {
-        invoke("update_clamp", { clamp: clamp });
-      }}
-      update_server={() => {
-        // invoke("save_clamp", { clamp: clamp });
       }}
     />
   </div>
@@ -367,8 +354,14 @@
   }
 
   .reset-gain-switch {
-    width: 2em;
+    font-size: 14px;
+    align-items: center;
+    color: var(--gray50);
     height: 2em;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
     align-self: flex-end;
+    width: max-content;
   }
 </style>

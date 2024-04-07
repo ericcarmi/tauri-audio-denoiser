@@ -128,9 +128,6 @@ impl SDFT {
 
             out = mag - noise_gain * noise_spectrum[freq];
             denoise = Complex32::from_polar(out.clamp(0.0, f32::MAX), arg);
-            // if out < 0.0 {
-            //     denoise *= -1.0;
-            // }
             // might need to do some post processing, it is nonlinear...what about upsampling? upsample the original file, process that
             smoothed_noise =
                 smooth_gain * self.smooth_noise_history[freq] + (1.0 - smooth_gain) * denoise;
