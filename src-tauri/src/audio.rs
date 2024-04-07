@@ -92,13 +92,14 @@ where
     let num_file_samples = file_samples.len();
     let mut clean = false;
     let mut bypass_filters = vec![false; 5];
-    let dft_size = 512;
+    let dft_size = 64;
     let mut sdft = SDFT::new(dft_size);
-    let mut noise_spectrum = process_filterbank.parallel_transfer(512);
+    let mut noise_spectrum = process_filterbank.parallel_transfer(dft_size);
     let mut noise_gain = 0.0;
     let mut output_gain = 1.0;
-    let mut smooth_gain = 0.5;
-    let mut clamp = 0.0;
+    let mut pre_smooth_gain = 0.5;
+    let mut post_smooth_gain = 0.5;
+    let mut noise_variance = 0.0;
 
     let stream = device.build_output_stream(
         config,
@@ -142,8 +143,14 @@ where
                 if let Some(g) = msg.noise_gain {
                     noise_gain = g;
                 }
-                if let Some(g) = msg.smooth_gain {
-                    smooth_gain = g;
+                if let Some(g) = msg.pre_smooth_gain {
+                    pre_smooth_gain = g;
+                }
+                if let Some(g) = msg.post_smooth_gain {
+                    post_smooth_gain = g;
+                }
+                if let Some(g) = msg.noise_variance {
+                    noise_variance = g;
                 }
                 if let Some(v) = msg.bypass {
                     for (i, bp) in v.iter().enumerate() {
@@ -179,8 +186,14 @@ where
                         break;
                     }
                     let sample = file_samples[time] * output_gain;
-                    let filtered =
-                        sdft.spectral_subtraction(sample, &noise_spectrum, noise_gain, smooth_gain);
+                    let filtered = sdft.spectral_subtraction(
+                        sample,
+                        &noise_spectrum,
+                        noise_gain,
+                        pre_smooth_gain,
+                        post_smooth_gain,
+                        noise_variance,
+                    );
 
                     let v: T = T::from_sample(filtered);
                     spectrum.push(filtered);

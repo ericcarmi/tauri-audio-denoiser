@@ -47,8 +47,9 @@
   // these values should also be synced with backend on startup, should not require changing sliders...these values are initialized in audio stream setup, might need to call from server from both places?
   let output_gain = 1.0;
   let noise_gain = 0.0;
-  let smooth_gain = 0.5;
-  let clamp = 0;
+  let pre_smooth_gain = 0.5;
+  let post_smooth_gain = 0.5;
+  let noise_variance = 0.0;
 
   async function get_time_data() {
     if (selectedRecording === "") return;
@@ -253,10 +254,10 @@
     {/each}
   </div>
   <div
-    style="display: flex; flex-direction: row; justify-content: space-evenly;height: 100%;"
+    style="display: flex; flex-direction: row; justify-content: space-evenly;height:auto;"
   >
     <button
-      class="reset-gain-switch"
+      class="reset-all-gains-switch"
       title="reset all gains to 0 dB"
       on:click={() => {
         bpf_filters = bpf_filters.map((filt, i) => {
@@ -280,7 +281,7 @@
       bind:value={noise_gain}
       index={-1}
       label="noise"
-      max_val={0}
+      max_val={20}
       min_val={-120}
       update_backend={() => {
         invoke("update_noise_gain", { gain: noise_gain });
@@ -290,16 +291,42 @@
       }}
     />
     <RotarySlider
-      bind:value={smooth_gain}
+      bind:value={pre_smooth_gain}
       index={-1}
-      label="smoother"
-      max_val={1}
+      label="pre_smooth"
+      max_val={0.9999}
       min_val={0}
       update_backend={() => {
-        invoke("update_smooth_gain", { gain: smooth_gain });
+        invoke("update_pre_smooth_gain", { gain: pre_smooth_gain });
       }}
       update_server={() => {
-        // invoke("save_smooth_gain", { gain: smooth_gain });
+        // invoke("save_pre_smooth_gain", { gain: pre_smooth_gain });
+      }}
+    />
+    <RotarySlider
+      bind:value={post_smooth_gain}
+      index={-1}
+      label="post_smooth"
+      max_val={0.9999}
+      min_val={0.7}
+      update_backend={() => {
+        invoke("update_post_smooth_gain", { gain: post_smooth_gain });
+      }}
+      update_server={() => {
+        // invoke("save_post_smooth_gain", { gain: post_smooth_gain });
+      }}
+    />
+    <RotarySlider
+      bind:value={noise_variance}
+      index={-1}
+      label="noise variance"
+      max_val={10}
+      min_val={0}
+      update_backend={() => {
+        invoke("update_noise_variance", { gain: noise_variance });
+      }}
+      update_server={() => {
+        // invoke("save_noise_variance", { gain: noise_variance });
       }}
     />
   </div>
@@ -333,7 +360,7 @@
     justify-items: center;
     grid-template-rows: auto;
     appearance: none;
-    height: 100px;
+    height: 100%;
     border: 0px solid var(--purple);
   }
 
@@ -353,15 +380,18 @@
     border: 0px solid var(--purple);
   }
 
-  .reset-gain-switch {
+  .reset-all-gains-switch {
     font-size: 14px;
     align-items: center;
-    color: var(--gray50);
     height: 2em;
     border-radius: 0;
     padding: 0;
     margin: 0;
     align-self: flex-end;
     width: max-content;
+    border: 1px solid var(--orange);
+  }
+  .reset-all-gains-switch:hover {
+    border-color: var(--lightorange);
   }
 </style>

@@ -58,7 +58,7 @@
 				invoke("update_bypass", { bypass: bypass, index: index - 1 });
 				bypass = !bypass;
 			}}
-		/>
+		>bypass</button>
 
 		<button
 			class="reset-gain-switch"
@@ -66,7 +66,8 @@
 			on:click={() => {
 				gain = 0;
 			}}
-		/>
+		>rst gain </button>
+
 	</div>
 </div>
 
@@ -74,5 +75,11 @@
 	.wrapper {
 		display: flex;
 		flex-direction: column;
+	}
+	.reset-gain-switch, .switch {
+		padding: 0;
+		height: 1.5em;
+		border-radius: 0;
+		width: max-content;
 	}
 </style>

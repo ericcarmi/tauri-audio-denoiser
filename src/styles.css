@@ -93,9 +93,11 @@ input {
 	padding: 0;
 	border-radius: 50%;
 	background: var(--purple);
+  color: var(--gray150);
 	align-self: center;
 	transition: background 0.33s, border-color 0.33s;
 	border-color: var(--gray100);
+  align-items: center;
 }
 .switch[data-attribute="true"]:hover {
 	border-color: var(--lightpurple);
@@ -114,12 +116,16 @@ input {
 	width: 1em;
 	height: 1em;
 	padding: 0;
-	border-radius: 50%;
 	background: var(--orange);
+  color: var(--gray50);
 	align-self: center;
 	transition: background 0.33s, border-color 0.33s;
 	border-color: var(--gray100);
+  align-items: center;
 }
 .reset-gain-switch:hover {
-	background: var(--lightorange);
+	border-color: var(--gray150);
 }
+
+
+

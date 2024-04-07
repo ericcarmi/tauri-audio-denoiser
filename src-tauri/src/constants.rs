@@ -73,7 +73,9 @@ pub fn update_filters(
             bypass: None,
             output_gain: None,
             noise_gain: None,
-            smooth_gain: None,
+            pre_smooth_gain: None,
+            noise_variance: None,
+            post_smooth_gain: None,
         });
 }
 
@@ -98,7 +100,9 @@ pub fn update_time(t: f32, streamsend: State<MStreamSend>) {
             bypass: None,
             output_gain: None,
             noise_gain: None,
-            smooth_gain: None,
+            pre_smooth_gain: None,
+            noise_variance: None,
+            post_smooth_gain: None,
         });
 }
 
@@ -123,7 +127,9 @@ pub fn update_clean(clean: bool, streamsend: State<MStreamSend>) {
             bypass: None,
             output_gain: None,
             noise_gain: None,
-            smooth_gain: None,
+            pre_smooth_gain: None,
+            noise_variance: None,
+            post_smooth_gain: None,
         });
 }
 
@@ -150,7 +156,9 @@ pub fn update_bypass(bypass: bool, index: usize, streamsend: State<MStreamSend>)
             bypass: Some(bp),
             output_gain: None,
             noise_gain: None,
-            smooth_gain: None,
+            pre_smooth_gain: None,
+            noise_variance: None,
+            post_smooth_gain: None,
         });
 }
 
@@ -175,7 +183,9 @@ pub fn update_output_gain(gain: f32, streamsend: State<MStreamSend>) {
             bypass: None,
             output_gain: Some(gain),
             noise_gain: None,
-            smooth_gain: None,
+            pre_smooth_gain: None,
+            noise_variance: None,
+            post_smooth_gain: None,
         });
 }
 
@@ -202,12 +212,14 @@ pub fn update_noise_gain(gain: f32, streamsend: State<MStreamSend>) {
             bypass: None,
             output_gain: None,
             noise_gain: Some(g),
-            smooth_gain: None,
+            pre_smooth_gain: None,
+            noise_variance: None,
+            post_smooth_gain: None,
         });
 }
 
 #[tauri::command]
-pub fn update_smooth_gain(gain: f32, streamsend: State<MStreamSend>) {
+pub fn update_pre_smooth_gain(gain: f32, streamsend: State<MStreamSend>) {
     let _ = streamsend
         .0
         .lock()
@@ -227,6 +239,62 @@ pub fn update_smooth_gain(gain: f32, streamsend: State<MStreamSend>) {
             bypass: None,
             output_gain: None,
             noise_gain: None,
-            smooth_gain: Some(gain),
+            pre_smooth_gain: Some(gain),
+            noise_variance: None,
+            post_smooth_gain: None,
+        });
+}
+
+#[tauri::command]
+pub fn update_post_smooth_gain(gain: f32, streamsend: State<MStreamSend>) {
+    let _ = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .msender
+        .0
+        .lock()
+        .unwrap()
+        .try_send(Message {
+            time: None,
+            clean: None,
+            bp1: None,
+            bp2: None,
+            bp3: None,
+            bp4: None,
+            bp5: None,
+            bypass: None,
+            output_gain: None,
+            noise_gain: None,
+            pre_smooth_gain: None,
+            noise_variance: None,
+            post_smooth_gain: Some(gain),
+        });
+}
+
+#[tauri::command]
+pub fn update_noise_variance(gain: f32, streamsend: State<MStreamSend>) {
+    let _ = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .msender
+        .0
+        .lock()
+        .unwrap()
+        .try_send(Message {
+            time: None,
+            clean: None,
+            bp1: None,
+            bp2: None,
+            bp3: None,
+            bp4: None,
+            bp5: None,
+            bypass: None,
+            output_gain: None,
+            noise_gain: None,
+            pre_smooth_gain: None,
+            noise_variance: Some(gain),
+            post_smooth_gain: None,
         });
 }

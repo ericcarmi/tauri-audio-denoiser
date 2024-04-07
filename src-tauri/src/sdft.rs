@@ -15,7 +15,8 @@ pub struct SDFT {
     pub size: usize,
     pub time_history: ring_buf::Fixed<Vec<Complex<f32>>>,
     pub freq_history: Vec<Complex<f32>>,
-    pub smooth_noise_history: Vec<Complex<f32>>,
+    pub pre_smooth_noise_history: Vec<f32>,
+    pub post_smooth_noise_history: Vec<Complex<f32>>,
     pub inv_time: Complex<f32>,
     pub new_freq: Vec<Complex<f32>>,
     pub fkernel: Vec<Complex<f32>>,
@@ -73,7 +74,8 @@ impl SDFT {
             size,
             time_history,
             freq_history: freq_history.clone(),
-            smooth_noise_history: freq_history.clone(),
+            pre_smooth_noise_history: vec![0.0; size],
+            post_smooth_noise_history: freq_history.clone(),
             new_freq,
             inv_time,
             fkernel,
@@ -106,15 +108,19 @@ impl SDFT {
         signal: f32,
         noise_spectrum: &Vec<f32>,
         noise_gain: f32,
-        smooth_gain: f32,
+        pre_smooth_gain: f32,
+        post_smooth_gain: f32,
+        noise_variance: f32,
     ) -> f32 {
         let oldest_input = self.time_history.get(0);
         let delta = signal - oldest_input;
-        let mut out;
+        let mut out: f32;
         let mut denoise;
-        let mut smoothed_noise = CZERO;
+        let mut post_smoothed_noise;
+        let mut pre_smoothed_noise;
         let mut arg;
         let mut mag;
+        let mut noise;
         self.inv_time = CZERO;
 
         for freq in 0..self.size {
@@ -122,19 +128,23 @@ impl SDFT {
             self.new_freq[freq] = (self.freq_history[freq] + delta) * self.fkernel[freq];
             mag = self.new_freq[freq].norm();
             arg = self.new_freq[freq].arg();
-            //pre process the magnitude spectrum? filter out variations...do they mean remove from the spectrum as if it was a time signal? or just remove high frequencies in the spectrum
 
-            // arg += rand::thread_rng().gen_range(0..1000000) as f32 / 1000000.0 - 0.5;
-
-            out = mag - noise_gain * noise_spectrum[freq];
-            denoise = Complex32::from_polar(out.clamp(0.0, f32::MAX), arg);
-            // might need to do some post processing, it is nonlinear...what about upsampling? upsample the original file, process that
-            smoothed_noise =
-                smooth_gain * self.smooth_noise_history[freq] + (1.0 - smooth_gain) * denoise;
-            self.smooth_noise_history[freq] = smoothed_noise;
+            // variance isn't good, but subtract 1 so it starts from 0
+            noise = (noise_spectrum[freq] - 1.0).abs();
+            // smooth the noise variance
+            pre_smoothed_noise = pre_smooth_gain * self.pre_smooth_noise_history[freq]
+                + (1.0 - pre_smooth_gain) * noise;
+            // delay
+            self.pre_smooth_noise_history[freq] = pre_smoothed_noise;
+            out = mag - noise_gain * pre_smoothed_noise;
+            denoise = Complex32::from_polar(out.clamp(1e-6, f32::MAX), arg);
+            post_smoothed_noise = post_smooth_gain * self.post_smooth_noise_history[freq]
+                + (1.0 - post_smooth_gain) * denoise;
+            //delay
+            self.post_smooth_noise_history[freq] = post_smoothed_noise;
 
             // inverse
-            self.inv_time += smoothed_noise * self.ikernel[freq];
+            self.inv_time += post_smoothed_noise * self.ikernel[freq];
         }
         self.freq_history = self.new_freq.clone();
         self.time_history.push(Complex {

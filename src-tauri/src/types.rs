@@ -150,5 +150,7 @@ pub struct Message {
     pub bypass: Option<Vec<Option<bool>>>,
     pub output_gain: Option<f32>,
     pub noise_gain: Option<f32>,
-    pub smooth_gain: Option<f32>,
+    pub pre_smooth_gain: Option<f32>,
+    pub post_smooth_gain: Option<f32>,
+    pub noise_variance: Option<f32>,
 }
