@@ -45,7 +45,7 @@
   let fft_data: any;
 
   // these values should also be synced with backend on startup, should not require changing sliders...these values are initialized in audio stream setup, might need to call from server from both places?
-  let output_gain = 1.0;
+  let output_gain = 0.0;
   let noise_gain = 0.0;
   let pre_smooth_gain = 0.5;
   let post_smooth_gain = 0.5;
@@ -93,6 +93,11 @@
     // load from server
     let bpfs: Array<BPF> = await invoke("get_global_state");
     bpf_filters = [...bpfs];
+
+    noise_gain = await invoke("get_noise_gain")
+    output_gain = await invoke("get_output_gain")
+    // console.log(noise_gain, output_gain)
+
   });
 
   function resetInterval() {
@@ -260,15 +265,19 @@
       class="reset-all-gains-switch"
       title="reset all gains to 0 dB"
       on:click={() => {
-        bpf_filters = bpf_filters.map((filt, i) => {
-          update_filters(i + 1, 0.0, filt.freq, filt.Q, true);
-          return { gain: 0.0, freq: filt.freq, Q: filt.Q };
-        });
-      }}
-    >reset gains</button>
+        bpf_filters = [
+          ...bpf_filters.map((filt, i) => {
+            update_filters(i + 1, 0.0, filt.freq, filt.Q, true);
+            return { gain: 0.0, freq: filt.freq, Q: filt.Q };
+          }),
+        ];
+      }}>reset gains</button
+    >
     <RotarySlider
       bind:value={output_gain}
       index={-1}
+      max_val={60}
+      min_val={-60}
       label="out"
       update_backend={() => {
         invoke("update_output_gain", { gain: output_gain });
@@ -320,7 +329,7 @@
       bind:value={noise_variance}
       index={-1}
       label="noise variance"
-      max_val={10}
+      max_val={1}
       min_val={0}
       update_backend={() => {
         invoke("update_noise_variance", { gain: noise_variance });

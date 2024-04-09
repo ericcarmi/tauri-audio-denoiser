@@ -19,7 +19,7 @@
 		if (!is_dragging && indicator !== undefined) {
 
 			position = height/2 - value/range * height
-		console.log(value,position)
+		// console.log(value,position)
 			indicator.style.top = position + "px";
 		}
 	}

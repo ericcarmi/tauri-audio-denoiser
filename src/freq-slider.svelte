@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import { linlog, linlog2, loglin } from "./functions.svelte";
 	import { MAX_FREQ, MIN_FREQ } from "./constants.svelte";
+    import { invoke } from "@tauri-apps/api/tauri";
 
 	export let value: number;
 	export let index: number;
@@ -9,7 +10,7 @@
 	let position = 0;
 	let el: HTMLElement;
 	let indicator: HTMLElement;
-	export let update_server = () => {}
+	export let update_server = () => {};
 
 	let width = 150;
 	let is_dragging = false;
@@ -19,7 +20,6 @@
 
 	$: value, redraw();
 	function update_value() {
-		// something off...
 		let x =
 			((position - 1) / width) * (control_max_freq - control_min_freq) +
 			control_min_freq;
@@ -29,8 +29,7 @@
 	}
 
 	function redraw() {
-		if (!is_dragging && indicator !== undefined && el !== undefined) {
-			// position = width / 2 - (value / range) * width;
+		if (!is_dragging && indicator !== undefined) {
 			position =
 				((value - control_min_freq) / (control_max_freq - control_min_freq)) *
 					width +
@@ -89,6 +88,8 @@
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
 				is_dragging = false;
+
+				invoke("save_bpf_freq", { freq: value, index: index });
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}

@@ -205,7 +205,6 @@ void main() {
       let N = FREQ_PLOT_WIDTH;
       let sum_curve: Array<number> = Array(N).fill(0);
 
-
       bpf_filters.map((filt) => {
         let coeffs = biquad(filt.gain, filt.freq, filt.Q);
         const curve = freq_response(coeffs, N);
@@ -225,7 +224,7 @@ void main() {
         // 1;
         context.lineTo(
           i,
-          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2
+          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 128 + FREQ_PLOT_HEIGHT / 2
         );
       }
       context.lineWidth = 2;
@@ -252,7 +251,7 @@ void main() {
           sum_curve[i] += curve[i];
           context.lineTo(
             i,
-            (-curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2
+            (-curve[i] * FREQ_PLOT_HEIGHT) / 128 + FREQ_PLOT_HEIGHT / 2
           );
         }
         context.lineWidth = 2;

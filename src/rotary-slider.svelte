@@ -24,12 +24,12 @@
 	$: value, redraw(), update_backend();
 
 	function redraw() {
-	console.log(value)
 
-		if (!is_mouse_down && indicator_el !== undefined && el !== undefined) {
-			angle = -(value - max_val - min_val) / ((angle + 45) / 270);
+		if (!is_mouse_down && indicator_el !== undefined) {
+				angle = -(value - max_val)/Math.abs(max_val-min_val) * 270 - 45
 			const x = radius * Math.cos((angle * Math.PI) / 180);
 			const y = -radius * Math.sin((angle * Math.PI) / 180);
+
 
 			indicator_el.style.transform = `scale(0.1) translate(${x}em, ${y}em)`;
 			indicator_el.style.background = `linear-gradient(${
