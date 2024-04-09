@@ -16,10 +16,10 @@
 	$: value, redraw();
 
 	function redraw() {
-		if (!is_dragging && indicator !== undefined && el !== undefined) {
-		// console.log(value)
+		if (!is_dragging && indicator !== undefined) {
 
 			position = height/2 - value/range * height
+		console.log(value,position)
 			indicator.style.top = position + "px";
 		}
 	}
