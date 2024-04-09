@@ -11,6 +11,8 @@
     freq_response,
     linlog2,
     loglin2,
+    mel,
+    bark_scale,
   } from "./functions.svelte";
   import { type BPF } from "./types.svelte";
   import {
@@ -32,6 +34,13 @@
 
   let eq_color: string;
   let eq_hover_color: string;
+
+  // function pointer instead of if statements inside loop
+  // when setting changes, plot_scale points to mel or bark
+  let plot_scale = (x: number) => {
+    return x;
+  };
+  let max_plot_freq = plot_scale(NYQUIST);
 
   let is_loading = false;
 
@@ -156,19 +165,16 @@ void main() {
           const length = data.length;
 
           let barWidth = (width / length) * 1.0;
+          barWidth = 1;
 
           for (let i = 0; i < data.length; i++) {
             let value = data[i];
 
             let x = (i / length) * FREQ_PLOT_WIDTH;
-            // let logfreq =
-            //   (linlog(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) *
-            //     (FREQ_PLOT_WIDTH + 1) -
-            //   1;
             let logfreq =
-              (loglin(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) *
-                (FREQ_PLOT_WIDTH + 1) -
-              1;
+              (plot_scale((i / length) * NYQUIST) * FREQ_PLOT_WIDTH) /
+              max_plot_freq;
+
             let barHeight = (Math.log10(value + 1) * FREQ_PLOT_HEIGHT) / 2;
             // for filling space in between, vary the bar width...kinda looks better as stem plot
             // let barWidth = (l2 - logfreq)/FREQ_PLOT_WIDTH*length/2
@@ -176,9 +182,14 @@ void main() {
 
             if (h > 0) {
               last_bar_heights[i] += barHeight;
-              context.fillRect(x, height, barWidth, -last_bar_heights[i] / 8);
-              last_bar_heights[i] *= 0.8;
+              context.fillRect(
+                logfreq,
+                height,
+                barWidth,
+                -last_bar_heights[i] / 12
+              );
             }
+            last_bar_heights[i] *= 0.86;
           }
         }
         data && requestAnimationFrame(renderPlot);
@@ -213,24 +224,22 @@ void main() {
         }
       });
 
-
       context.beginPath();
       context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
       for (let i = 0; i < N; i++) {
         // let x = (i / N) * (MAX_FREQ - MIN_FREQ) + MIN_FREQ;
         // let x = (i / N) * NYQUIST;
-        // let logfreq =
-        // (linlog(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) * (FREQ_PLOT_WIDTH + 1) -
-        // 1;
+        let logfreq =
+          (plot_scale((i / length) * NYQUIST) * FREQ_PLOT_WIDTH) /
+          max_plot_freq;
         context.lineTo(
-          i,
+          logfreq,
           (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 128 + FREQ_PLOT_HEIGHT / 2
         );
       }
       context.lineWidth = 2;
       context.strokeStyle = "rgb(200,220,240)";
       context.stroke();
-
 
       bpf_filters.map((filt, idx) => {
         let coeffs = biquad(filt.gain, filt.freq, filt.Q);
@@ -244,13 +253,13 @@ void main() {
         context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
         for (let i = 0; i < N; i++) {
           // let x = (i / N) * NYQUIST;
-          // let logfreq =
-          // (linlog(x, MIN_FREQ, MAX_FREQ) / MAX_FREQ) * (FREQ_PLOT_WIDTH + 1) -
-          // 1;
+        let logfreq =
+          (plot_scale((i / N) * NYQUIST) * FREQ_PLOT_WIDTH) /
+          max_plot_freq;
 
           sum_curve[i] += curve[i];
           context.lineTo(
-            i,
+            logfreq,
             (-curve[i] * FREQ_PLOT_HEIGHT) / 128 + FREQ_PLOT_HEIGHT / 2
           );
         }
@@ -258,7 +267,6 @@ void main() {
         context.strokeStyle = bpf_hovering[idx] ? eq_hover_color : eq_color;
         context.stroke();
       });
-
     }
     requestAnimationFrame(renderPlot);
   }

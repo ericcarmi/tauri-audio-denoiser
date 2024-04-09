@@ -1,6 +1,12 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/tauri";
   import { onMount } from "svelte";
+  import {
+    LogicalSize,
+    PhysicalSize,
+    WebviewWindow,
+  } from "@tauri-apps/api/window";
+
   import Plot from "./plot.svelte";
   import {
     DOWN_RATE,
@@ -12,7 +18,11 @@
   import type { BPF } from "./types.svelte";
   import { biquad } from "./functions.svelte";
   import RotarySlider from "./rotary-slider.svelte";
+  import Settings from "./settings.svelte";
 
+  const settings_path = "/src/settings.svelte";
+
+  let show_settings = false;
   var gains = [10, 0, 0, 0, 0];
   var freqs = [2000, 500, 1000, 200, 10000];
   var Qs = [0.5, 0.5, 0.5, 0.5, 50.5];
@@ -94,10 +104,9 @@
     let bpfs: Array<BPF> = await invoke("get_global_state");
     bpf_filters = [...bpfs];
 
-    noise_gain = await invoke("get_noise_gain")
-    output_gain = await invoke("get_output_gain")
+    noise_gain = await invoke("get_noise_gain");
+    output_gain = await invoke("get_output_gain");
     // console.log(noise_gain, output_gain)
-
   });
 
   function resetInterval() {
@@ -120,8 +129,6 @@
       is_playing ? 10 : 1000
     );
   }
-
-  // $: time, time_position = time*SAMPLING_RATE/DOWN_RATE/time_slider_max, console.log(time_position, time, time_slider_max);
 
   // for now just using this for the reset all gain switch, so the filters on backend are updated, and server at same time, which usually doesn't happen when moving gain slider (only sends to server on mouse up)
   function update_filters(
@@ -174,6 +181,16 @@
 </script>
 
 <main class="container">
+  <div class="header">
+    <button
+      on:click={() => {
+        show_settings = !show_settings;
+      }}>settings</button
+    >
+  </div>
+  {#if show_settings}
+    <Settings />
+  {/if}
   <Plot
     bind:bpf_hovering
     bind:is_playing
@@ -371,6 +388,8 @@
     appearance: none;
     height: 100%;
     border: 0px solid var(--purple);
+    margin-top: 5px;
+    margin-bottom: 10px;
   }
 
   .time-slider {

@@ -81,8 +81,16 @@
 	export function linlog(x: number, minfreq: number, maxfreq: number) {
 		return minfreq * Math.pow(10, ((x - minfreq) / (maxfreq - minfreq)) * Math.log10(maxfreq / minfreq));
 	}
+
 	export function linlog2(x: number, minfreq: number, maxfreq: number) {
 		return minfreq * Math.pow(2, ((x - minfreq) / (maxfreq - minfreq)) * Math.log2(maxfreq / minfreq));
+	}
+
+	export function mel(x: number) {
+		return 2595 * Math.log10(1 + x / 700);
+	}
+	export function bark_scale(x: number) {
+		return 13 * Math.atan(0.00076 * x) + 3.5 * Math.atan((x/7500)**2);
 	}
 
 	export const linspace = (start: number, stop: number, step: number) =>

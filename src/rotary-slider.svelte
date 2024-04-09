@@ -54,11 +54,6 @@
 			return;
 		}
 		el.addEventListener("mousedown", function (e: MouseEvent) {
-			// var offsetX = e.clientX - 10;
-			// var offsetY = e.clientY - position;
-
-			// offsetY = Math.max(offsetY, 0);
-
 			function mouseMoveHandler(e: any) {
 				if (el === null || indicator_el === null) {
 					return;
