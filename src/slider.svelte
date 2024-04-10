@@ -17,9 +17,7 @@
 
 	function redraw() {
 		if (!is_dragging && indicator !== undefined) {
-
-			position = height/2 - value/range * height
-		// console.log(value,position)
+			position = height / 2 - (value / range) * height;
 			indicator.style.top = position + "px";
 		}
 	}
@@ -89,7 +87,7 @@
 	bind:this={el}
 	data-attribute={is_dragging}
 	role="button"
-	tabindex={-1}
+	tabindex={0}
 	on:mousedown={(e) => {
 		is_dragging = true;
 		let wrap_position = el.offsetTop;

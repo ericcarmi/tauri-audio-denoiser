@@ -20,7 +20,8 @@
   let settings: any;
 
   let show_settings = false;
-  var gains = [10, 0, 0, 0, 0];
+  // if these values are the same as what is in server, values will not update when loaded, so use values that are way out of range? silly but it works
+  var gains = [-300, -300, -300, -300, -300];
   var freqs = [2000, 500, 1000, 200, 10000];
   var Qs = [0.5, 0.5, 0.5, 0.5, 50.5];
 
@@ -76,8 +77,6 @@
 
   onMount(async () => {
     settings = await invoke("get_settings");
-    console.log(settings)
-
 
     document.body.style.setProperty("--rotary-tick", rgbToHex(settings.colors.rotary_tick));
     // const resourcePath = await resolveResource("assets/test-file.wav");
@@ -91,7 +90,8 @@
 
     // load from server
     let bpfs: Array<BPF> = await invoke("get_global_state");
-    bpf_filters = [...bpfs];
+    bpf_filters = bpfs;
+
 
     noise_gain = await invoke("get_noise_gain");
     output_gain = await invoke("get_output_gain");

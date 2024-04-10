@@ -8,9 +8,6 @@
 	export let gain = 0;
 	export let freq = 1000;
 	export let Q = 1;
-
-	let is_freq_dragging = false;
-
 	export let index: number;
 
 	let bypass = false;
