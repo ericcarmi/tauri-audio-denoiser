@@ -123,17 +123,17 @@
 		width: 2.5em;
 		display: flex;
 		justify-content: center;
-		border: 1px solid var(--purple);
+		border: 1px solid var(--slider-border);
 		position: relative;
 		transition: border 0.33s;
 	}
 
 	.wrapper:hover {
-		border: 1px solid var(--lightpurple);
+		border: 1px solid var(--slider-hover);
 	}
 
 	.wrapper[data-attribute="true"] {
-		border: 1px solid var(--lightpurple);
+		border: 1px solid var(--slider-active);
 	}
 
 	.thumb {
@@ -145,10 +145,10 @@
 	}
 
 	.thumb:active {
-		background: var(--green);
+		background: var(--slider-active);
 	}
 
 	.thumb[data-attribute="true"] {
-		background: var(--green);
+		background: var(--slider-hover);
 	}
 </style>

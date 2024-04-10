@@ -49,6 +49,7 @@ fn main() {
             get_settings,
             save_settings,
             init_settings,
+            get_theme_colors,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();

@@ -176,10 +176,10 @@
 	}
 
 	.wrapper:hover {
-		border: 2px solid var(--green);
+		border: 2px solid var(--rotary-hover);
 	}
 	.wrapper[data-attribute="true"] {
-		border: 2px solid var(--green);
+		border: 2px solid var(--rotary-hover);
 	}
 
 	.indicator {

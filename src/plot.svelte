@@ -35,8 +35,11 @@
   let eq_hover_color: string;
   let plot_total_curve: string;
   let plot_scale: string;
+  let plot_color: any;
 
   export let settings: any;
+
+  let time_data: any;
 
   // function pointer instead of if statements inside loop
   // when setting changes, plot_scale points to mel or bark
@@ -66,12 +69,15 @@
 
   function update_colors() {
     if (settings) {
+
       plot_total_curve = rgbToHex(settings.colors.plot_total_curve);
       eq_color = rgbToHex(settings.colors.plot_single_filter);
       eq_hover_color = rgbToHex(settings.colors.plot_filter_hover);
+      plot_color = settings.colors.plot_main;
       plot_scale = settings.plot_scale;
       max_plot_freq = set_plot_scale(NYQUIST);
       update_filter_bank(true);
+      get_time_data();
     }
   }
 
@@ -93,15 +99,47 @@
     freqcanvas.height = FREQ_PLOT_HEIGHT;
   });
 
+  function redraw_time_data() {
+
+    let renderPlot = () => {
+      line = new WebglLine(
+        new ColorRGBA(plot_color.r / 255, plot_color.g, plot_color.b / 255, 1),
+        time_data.length
+      );
+
+      webglp.removeAllLines();
+      webglp.addLine(line);
+      line.arrangeX();
+      let hop = Math.round(time_data.length / TIME_PLOT_WIDTH / 8);
+      for (let i = 0; i < time_data.length; i += hop) {
+        line.setY(i, time_data[i]);
+      }
+      webglp.update();
+
+      is_loading = false;
+    };
+    requestAnimationFrame(renderPlot);
+  }
+
   async function get_time_data() {
-    if (selectedRecording === "") return;
+    if (selectedRecording === "" || plot_color === undefined) return;
     // check cache...maybe
+    if (time_data !== undefined) {
+      redraw_time_data();
+      return;
+    }
     is_loading = true;
     invoke("get_time_data", { path: selectedRecording }).then((res) => {
       let data: any = res;
+      time_data = data;
       let renderPlot = () => {
         line = new WebglLine(
-          new ColorRGBA(140 / 255, 0, 180 / 255, 1),
+          new ColorRGBA(
+            plot_color.r / 255,
+            plot_color.g,
+            plot_color.b / 255,
+            1
+          ),
           data.length
         );
 
@@ -254,7 +292,7 @@
 
 <style>
   canvas {
-    border: 2px solid var(--purple);
+    border: 2px solid var(--plot-main);
     background: black;
   }
   div {
@@ -267,8 +305,8 @@
     width: 2em;
     height: 2em;
     border: 3px solid var(--gray150);
-    border-bottom-color: var(--purple);
-    border-top-color: var(--purple);
+    border-bottom-color: var(--plot-main);
+    border-top-color: var(--plot-main);
     border-radius: 20px;
     animation: 2s infinite linear spin;
   }

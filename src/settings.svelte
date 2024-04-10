@@ -15,6 +15,8 @@
   export let settings: any;
   export let show_settings;
 
+  let theme = "POG";
+
   let on_top = false;
   let rotary_tick: string;
   let rotary_hover: string;
@@ -27,13 +29,26 @@
   let plot_total_curve: string;
   let plot_filter_hover: string;
 
+  function update_local_colors() {
+    rotary_tick = rgbToHex(settings.colors.rotary_tick);
+    rotary_hover = rgbToHex(settings.colors.rotary_hover);
+    slider_border = rgbToHex(settings.colors.slider_border);
+    slider_indicator = rgbToHex(settings.colors.slider_indicator);
+    slider_hover = rgbToHex(settings.colors.slider_hover);
+    slider_active = rgbToHex(settings.colors.slider_active);
+    plot_main = rgbToHex(settings.colors.plot_main);
+    plot_total_curve = rgbToHex(settings.colors.plot_total_curve);
+    plot_single_filter = rgbToHex(settings.colors.plot_single_filter);
+    plot_filter_hover = rgbToHex(settings.colors.plot_filter_hover);
+    plot_scale = settings.plot_scale;
+  }
+
   onMount(async () => {
     if (settings) {
-      rotary_tick = rgbToHex(settings.colors.rotary_tick);
-      plot_total_curve = rgbToHex(settings.colors.plot_total_curve);
-      plot_single_filter = rgbToHex(settings.colors.plot_single_filter);
-      plot_filter_hover = rgbToHex(settings.colors.plot_filter_hover);
-      plot_scale = settings.plot_scale;
+      theme = settings.theme;
+      update_local_colors();
+      console.log(settings.colors)
+
     }
   });
   onDestroy(async () => {
@@ -150,16 +165,59 @@
 
       <div class="item">
         <span class="group-label">fft plot decay</span>
-        <input type="range" name="fft_plot_decay" value={fft_plot_decay} />
+        <input
+          type="range"
+          name="fft_plot_decay"
+          min={0}
+          max={1}
+          step={0.01}
+          bind:value={fft_plot_decay}
+        />
         <span style="width:100%;">{fft_plot_decay}</span>
       </div>
 
       <div class="item">
         <span class="group-label">fft plot size</span>
-        <span><input type="radio" name="fft_plot_size" /> 64</span>
-        <span><input type="radio" name="fft_plot_size" /> 128</span>
-        <span><input type="radio" name="fft_plot_size" checked /> 256</span>
-        <span><input type="radio" name="fft_plot_size" /> 512</span>
+        <span
+          ><input
+            type="radio"
+            name="fft_plot_size"
+            on:click={() => {
+              fft_plot_size = 64;
+            }}
+            checked={fft_plot_size === 64}
+          /> 64</span
+        >
+        <span
+          ><input
+            type="radio"
+            name="fft_plot_size"
+            on:click={() => {
+              fft_plot_size = 128;
+            }}
+            checked={fft_plot_size === 128}
+          /> 128</span
+        >
+        <span
+          ><input
+            type="radio"
+            name="fft_plot_size"
+            on:click={() => {
+              fft_plot_size = 256;
+            }}
+            checked={fft_plot_size === 256}
+          /> 256</span
+        >
+        <span
+          ><input
+            type="radio"
+            name="fft_plot_size"
+            on:click={() => {
+              fft_plot_size = 512;
+            }}
+            checked={fft_plot_size === 512}
+          /> 512</span
+        >
       </div>
 
       <div class="item">
@@ -180,10 +238,75 @@
 
       <div class="item">
         <span class="group-label">theme</span>
-        <span><input type="radio" name="theme" /> rgb</span>
-        <span><input type="radio" name="theme" /> cym</span>
-        <span><input type="radio" name="theme" /> pog</span>
-        <span><input type="radio" name="theme" /> custom</span>
+        <span
+          ><input
+            type="radio"
+            name="theme"
+            on:click={async () => {
+              theme = "RGB";
+              settings.theme = theme;
+              settings.colors = await invoke("get_theme_colors", {
+                name: theme,
+              });
+              update_local_colors();
+            }}
+            checked={theme === "RGB"}
+          /> rgb</span
+        >
+        <span
+          ><input
+            type="radio"
+            name="theme"
+            on:click={async () => {
+              theme = "CYM";
+              settings.theme = theme;
+              settings.colors = await invoke("get_theme_colors", {
+                name: theme,
+              });
+              update_local_colors();
+            }}
+            checked={theme === "CYM"}
+          /> cym</span
+        >
+        <span
+          ><input
+            type="radio"
+            name="theme"
+            on:click={async () => {
+              theme = "POG";
+              settings.theme = theme;
+              settings.colors = await invoke("get_theme_colors", {
+                name: theme,
+              });
+              update_local_colors();
+            }}
+            checked={theme === "POG"}
+          /> pog</span
+        >
+        <span
+          ><input
+            type="radio"
+            name="theme"
+            on:click={async () => {
+              theme = "CUSTOM";
+              settings.theme = theme;
+              settings.colors = await invoke("get_theme_colors", {
+                name: theme,
+              });
+              update_local_colors();
+            }}
+            checked={theme === "CUSTOM"}
+          /> custom</span
+        >
+        <button
+          type="button"
+          title="this will not erase the custom theme"
+          on:click={async () => {
+            await invoke("init_settings");
+            settings = await invoke("get_settings");
+            update_local_colors();
+          }}>reset to defaults</button
+        >
       </div>
 
       <div class="wide-item">
@@ -197,42 +320,20 @@
             bind:value={rotary_tick}
           />rotary ticks</span
         >
-        <span
-          ><input
-            type="color"
-            value={rgbToHex(settings.colors.rotary_tick)}
-          />rotary hover</span
+        <span><input type="color" bind:value={rotary_hover} />rotary hover</span
         >
         <span
-          ><input
-            type="color"
-            value={rgbToHex(settings.colors.slider_border)}
-          />slider border</span
+          ><input type="color" bind:value={slider_border} />slider border</span
         >
         <span
-          ><input
-            type="color"
-            value={rgbToHex(settings.colors.slider_indicator)}
-          />slider indicator</span
+          ><input type="color" bind:value={slider_indicator} />slider indicator</span
+        >
+        <span><input type="color" bind:value={slider_hover} />slider hover</span
         >
         <span
-          ><input
-            type="color"
-            value={rgbToHex(settings.colors.slider_hover)}
-          />slider hover</span
+          ><input type="color" bind:value={slider_active} />slider active</span
         >
-        <span
-          ><input
-            type="color"
-            value={rgbToHex(settings.colors.slider_active)}
-          />slider active</span
-        >
-        <span
-          ><input
-            type="color"
-            value={rgbToHex(settings.colors.plot_main)}
-          />plot main</span
-        >
+        <span><input type="color" bind:value={plot_main} />plot main</span>
         <span
           ><input type="color" bind:value={plot_single_filter} />plot single
           filter

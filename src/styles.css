@@ -66,14 +66,16 @@ button {
   align-items: center;
   height: 2em;
   border-radius: 0;
-  padding: 0;
+  padding: 1px;
   margin: 0;
   align-self: flex-end;
   width: max-content;
   border: 1px solid var(--rotary-tick);
+  border-radius: 2px;
   color: var(--gray200);
   background: black;
   cursor: pointer;
+  transition: color 0.33s;
 }
 button:hover {
   color: var(--gray150);

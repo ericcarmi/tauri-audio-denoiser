@@ -11,7 +11,7 @@
   } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
   import type { BPF } from "./types.svelte";
-  import { biquad, hexToRgb, rgbToHex } from "./functions.svelte";
+  import { biquad, hexToRgb, rgbToHex, update_css_color } from "./functions.svelte";
   import RotarySlider from "./rotary-slider.svelte";
   import Settings from "./settings.svelte";
 
@@ -77,14 +77,17 @@
   onMount(async () => {
     settings = await invoke("get_settings");
 
-    document.body.style.setProperty(
-      "--rotary-tick",
-      rgbToHex(settings.colors.rotary_tick)
-    );
-    // const resourcePath = await resolveResource("assets/test-file.wav");
-    // const langDe = JSON.parse(await readTextFile(resourcePath));
-    // console.log(langDe);
-    // selectedRecording = "440-7040-whitenoise.wav";
+    update_css_color(rgbToHex(settings.colors.rotary_tick),"rotary-tick")
+    update_css_color(rgbToHex(settings.colors.rotary_hover),"rotary-hover")
+    update_css_color(rgbToHex(settings.colors.slider_border),"slider-border")
+    update_css_color(rgbToHex(settings.colors.slider_indicator),"slider-indicator")
+    update_css_color(rgbToHex(settings.colors.slider_hover),"slider-hover")
+    update_css_color(rgbToHex(settings.colors.slider_active),"slider-active")
+    update_css_color(rgbToHex(settings.colors.plot_main),"plot-main")
+    update_css_color(rgbToHex(settings.colors.plot_single_filter),"plot-single-filter")
+    update_css_color(rgbToHex(settings.colors.plot_total_curve),"plot-total-curve")
+    update_css_color(rgbToHex(settings.colors.plot_filter_hover),"plot-filter-hover")
+
     selectedRecording = "reisman.wav";
     // selected recording also needs to be in sync with backend file...should be resolved once files are imported correctly instead of one by default, tho should still have that for loading saved state?
     get_time_data();
@@ -350,7 +353,7 @@
   }
 
   input[type="range"]::-webkit-slider-thumb:active {
-    background: var(--lightpurple);
+    background: var(--slider-active);
   }
   input[type="range"][data-attribute="true"]::-webkit-slider-thumb {
     background: var(--purple);
@@ -366,25 +369,23 @@
     grid-template-rows: auto;
     appearance: none;
     height: 100%;
-    border: 0px solid var(--purple);
     margin-top: 5px;
     margin-bottom: 10px;
   }
 
   .time-slider {
     align-self: center;
-    border: 2px solid var(--purple);
+    border: 2px solid var(--slider-border);
     transition: border 0.33s;
   }
   .time-slider[data-attribute="true"] {
-    border: 2px solid var(--lightpurple);
+    border: 2px solid var(--slider-active);
   }
   .time-slider:hover {
-    border: 2px solid var(--lightpurple);
+    border: 2px solid var(--slider-hover);
   }
   .bpf-wrap {
     display: flex;
-    border: 0px solid var(--purple);
   }
 
   .reset-all-gains-switch {

@@ -1,3 +1,4 @@
+use crate::settings::{Colors, Theme};
 use crate::{constants::*, settings::Settings, types::Bpf};
 use redis::AsyncCommands;
 use redis::Commands;
@@ -310,5 +311,51 @@ pub async fn get_settings() -> Result<Settings, String> {
         Ok(settings)
     } else {
         Err("failed to get settings".to_string())
+    }
+}
+
+async fn redis_save_theme(theme: Theme) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+    let ser = serde_json::to_string(&theme).unwrap();
+    let a: Result<(), redis::RedisError> = con.set(format!("theme-{}", theme.as_str()), ser).await;
+    return a;
+}
+
+#[tauri::command]
+pub async fn save_theme(theme: Theme) {
+    let _r = redis_save_theme(theme).await;
+    // println!("{:?}", r);
+}
+
+async fn redis_get_theme() -> redis::RedisResult<String> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+
+    let sett: Result<String, redis::RedisError> = con.get("theme").await;
+
+    sett
+}
+
+#[tauri::command]
+pub async fn get_theme() -> Result<Theme, String> {
+    if let Ok(sett) = redis_get_theme().await {
+        let theme: Theme = serde_json::from_str(sett.as_str()).unwrap();
+
+        Ok(theme)
+    } else {
+        Err("failed to get theme".to_string())
+    }
+}
+
+#[tauri::command]
+pub fn get_theme_colors(name: &str) -> Result<Colors, String> {
+    let theme = Theme::RGB;
+    match name {
+        "RGB" => Ok(theme.rgb()),
+        "CYM" => Ok(theme.cym()),
+        "POG" => Ok(theme.pog()),
+        // "CUSTOM" => theme.custom(),
+        _ => Err("invalid theme name".to_string()),
     }
 }

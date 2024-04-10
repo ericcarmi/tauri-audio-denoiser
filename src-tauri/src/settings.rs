@@ -51,15 +51,24 @@ impl Theme {
             CUSTOM => self.cym(),
         }
     }
+    pub fn as_str(&self) -> &str {
+        use Theme::*;
+        match self {
+            RGB => "RGB",
+            CYM => "CYM",
+            POG => "POG",
+            CUSTOM => "CUSTOM",
+        }
+    }
     pub fn rgb(&self) -> Colors {
         Colors {
-            rotary_tick: LIGHTPURPLE,
-            rotary_hover: GREEN,
-            slider_hover: LIGHTPURPLE,
-            slider_border: PURPLE,
+            rotary_tick: RED,
+            rotary_hover: BLUE,
+            slider_hover: LIGHTBLUE,
+            slider_border: BLUE,
             slider_active: GREEN,
-            slider_indicator: GREEN,
-            plot_main: PURPLE,
+            slider_indicator: RED,
+            plot_main: BLUE,
             plot_single_filter: GRAY100,
             plot_total_curve: GRAY200,
             plot_filter_hover: RED,
@@ -67,13 +76,13 @@ impl Theme {
     }
     pub fn cym(&self) -> Colors {
         Colors {
-            rotary_tick: LIGHTPURPLE,
-            rotary_hover: GREEN,
-            slider_hover: LIGHTPURPLE,
-            slider_border: PURPLE,
-            slider_active: GREEN,
-            slider_indicator: GREEN,
-            plot_main: PURPLE,
+            rotary_tick: CYAN,
+            rotary_hover: MAGENTA,
+            slider_hover: CYAN,
+            slider_border: MAGENTA,
+            slider_active: YELLOW,
+            slider_indicator: MAGENTA,
+            plot_main: MAGENTA,
             plot_single_filter: GRAY100,
             plot_total_curve: GRAY200,
             plot_filter_hover: CYAN,
@@ -172,9 +181,13 @@ impl Color {
 //     hex
 // }
 
-pub const RED: Color = Color::new(200, 0, 0);
+pub const RED: Color = Color::new(170, 0, 0);
 // pub const GREEN: Color = Color::new(0, 180, 0);
-pub const BLUE: Color = Color::new(0, 0, 180);
+pub const BLUE: Color = Color::new(0, 0, 170);
+
+pub const LIGHTRED: Color = Color::new(230, 0, 0);
+// pub const LIGHTGREEN: Color = Color::new(0, 180, 0);
+pub const LIGHTBLUE: Color = Color::new(0, 0, 230);
 
 pub const PURPLE: Color = Color::new(100, 0, 140);
 pub const ORANGE: Color = Color::new(220, 100, 0);
@@ -182,7 +195,7 @@ pub const GREEN: Color = Color::new(0, 140, 0);
 
 pub const CYAN: Color = Color::new(0, 200, 240);
 pub const YELLOW: Color = Color::new(220, 220, 0);
-pub const MAGENTA: Color = Color::new(150, 0, 200);
+pub const MAGENTA: Color = Color::new(200, 0, 250);
 
 pub const LIGHTPURPLE: Color = Color::new(100, 0, 140);
 pub const LIGHTORANGE: Color = Color::new(220, 100, 0);

@@ -6,6 +6,16 @@
 		return Math.sqrt(z.re * z.re + z.im * z.im);
 	}
 
+	
+  export function update_css_color(color: string, color_name: string) {
+    if (color !== undefined) {
+      document.body.style.setProperty(
+        `--${color_name.replace("_", "-")}`,
+        color
+      );
+    }
+  }
+
 	export function cdiv(z1: Complex, z2: Complex) {
 		let a = z1.re;
 		let b = z1.im;
