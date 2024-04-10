@@ -5,8 +5,6 @@
   import {
     loglin,
     linlog,
-    linspace,
-    frequencyToXAxis,
     biquad,
     freq_response,
     linlog2,
@@ -36,82 +34,42 @@
   let eq_color: string;
   let eq_hover_color: string;
   let plot_total_curve: string;
+  let plot_scale: string;
 
   export let settings: any;
 
   // function pointer instead of if statements inside loop
   // when setting changes, plot_scale points to mel or bark
-  let plot_scale = (x: number) => {
-    return x;
+  let set_plot_scale = (x: number) => {
+    if (plot_scale === "Log") {
+      return loglin(x, MIN_FREQ, NYQUIST);
+    }
+    if (plot_scale === "Mel") {
+      return mel(x);
+    }
+    if (plot_scale === "Bark") {
+      return bark_scale(x);
+    } else {
+      return x;
+    }
   };
-  let max_plot_freq = plot_scale(NYQUIST);
+  let max_plot_freq = set_plot_scale(NYQUIST);
 
   let is_loading = false;
 
   let webglp: WebglPlot;
   let line: WebglLine;
-  let squ = new WebglSquare(new ColorRGBA(1, 0, 0, 1));
-
-  let freqwebglp: WebglPlot;
-  let freqline: WebglLine;
-
   let canvasMain: any;
-  let ctx: any;
   let freqcanvas: any;
-  export const freq = 520;
-  export const amp = 1;
-
-  let gl: WebGL2RenderingContext;
-  let vertCode: any;
-  let vertShader: any;
-  let fragCode: any;
-  let fragShader: any;
-  let shaderProgram: any;
-  let color_buffer: any;
-  let vertex_buffer: any;
-
-  let colorUniformLocation: any;
-  let indexBuffer: any;
-
-  let coord: any;
-  let color: any;
-
-  var positionAttributeLocation: any;
-  var resolutionUniformLocation: any;
-  let positionBuffer: any;
-
-  fragCode = `precision mediump float;
-uniform vec4 u_color;
-void main() {
-   gl_FragColor = u_color;
-}`;
-
-  vertCode = `attribute vec2 a_position;
-uniform vec2 u_resolution;
-void main() {
-   // convert the rectangle from pixels to 0.0 to 1.0
-   vec2 zeroToOne = a_position / u_resolution;
-
-   // convert from 0->1 to 0->2
-   vec2 zeroToTwo = zeroToOne * 2.0;
-
-   // convert from 0->2 to -1->+1 (clipspace)
-   vec2 clipSpace = zeroToTwo - 1.0;
-
-   gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
-}`;
 
   $: settings, update_colors();
 
   function update_colors() {
-    console.log("update colors");
-    // eq_color = style.getPropertyValue("--plot-single-filter");
-    // eq_hover_color = style.getPropertyValue("--lightpurple");
-    // plot_total_curve = style.getPropertyValue("--plot-total-curve");
     if (settings) {
       plot_total_curve = rgbToHex(settings.colors.plot_total_curve);
       eq_color = rgbToHex(settings.colors.plot_single_filter);
-
+      plot_scale = settings.plot_scale;
+      max_plot_freq = set_plot_scale(NYQUIST);
       update_filter_bank(true);
     }
   }
@@ -186,9 +144,8 @@ void main() {
           for (let i = 0; i < data.length; i++) {
             let value = data[i];
 
-            let x = (i / length) * FREQ_PLOT_WIDTH;
             let logfreq =
-              (plot_scale((i / length) * NYQUIST) * FREQ_PLOT_WIDTH) /
+              (set_plot_scale((i / length) * NYQUIST) * FREQ_PLOT_WIDTH) /
               max_plot_freq;
 
             let barHeight = (Math.log10(value + 1) * FREQ_PLOT_HEIGHT) / 2;
@@ -213,7 +170,7 @@ void main() {
         update_filter_bank(false);
       })
       .catch((e) => {
-        console.log(e);
+        console.error(e);
       });
   }
 
@@ -246,7 +203,7 @@ void main() {
         // let x = (i / N) * (MAX_FREQ - MIN_FREQ) + MIN_FREQ;
         // let x = (i / N) * NYQUIST;
         let logfreq =
-          (plot_scale((i / N) * NYQUIST) * FREQ_PLOT_WIDTH) / max_plot_freq;
+          (set_plot_scale((i / N) * NYQUIST) * FREQ_PLOT_WIDTH) / max_plot_freq;
         context.lineTo(
           logfreq,
           (sum_curve[i] * FREQ_PLOT_HEIGHT) / 128 / 5 + FREQ_PLOT_HEIGHT / 2
@@ -264,7 +221,8 @@ void main() {
         context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
         for (let i = 0; i < N; i++) {
           let logfreq =
-            (plot_scale((i / N) * NYQUIST) * FREQ_PLOT_WIDTH) / max_plot_freq;
+            (set_plot_scale((i / N) * NYQUIST) * FREQ_PLOT_WIDTH) /
+            max_plot_freq;
 
           sum_curve[i] += curve[i];
           context.lineTo(

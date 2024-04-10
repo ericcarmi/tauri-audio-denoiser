@@ -29,7 +29,7 @@ pub async fn get_time_data(path: &str, app_handle: tauri::AppHandle) -> Result<V
         .unwrap();
 
     let filepath = p + "/" + path;
-    println!("{:?}", filepath);
+    // println!("{:?}", filepath);
 
     let thread = tauri::async_runtime::spawn(async move {
         let file_in = File::open(filepath).unwrap();

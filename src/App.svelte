@@ -1,11 +1,6 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/tauri";
   import { onMount } from "svelte";
-  import {
-    LogicalSize,
-    PhysicalSize,
-    WebviewWindow,
-  } from "@tauri-apps/api/window";
 
   import Plot from "./plot.svelte";
   import {
@@ -81,6 +76,8 @@
 
   onMount(async () => {
     settings = await invoke("get_settings");
+    console.log(settings)
+
 
     document.body.style.setProperty("--rotary-tick", rgbToHex(settings.colors.rotary_tick));
     // const resourcePath = await resolveResource("assets/test-file.wav");
@@ -172,7 +169,7 @@
 <main class="container" id="app-container">
   <div class="header">
     {#if show_settings}
-      <Settings bind:settings />
+      <Settings bind:settings bind:show_settings />
     {/if}
     <Plot
       bind:settings
