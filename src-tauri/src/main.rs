@@ -49,6 +49,7 @@ fn main() {
             update_noise_variance,
             get_settings,
             save_settings,
+            init_settings,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();

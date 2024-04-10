@@ -206,9 +206,9 @@ where
                 }
             }
             // send a chunk of the fft here
-            let _r = tx_ui.try_send(mfft(spectrum.clone()));
+            // let _r = tx_ui.try_send(mfft(spectrum.clone()));
             // let _r = tx_ui.try_send(freq_filter.clone());
-            // let _r = tx_ui.try_send(sdft.norm_vec()[0..sdft.size / 2].to_vec());
+            let _r = tx_ui.try_send(sdft.norm_vec()[0..sdft.size / 2].to_vec());
 
             // println!("{:?}", r);
         },

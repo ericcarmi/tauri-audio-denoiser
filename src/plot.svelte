@@ -13,6 +13,7 @@
     loglin2,
     mel,
     bark_scale,
+    rgbToHex,
   } from "./functions.svelte";
   import { type BPF } from "./types.svelte";
   import {
@@ -34,6 +35,9 @@
 
   let eq_color: string;
   let eq_hover_color: string;
+  let plot_total_curve: string;
+
+  export let settings: any;
 
   // function pointer instead of if statements inside loop
   // when setting changes, plot_scale points to mel or bark
@@ -97,11 +101,23 @@ void main() {
    gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
 }`;
 
-  onMount(() => {
-    var style = getComputedStyle(document.body);
-    eq_color = style.getPropertyValue("--gray100");
-    eq_hover_color = style.getPropertyValue("--lightpurple");
+  $: settings, update_colors();
 
+  function update_colors() {
+    console.log("update colors");
+    // eq_color = style.getPropertyValue("--plot-single-filter");
+    // eq_hover_color = style.getPropertyValue("--lightpurple");
+    // plot_total_curve = style.getPropertyValue("--plot-total-curve");
+    if (settings) {
+      plot_total_curve = rgbToHex(settings.colors.plot_total_curve);
+      eq_color = rgbToHex(settings.colors.plot_single_filter);
+
+      update_filter_bank(true);
+    }
+  }
+
+  onMount(() => {
+    update_colors();
     canvasMain = document.getElementById("time_canvas");
     canvasMain.width = TIME_PLOT_WIDTH;
     canvasMain.height = TIME_PLOT_HEIGHT;
@@ -181,15 +197,15 @@ void main() {
             let h = height - barHeight / 4;
 
             if (h > 0) {
-              last_bar_heights[i] += barHeight;
+              last_bar_heights[i] = barHeight;
               context.fillRect(
                 logfreq,
                 height,
                 barWidth,
-                -last_bar_heights[i] / 12
+                -last_bar_heights[i] / 1
               );
             }
-            last_bar_heights[i] *= 0.86;
+            // last_bar_heights[i] *= 0.86;
           }
         }
         data && requestAnimationFrame(renderPlot);
@@ -230,32 +246,25 @@ void main() {
         // let x = (i / N) * (MAX_FREQ - MIN_FREQ) + MIN_FREQ;
         // let x = (i / N) * NYQUIST;
         let logfreq =
-          (plot_scale((i / length) * NYQUIST) * FREQ_PLOT_WIDTH) /
-          max_plot_freq;
+          (plot_scale((i / N) * NYQUIST) * FREQ_PLOT_WIDTH) / max_plot_freq;
         context.lineTo(
           logfreq,
-          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 128 + FREQ_PLOT_HEIGHT / 2
+          (sum_curve[i] * FREQ_PLOT_HEIGHT) / 128 / 5 + FREQ_PLOT_HEIGHT / 2
         );
       }
       context.lineWidth = 2;
-      context.strokeStyle = "rgb(200,220,240)";
+      context.strokeStyle = plot_total_curve;
       context.stroke();
 
       bpf_filters.map((filt, idx) => {
         let coeffs = biquad(filt.gain, filt.freq, filt.Q);
         const curve = freq_response(coeffs, N);
 
-        for (let i = 0; i < N; i++) {
-          sum_curve[i] += curve[i];
-        }
-
         context.beginPath();
         context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
         for (let i = 0; i < N; i++) {
-          // let x = (i / N) * NYQUIST;
-        let logfreq =
-          (plot_scale((i / N) * NYQUIST) * FREQ_PLOT_WIDTH) /
-          max_plot_freq;
+          let logfreq =
+            (plot_scale((i / N) * NYQUIST) * FREQ_PLOT_WIDTH) / max_plot_freq;
 
           sum_curve[i] += curve[i];
           context.lineTo(

@@ -28,6 +28,14 @@
   --gray200: rgb(200,200,200);
 
   --rotary-tick: var(--lightpurple);
+  --rotary-hover: var(--green);
+  --slider-border: var(--purple);
+  --slider-indicator: var(--purple);
+  --slider-hover: var(--lightpurple);
+  --slider-active: var(--green);
+  --plot-main: var(--purple);
+  --plot-single-filter: var(--gray150);
+  --plot-total-curve: var(--gray200);
 
   * {
     -webkit-user-select: none;

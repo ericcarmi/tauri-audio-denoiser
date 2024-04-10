@@ -272,6 +272,14 @@ pub async fn save_noise_gain(gain: f32) {
     // println!("{:?}", r);
 }
 
+// just for creating the default settings in db
+#[tauri::command]
+pub async fn init_settings() {
+    let settings = Settings::default();
+    let _r = redis_save_settings(settings).await;
+    // println!("{:?}", r);
+}
+
 async fn redis_save_settings(settings: Settings) -> redis::RedisResult<()> {
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_multiplexed_async_connection().await?;

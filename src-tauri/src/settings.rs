@@ -60,7 +60,7 @@ impl Theme {
             slider_active: GREEN,
             slider_indicator: GREEN,
             plot_main: PURPLE,
-            plot_filter_curve: GRAY100,
+            plot_single_filter: GRAY100,
             plot_total_curve: GRAY200,
         }
     }
@@ -73,7 +73,7 @@ impl Theme {
             slider_active: GREEN,
             slider_indicator: GREEN,
             plot_main: PURPLE,
-            plot_filter_curve: GRAY100,
+            plot_single_filter: GRAY100,
             plot_total_curve: GRAY200,
         }
     }
@@ -86,7 +86,7 @@ impl Theme {
             slider_active: GREEN,
             slider_indicator: GREEN,
             plot_main: PURPLE,
-            plot_filter_curve: GRAY100,
+            plot_single_filter: GRAY100,
             plot_total_curve: GRAY200,
         }
     }
@@ -101,7 +101,7 @@ pub struct Colors {
     pub slider_active: Color,
     pub slider_indicator: Color,
     pub plot_main: Color,
-    pub plot_filter_curve: Color,
+    pub plot_single_filter: Color,
     pub plot_total_curve: Color,
 }
 
@@ -115,7 +115,7 @@ impl Default for Colors {
             slider_active: GREEN,
             slider_indicator: GREEN,
             plot_main: PURPLE,
-            plot_filter_curve: GRAY100,
+            plot_single_filter: GRAY100,
             plot_total_curve: GRAY200,
         }
     }

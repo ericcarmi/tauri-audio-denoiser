@@ -78,6 +78,7 @@
   let time_slider_max = num_time_samples;
   $: num_time_samples, (time_slider_max = num_time_samples);
 
+
   onMount(async () => {
     settings = await invoke("get_settings");
 
@@ -91,27 +92,12 @@
     get_time_data();
     resetInterval();
 
-    let fbank: any = {};
-    for (let i = 0; i < num_sliders; i++) {
-      let gain = 10;
-      let freq = 1000;
-      let Q = 1;
-      // let bpf: BPF = { gain: gain, freq: freq, Q: Q };
-      let coeffs = biquad(gain, freq, Q);
-      coeffs.x = [0, 0];
-      coeffs.y = [0, 0];
-      fbank[`bp${i + 1}`] = coeffs;
-    }
-
-    // filter_bank = fbank as FilterBank;
-
     // load from server
     let bpfs: Array<BPF> = await invoke("get_global_state");
     bpf_filters = [...bpfs];
 
     noise_gain = await invoke("get_noise_gain");
     output_gain = await invoke("get_output_gain");
-    // console.log(noise_gain, output_gain)
   });
 
   function resetInterval() {
@@ -124,10 +110,8 @@
 
           time += 10 / 1000;
           time_position = (time / DOWN_RATE) * SAMPLING_RATE;
-          // console.log(time, time_position, perf_time);
 
           fft_data = invoke("get_fft_plot_data");
-          // console.log(fft_data)
         }
       },
       // this works for now, just have to call resetInterval after pressing button
@@ -185,12 +169,13 @@
   }
 </script>
 
-<main class="container">
+<main class="container" id="app-container">
   <div class="header">
     {#if show_settings}
       <Settings bind:settings />
     {/if}
     <Plot
+      bind:settings
       bind:bpf_hovering
       bind:is_playing
       bind:bpf_filters

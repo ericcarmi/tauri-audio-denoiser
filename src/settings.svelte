@@ -11,34 +11,61 @@
   let server_update_num_changes = 5;
 
   export let settings: any;
+  let on_top = false;
   let rotary_tick: string;
+  let rotary_hover: string;
+  let slider_border: string;
+  let slider_indicator: string;
+  let slider_hover: string;
+  let slider_active: string;
+  let plot_main: string;
+  let plot_single_filter: string;
+  let plot_total_curve: string;
 
   onMount(async () => {
-    // settings = await invoke("get_settings");
-    // console.log(settings);
     if (settings) {
-      // console.log(settings.colors.rotary_tick);
-
       rotary_tick = rgbToHex(settings.colors.rotary_tick);
+      plot_total_curve = rgbToHex(settings.colors.plot_total_curve);
+      plot_single_filter = rgbToHex(settings.colors.plot_single_filter);
     }
   });
   onDestroy(async () => {
     await invoke("save_settings", { settings: settings });
   });
 
-  $: rotary_tick, update_color();
+  // to make this more compact, need types from rust? don't want to just copy/paste...ts-rs is a thing, not sure if that would generate code or what
+  $: rotary_tick, update_color(rotary_tick, Object.keys({ rotary_tick })[0]);
+  $: rotary_hover, update_color(rotary_hover, Object.keys({ rotary_hover })[0]);
+  $: slider_border, update_color(slider_border, Object.keys({ slider_border })[0]);
+  $: slider_indicator, update_color(slider_indicator, Object.keys({ slider_indicator })[0]);
+  $: slider_hover, update_color(slider_hover, Object.keys({ slider_hover })[0]);
+  $: slider_active, update_color(slider_active, Object.keys({ slider_active })[0]);
+  $: plot_main, update_color(plot_main, Object.keys({ plot_main })[0]);
+  $: plot_single_filter, update_color(plot_single_filter, Object.keys({ plot_single_filter })[0]);
+  $: plot_total_curve, update_color(plot_total_curve, Object.keys({ plot_total_curve })[0]);
 
-  function update_color() {
-    if (rotary_tick !== undefined) {
-      document.body.style.setProperty("--rotary-tick", rotary_tick);
-      settings.colors.rotary_tick = hexToRgb(rotary_tick);
+  function update_color(color: string, color_name: string) {
+    if (color !== undefined) {
+      document.body.style.setProperty(`--${color_name.replace("_","-")}`, color);
+      settings.colors[color_name] = hexToRgb(color);
     }
   }
 </script>
 
-<form>
+<div style="display: flex;">
   {#if settings}
-    <div class="wrapper">
+    <div class="wrapper" data-attribute={on_top}>
+      <div
+        class="top-button"
+        role="button"
+        tabindex="0"
+        on:keypress={() => {}}
+        on:click={() => {
+          on_top = !on_top;
+        }}
+      >
+        move to {on_top ? "top" : "btm"}
+      </div>
       <div class="item">
         <span class="group-label">plot scale</span>
         <span
@@ -115,7 +142,7 @@
           ><input
             type="color"
             on:change={(e) => {
-              console.log(e.currentTarget.value);
+              // console.log(e.currentTarget.value);
             }}
             bind:value={rotary_tick}
           />rotary ticks</span
@@ -159,19 +186,19 @@
         <span
           ><input
             type="color"
-            value={rgbToHex(settings.colors.plot_filter_curve)}
+            bind:value={plot_single_filter}
           />plot single filter
         </span>
         <span
           ><input
             type="color"
-            value={rgbToHex(settings.colors.plot_total_curve)}
+            bind:value={plot_total_curve}
           />plot total curve</span
         >
       </div>
     </div>
   {/if}
-</form>
+</div>
 
 <style>
   .wrapper {
@@ -188,6 +215,11 @@
     grid-template-rows: auto auto;
     grid-template-columns: auto auto auto;
     justify-items: center;
+    z-index: 1;
+    transition: top 1s;
+  }
+  .wrapper[data-attribute="true"] {
+    top: 50%;
   }
   .item {
     display: flex;
@@ -215,5 +247,20 @@
     border: 0px;
     padding: 0;
     background: black;
+  }
+
+  .top-button {
+    background: black;
+    color: white;
+    cursor: pointer;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: max-content;
+    transition: color 0.3s;
+    border: 1px solid var(--rotary-tick);
+  }
+  .top-button:hover {
+    color: var(--gray150);
   }
 </style>
