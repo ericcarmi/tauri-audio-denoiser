@@ -59,23 +59,27 @@ body, html {
   text-align: center;
 }
 
+
 button {
   font-family: monospace;
-  border-radius: 8px;
-  border: 1px solid var(--purple);
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  color: var(--gray150);
+  font-size: 14px;
+  align-items: center;
+  height: 2em;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  align-self: flex-end;
+  width: max-content;
+  border: 1px solid var(--rotary-tick);
+  color: var(--gray200);
   background: black;
-  transition: border-color 0.33s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-  text-align: center;
   cursor: pointer;
-  user-select: none;
 }
-
 button:hover {
-  border-color: var(--lightpurple);
+  color: var(--gray150);
+}
+button:active {
+  color: var(--gray100);
 }
 
 input {

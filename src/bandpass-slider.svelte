@@ -48,17 +48,6 @@
 	/>
 	<div style="display: flex; justify-content: space-evenly;">
 		<button
-			class="switch"
-			title="bypass: {bypass ? 'on' : 'off'}"
-			data-attribute={bypass}
-			on:click={() => {
-				invoke("update_bypass", { bypass: bypass, index: index - 1 });
-				bypass = !bypass;
-			}}
-		>bypass</button>
-
-		<button
-			class="reset-gain-switch"
 			title="reset to 0 dB"
 			on:click={() => {
 				gain = 0;
@@ -72,11 +61,5 @@
 	.wrapper {
 		display: flex;
 		flex-direction: column;
-	}
-	.reset-gain-switch, .switch {
-		padding: 0;
-		height: 1.5em;
-		border-radius: 0;
-		width: max-content;
 	}
 </style>

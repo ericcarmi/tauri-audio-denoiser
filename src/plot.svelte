@@ -68,6 +68,7 @@
     if (settings) {
       plot_total_curve = rgbToHex(settings.colors.plot_total_curve);
       eq_color = rgbToHex(settings.colors.plot_single_filter);
+      eq_hover_color = rgbToHex(settings.colors.plot_filter_hover);
       plot_scale = settings.plot_scale;
       max_plot_freq = set_plot_scale(NYQUIST);
       update_filter_bank(true);

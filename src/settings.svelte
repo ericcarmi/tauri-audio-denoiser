@@ -25,12 +25,14 @@
   let plot_main: string;
   let plot_single_filter: string;
   let plot_total_curve: string;
+  let plot_filter_hover: string;
 
   onMount(async () => {
     if (settings) {
       rotary_tick = rgbToHex(settings.colors.rotary_tick);
       plot_total_curve = rgbToHex(settings.colors.plot_total_curve);
       plot_single_filter = rgbToHex(settings.colors.plot_single_filter);
+      plot_filter_hover = rgbToHex(settings.colors.plot_filter_hover);
       plot_scale = settings.plot_scale;
     }
   });
@@ -61,6 +63,8 @@
     update_color(plot_single_filter, Object.keys({ plot_single_filter })[0]);
   $: plot_total_curve,
     update_color(plot_total_curve, Object.keys({ plot_total_curve })[0]);
+  $: plot_filter_hover,
+    update_color(plot_filter_hover, Object.keys({ plot_filter_hover })[0]);
 
   function update_color(color: string, color_name: string) {
     if (color !== undefined) {
@@ -159,14 +163,6 @@
       </div>
 
       <div class="item">
-        <span class="group-label">theme</span>
-        <span><input type="radio" name="theme" /> rgb</span>
-        <span><input type="radio" name="theme" /> cym</span>
-        <span><input type="radio" name="theme" /> pog</span>
-        <span><input type="radio" name="theme" /> custom</span>
-      </div>
-
-      <div class="item">
         <span class="group-label">database update</span>
         <input
           type="range"
@@ -180,6 +176,14 @@
           value={server_update_num_changes}
         />
         <span style="width:100%;">{server_update_num_changes}</span>
+      </div>
+
+      <div class="item">
+        <span class="group-label">theme</span>
+        <span><input type="radio" name="theme" /> rgb</span>
+        <span><input type="radio" name="theme" /> cym</span>
+        <span><input type="radio" name="theme" /> pog</span>
+        <span><input type="radio" name="theme" /> custom</span>
       </div>
 
       <div class="wide-item">
@@ -235,6 +239,10 @@
         </span>
         <span
           ><input type="color" bind:value={plot_total_curve} />plot total curve</span
+        >
+        <span
+          ><input type="color" bind:value={plot_filter_hover} />plot filter
+          hover</span
         >
       </div>
     </div>

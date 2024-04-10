@@ -74,11 +74,13 @@
   let time_slider_max = num_time_samples;
   $: num_time_samples, (time_slider_max = num_time_samples);
 
-
   onMount(async () => {
     settings = await invoke("get_settings");
 
-    document.body.style.setProperty("--rotary-tick", rgbToHex(settings.colors.rotary_tick));
+    document.body.style.setProperty(
+      "--rotary-tick",
+      rgbToHex(settings.colors.rotary_tick)
+    );
     // const resourcePath = await resolveResource("assets/test-file.wav");
     // const langDe = JSON.parse(await readTextFile(resourcePath));
     // console.log(langDe);
@@ -91,7 +93,6 @@
     // load from server
     let bpfs: Array<BPF> = await invoke("get_global_state");
     bpf_filters = bpfs;
-
 
     noise_gain = await invoke("get_noise_gain");
     output_gain = await invoke("get_output_gain");
@@ -286,7 +287,7 @@
       index={-1}
       max_val={60}
       min_val={-60}
-      label="out"
+      label="output gain"
       update_backend={() => {
         invoke("update_output_gain", { gain: output_gain });
       }}
@@ -331,19 +332,6 @@
       }}
       update_server={() => {
         // invoke("save_post_smooth_gain", { gain: post_smooth_gain });
-      }}
-    />
-    <RotarySlider
-      bind:value={noise_variance}
-      index={-1}
-      label="noise variance"
-      max_val={1}
-      min_val={0}
-      update_backend={() => {
-        invoke("update_noise_variance", { gain: noise_variance });
-      }}
-      update_server={() => {
-        // invoke("save_noise_variance", { gain: noise_variance });
       }}
     />
   </div>
@@ -408,10 +396,14 @@
     margin: 0;
     align-self: flex-end;
     width: max-content;
-    border: 1px solid var(--orange);
+    border: 1px solid var(--rotary-tick);
+    color: var(--gray200);
   }
   .reset-all-gains-switch:hover {
-    border-color: var(--lightorange);
+    color: var(--gray150);
+  }
+  .reset-all-gains-switch:active {
+    color: var(--gray100);
   }
   .settings {
     background: url("/tool.svg");
