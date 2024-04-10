@@ -11,8 +11,8 @@
 	export let min_val = 0.1;
 	export let max_val = 10;
 	let vals_inverted = Math.sign(max_val - min_val);
-	$: min_val, vals_inverted = Math.sign(max_val - min_val)
-	$: max_val, vals_inverted = Math.sign(max_val - min_val)
+	$: min_val, (vals_inverted = Math.sign(max_val - min_val));
+	$: max_val, (vals_inverted = Math.sign(max_val - min_val));
 
 	let el: HTMLElement;
 	let indicator_el: HTMLElement;
@@ -24,12 +24,10 @@
 	$: value, redraw(), update_backend();
 
 	function redraw() {
-
 		if (!is_mouse_down && indicator_el !== undefined) {
-				angle = -(value - max_val)/Math.abs(max_val-min_val) * 270 - 45
+			angle = (-(value - max_val) / Math.abs(max_val - min_val)) * 270 - 45;
 			const x = radius * Math.cos((angle * Math.PI) / 180);
 			const y = -radius * Math.sin((angle * Math.PI) / 180);
-
 
 			indicator_el.style.transform = `scale(0.1) translate(${x}em, ${y}em)`;
 			indicator_el.style.background = `linear-gradient(${
@@ -41,7 +39,7 @@
 				.fill(0)
 				.map((_, idx) => {
 					if (highlight > idx) {
-						return "var(--lightpurple)";
+						return "var(--rotary-tick)";
 					} else {
 						return "black";
 					}
@@ -78,7 +76,7 @@
 					.fill(0)
 					.map((_, idx) => {
 						if (highlight > idx) {
-							return "var(--lightpurple)";
+							return "var(--rotary-tick)";
 						} else {
 							return "black";
 						}

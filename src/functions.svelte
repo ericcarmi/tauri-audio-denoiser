@@ -41,11 +41,11 @@
 			let c1: Complex = { re: x, im: y };
 			let c2: Complex = { re: x * x - y * y, im: 2 * x * y };
 
-			let numre = coeffs.b0 + coeffs.b1 * c1.re + coeffs.b2 * c2.re
-			let numim = coeffs.b1 * c1.im + coeffs.b2 * c2.im
+			let numre = coeffs.b0 + coeffs.b1 * c1.re + coeffs.b2 * c2.re;
+			let numim = coeffs.b1 * c1.im + coeffs.b2 * c2.im;
 
-			let denre = coeffs.a0 + coeffs.a1 * c1.re + coeffs.a2 * c2.re
-			let denim = coeffs.a1 * c1.im + coeffs.a2 * c2.im
+			let denre = coeffs.a0 + coeffs.a1 * c1.re + coeffs.a2 * c2.re;
+			let denim = coeffs.a1 * c1.im + coeffs.a2 * c2.im;
 
 			let num: Complex = { re: numre, im: numim };
 			let den: Complex = { re: denre, im: denim };
@@ -79,18 +79,30 @@
 	}
 
 	export function linlog(x: number, minfreq: number, maxfreq: number) {
-		return minfreq * Math.pow(10, ((x - minfreq) / (maxfreq - minfreq)) * Math.log10(maxfreq / minfreq));
+		return (
+			minfreq *
+			Math.pow(
+				10,
+				((x - minfreq) / (maxfreq - minfreq)) * Math.log10(maxfreq / minfreq)
+			)
+		);
 	}
 
 	export function linlog2(x: number, minfreq: number, maxfreq: number) {
-		return minfreq * Math.pow(2, ((x - minfreq) / (maxfreq - minfreq)) * Math.log2(maxfreq / minfreq));
+		return (
+			minfreq *
+			Math.pow(
+				2,
+				((x - minfreq) / (maxfreq - minfreq)) * Math.log2(maxfreq / minfreq)
+			)
+		);
 	}
 
 	export function mel(x: number) {
 		return 2595 * Math.log10(1 + x / 700);
 	}
 	export function bark_scale(x: number) {
-		return 13 * Math.atan(0.00076 * x) + 3.5 * Math.atan((x/7500)**2);
+		return 13 * Math.atan(0.00076 * x) + 3.5 * Math.atan((x / 7500) ** 2);
 	}
 
 	export const linspace = (start: number, stop: number, step: number) =>
@@ -126,5 +138,29 @@
 		let xAxis =
 			((Math.log(frequency) / Math.log(10) - minF) / range) * FREQ_PLOT_WIDTH;
 		return xAxis;
+	}
+	export function componentToHex(c: number) {
+		var hex = c.toString(16);
+		return hex.length == 1 ? "0" + hex : hex;
+	}
+
+	export function rgbToHex(rgb: any) {
+		return (
+			"#" +
+			componentToHex(rgb.r) +
+			componentToHex(rgb.g) +
+			componentToHex(rgb.b)
+		);
+	}
+
+	export function hexToRgb(hex: string) {
+		var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+		return result
+			? {
+					r: parseInt(result[1], 16),
+					g: parseInt(result[2], 16),
+					b: parseInt(result[3], 16),
+			  }
+			: null;
 	}
 </script>

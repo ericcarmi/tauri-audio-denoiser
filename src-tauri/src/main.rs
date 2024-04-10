@@ -15,6 +15,8 @@ use fourier::*;
 mod sdft;
 mod server;
 use server::*;
+mod settings;
+use settings::*;
 
 fn main() {
     tauri::Builder::default()
@@ -45,10 +47,12 @@ fn main() {
             update_pre_smooth_gain,
             update_post_smooth_gain,
             update_noise_variance,
+            get_settings,
+            save_settings,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();
-            // let _ = mainwindow.set_always_on_top(true);
+            let _ = mainwindow.set_always_on_top(true);
 
             let app_handle = app.app_handle();
 

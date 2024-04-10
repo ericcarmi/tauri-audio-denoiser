@@ -92,7 +92,7 @@ where
     let num_file_samples = file_samples.len();
     let mut clean = false;
     let mut bypass_filters = vec![false; 5];
-    let dft_size = 64;
+    let dft_size = 256;
     let mut sdft = SDFT::new(dft_size);
     let mut noise_spectrum = process_filterbank.parallel_transfer(dft_size);
     let mut noise_gain = 0.0;
@@ -200,7 +200,7 @@ where
 
                     // copying to all channels for now
                     for out_sample in frame.iter_mut() {
-                        *out_sample = v;
+                        // *out_sample = v;
                     }
                     time += 1;
                 }

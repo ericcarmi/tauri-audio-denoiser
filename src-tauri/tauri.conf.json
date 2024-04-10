@@ -22,14 +22,13 @@
       "fs": {
         "all": true,
         "scope": ["$RESOURCE/**", "$RESOURCE/*", "*/**"]
-
       }
     },
     "windows": [
       {
         "title": "tauri-audio-eq",
         "width": 1000,
-        "height": 670
+        "height": 720
       }
     ],
     "security": {

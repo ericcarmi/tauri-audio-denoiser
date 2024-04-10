@@ -16,11 +16,13 @@
   } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
   import type { BPF } from "./types.svelte";
-  import { biquad } from "./functions.svelte";
+  import { biquad, hexToRgb, rgbToHex } from "./functions.svelte";
   import RotarySlider from "./rotary-slider.svelte";
   import Settings from "./settings.svelte";
 
   const settings_path = "/src/settings.svelte";
+
+  let settings: any;
 
   let show_settings = false;
   var gains = [10, 0, 0, 0, 0];
@@ -77,6 +79,9 @@
   $: num_time_samples, (time_slider_max = num_time_samples);
 
   onMount(async () => {
+    settings = await invoke("get_settings");
+
+    document.body.style.setProperty("--rotary-tick", rgbToHex(settings.colors.rotary_tick));
     // const resourcePath = await resolveResource("assets/test-file.wav");
     // const langDe = JSON.parse(await readTextFile(resourcePath));
     // console.log(langDe);
@@ -182,72 +187,76 @@
 
 <main class="container">
   <div class="header">
-    <button
-      on:click={() => {
-        show_settings = !show_settings;
-      }}>settings</button
-    >
-  </div>
-  {#if show_settings}
-    <Settings />
-  {/if}
-  <Plot
-    bind:bpf_hovering
-    bind:is_playing
-    bind:bpf_filters
-    {selectedRecording}
-    {fft_data}
-  />
-  <input
-    style="width: {FREQ_PLOT_WIDTH}px;"
-    class="time-slider"
-    type="range"
-    data-attribute={is_time_slider_dragging}
-    min={0}
-    step={1}
-    max={time_slider_max}
-    bind:value={time_position}
-    on:mousedown={() => {
-      is_time_slider_dragging = true;
-    }}
-    on:mouseup={() => {
-      is_time_slider_dragging = false;
-    }}
-    on:input={async () => {
-      // time_position = (time / DOWN_RATE) * SAMPLING_RATE;
-      // time_origin = time_position*DOWN_RATE/SAMPLING_RATE
-      time = (time_position * DOWN_RATE) / SAMPLING_RATE;
-      await invoke("update_time", {
-        t: (time * SAMPLING_RATE) / num_time_samples / DOWN_RATE,
-      });
-      // console.log(time, time * SAMPLING_RATE / num_time_samples/DOWN_RATE);
-    }}
-  />
-  <div>
-    <button
-      on:click={async () => {
-        if (!is_playing) {
-          await invoke("play_stream");
-          is_playing = true;
-          time_origin = performance.now();
-        } else {
-          await invoke("pause_stream");
-          // time_origin = time
-          is_playing = false;
-        }
-        resetInterval();
+    {#if show_settings}
+      <Settings bind:settings />
+    {/if}
+    <Plot
+      bind:bpf_hovering
+      bind:is_playing
+      bind:bpf_filters
+      {selectedRecording}
+      {fft_data}
+    />
+    <input
+      style="width: {FREQ_PLOT_WIDTH}px;"
+      class="time-slider"
+      type="range"
+      data-attribute={is_time_slider_dragging}
+      min={0}
+      step={1}
+      max={time_slider_max}
+      bind:value={time_position}
+      on:mousedown={() => {
+        is_time_slider_dragging = true;
       }}
-    >
-      {is_playing ? "pause" : "play"}
-    </button>
-    <button
-      on:click={async () => {
-        clean = !clean;
-        invoke("update_clean", { clean: clean });
+      on:mouseup={() => {
+        is_time_slider_dragging = false;
       }}
-    >
-      {clean ? "clean" : "dirty"}
-    </button>
+      on:input={async () => {
+        // time_position = (time / DOWN_RATE) * SAMPLING_RATE;
+        // time_origin = time_position*DOWN_RATE/SAMPLING_RATE
+        time = (time_position * DOWN_RATE) / SAMPLING_RATE;
+        await invoke("update_time", {
+          t: (time * SAMPLING_RATE) / num_time_samples / DOWN_RATE,
+        });
+        // console.log(time, time * SAMPLING_RATE / num_time_samples/DOWN_RATE);
+      }}
+    />
+    <div>
+      <button
+        on:click={async () => {
+          if (!is_playing) {
+            await invoke("play_stream");
+            is_playing = true;
+            time_origin = performance.now();
+          } else {
+            await invoke("pause_stream");
+            // time_origin = time
+            is_playing = false;
+          }
+          resetInterval();
+        }}
+      >
+        {is_playing ? "pause" : "play"}
+      </button>
+      <button
+        on:click={async () => {
+          clean = !clean;
+          invoke("update_clean", { clean: clean });
+        }}
+      >
+        {clean ? "clean" : "dirty"}
+      </button>
+      <div
+        class="settings"
+        role="button"
+        tabindex="0"
+        on:keypress={() => {}}
+        on:click={() => {
+          show_settings = !show_settings;
+        }}
+      />
+    </div>
   </div>
 
   <div
@@ -421,5 +430,15 @@
   }
   .reset-all-gains-switch:hover {
     border-color: var(--lightorange);
+  }
+  .settings {
+    background: url("/tool.svg");
+    background-size: 100% 100%;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+  }
+  .settings:hover {
+    filter: invert(50%);
   }
 </style>

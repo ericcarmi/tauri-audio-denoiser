@@ -1,11 +1,10 @@
-use std::fs::File;
-
-use crate::{constants::*, types::Bpf};
+use crate::{constants::*, settings::Settings, types::Bpf};
 use redis::AsyncCommands;
-use rustfft::{num_complex::Complex, FftPlanner};
-use tauri::AppHandle;
-
 use redis::Commands;
+use rustfft::{num_complex::Complex, FftPlanner};
+use serde::Serialize;
+use std::fs::File;
+use tauri::AppHandle;
 
 // use serde::{Deserialize, Serialize};
 
@@ -271,4 +270,38 @@ async fn redis_save_noise_gain(gain: f32) -> redis::RedisResult<()> {
 pub async fn save_noise_gain(gain: f32) {
     let _r = redis_save_noise_gain(gain).await;
     // println!("{:?}", r);
+}
+
+async fn redis_save_settings(settings: Settings) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+    let ser = serde_json::to_string(&settings).unwrap();
+    let a: Result<(), redis::RedisError> = con.set("settings", ser).await;
+    return a;
+}
+
+#[tauri::command]
+pub async fn save_settings(settings: Settings) {
+    let _r = redis_save_settings(settings).await;
+    // println!("{:?}", r);
+}
+
+async fn redis_get_settings() -> redis::RedisResult<String> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+
+    let sett: Result<String, redis::RedisError> = con.get("settings").await;
+
+    sett
+}
+
+#[tauri::command]
+pub async fn get_settings() -> Result<Settings, String> {
+    if let Ok(sett) = redis_get_settings().await {
+        let settings: Settings = serde_json::from_str(sett.as_str()).unwrap();
+
+        Ok(settings)
+    } else {
+        Err("failed to get settings".to_string())
+    }
 }

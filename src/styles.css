@@ -27,6 +27,8 @@
   --gray150: rgb(150,150,150);
   --gray200: rgb(200,200,200);
 
+  --rotary-tick: var(--lightpurple);
+
   * {
     -webkit-user-select: none;
     user-select: none;
