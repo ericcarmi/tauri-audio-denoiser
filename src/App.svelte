@@ -285,8 +285,8 @@
     <RotarySlider
       bind:value={output_gain}
       index={-1}
-      max_val={60}
-      min_val={-60}
+      max_val={20}
+      min_val={-20}
       label="output gain"
       update_backend={() => {
         invoke("update_output_gain", { gain: output_gain });
@@ -313,7 +313,7 @@
       index={-1}
       label="pre_smooth"
       max_val={0.9999}
-      min_val={0}
+      min_val={0.5}
       update_backend={() => {
         invoke("update_pre_smooth_gain", { gain: pre_smooth_gain });
       }}

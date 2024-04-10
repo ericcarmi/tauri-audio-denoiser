@@ -8,14 +8,14 @@ use std::f32::consts::PI;
 // use std::simd::f32x4;
 use std::time::Instant;
 
-use crate::constants::CZERO;
+use crate::constants::{czerov, CZERO};
 
 #[derive(Clone, Debug)]
 pub struct SDFT {
     pub size: usize,
     pub time_history: ring_buf::Fixed<Vec<Complex<f32>>>,
     pub freq_history: Vec<Complex<f32>>,
-    pub pre_smooth_noise_history: Vec<f32>,
+    pub pre_smooth_noise_history: Vec<Complex<f32>>,
     pub post_smooth_noise_history: Vec<Complex<f32>>,
     pub inv_time: Complex<f32>,
     pub new_freq: Vec<Complex<f32>>,
@@ -74,7 +74,7 @@ impl SDFT {
             size,
             time_history,
             freq_history: freq_history.clone(),
-            pre_smooth_noise_history: vec![0.0; size],
+            pre_smooth_noise_history: czerov(size),
             post_smooth_noise_history: freq_history.clone(),
             new_freq,
             inv_time,
@@ -126,29 +126,24 @@ impl SDFT {
         for freq in 0..self.size {
             // get spectrum of input
             self.new_freq[freq] = (self.freq_history[freq] + delta) * self.fkernel[freq];
-            //delay
-            self.freq_history[freq] = self.new_freq[freq];
 
-            // variance isn't good, but subtract 1 so it starts from 0
-            noise = (noise_spectrum[freq] - 1.0
-                + noise_variance * (rand::thread_rng().gen::<f32>() - 0.5))
-                .abs();
+            noise = (noise_spectrum[freq] - 1.0).abs();
             // smooth the noise variance
             pre_smoothed_noise = pre_smooth_gain * self.pre_smooth_noise_history[freq]
-                + (1.0 - pre_smooth_gain) * noise;
-            // delay
-            self.pre_smooth_noise_history[freq] = pre_smoothed_noise;
+                + (1.0 - pre_smooth_gain) * self.new_freq[freq];
 
             // polar
-            mag = self.new_freq[freq].norm();
-            arg = self.new_freq[freq].arg();
-            out = mag - noise_gain * pre_smoothed_noise;
+            mag = pre_smoothed_noise.norm();
+            arg = pre_smoothed_noise.arg();
+            out = mag - noise_gain * noise;
             denoise = Complex32::from_polar(out.clamp(1e-6, f32::MAX), arg);
 
             // more smoothing
             post_smoothed_noise = post_smooth_gain * self.post_smooth_noise_history[freq]
                 + (1.0 - post_smooth_gain) * denoise;
             //delay
+            self.freq_history[freq] = self.new_freq[freq];
+            self.pre_smooth_noise_history[freq] = pre_smoothed_noise;
             self.post_smooth_noise_history[freq] = post_smoothed_noise;
 
             // inverse

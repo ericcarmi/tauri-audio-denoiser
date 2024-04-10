@@ -84,6 +84,7 @@ impl IIR2 {
             let z2 = z * z;
 
             let w = (self.b0 + self.b1 * z + self.b2 * z2) / (self.a0 + self.a1 * z + self.a2 * z2);
+
             H.push(w);
         }
         H
@@ -122,17 +123,29 @@ impl FilterBank {
 
     pub fn parallel_transfer(&self, n: usize) -> Vec<f32> {
         let mut H: Vec<Complex32> = vec![CZERO; n];
-        let l = self.as_slice().len();
+        let l = Complex32 {
+            re: self.as_slice().len() as f32,
+            im: 0.0,
+        };
+
         // loop over all filters first
-        for filt in self.as_slice() {
+        for (i, filt) in self.as_slice().iter().enumerate() {
             let h = filt.freq_response(n);
-            H.iter_mut()
-                .enumerate()
-                .for_each(|(i, x)| *x += h[i] / l as f32);
+            // println!("{}\n {:?}", i, h);
+
+            H.iter_mut().enumerate().for_each(|(i, x)| *x += h[i] / l);
+            // for j in H.clone() {
+            //     println!("{:?}", j);
+            // }
         }
         // take norm after summing filters
+        // println!("{:?}", H);
 
-        H.iter().map(|x| x.norm()).collect()
+        let mut out: Vec<f32> = H.iter().map(|x| x.norm()).collect();
+        if out[0].is_nan() {
+            out[0] = 0.0;
+        }
+        out
     }
 }
 

@@ -62,6 +62,7 @@ impl Theme {
             plot_main: PURPLE,
             plot_single_filter: GRAY100,
             plot_total_curve: GRAY200,
+            plot_filter_hover: RED,
         }
     }
     pub fn cym(&self) -> Colors {
@@ -75,6 +76,7 @@ impl Theme {
             plot_main: PURPLE,
             plot_single_filter: GRAY100,
             plot_total_curve: GRAY200,
+            plot_filter_hover: CYAN,
         }
     }
     pub fn pog(&self) -> Colors {
@@ -88,6 +90,7 @@ impl Theme {
             plot_main: PURPLE,
             plot_single_filter: GRAY100,
             plot_total_curve: GRAY200,
+            plot_filter_hover: PURPLE,
         }
     }
 }
@@ -103,6 +106,7 @@ pub struct Colors {
     pub plot_main: Color,
     pub plot_single_filter: Color,
     pub plot_total_curve: Color,
+    pub plot_filter_hover: Color,
 }
 
 impl Default for Colors {
@@ -117,6 +121,7 @@ impl Default for Colors {
             plot_main: PURPLE,
             plot_single_filter: GRAY100,
             plot_total_curve: GRAY200,
+            plot_filter_hover: PURPLE,
         }
     }
 }

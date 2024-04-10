@@ -277,7 +277,6 @@ pub async fn save_noise_gain(gain: f32) {
 pub async fn init_settings() {
     let settings = Settings::default();
     let _r = redis_save_settings(settings).await;
-    // println!("{:?}", r);
 }
 
 async fn redis_save_settings(settings: Settings) -> redis::RedisResult<()> {

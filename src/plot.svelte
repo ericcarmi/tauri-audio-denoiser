@@ -207,7 +207,7 @@
           (set_plot_scale((i / N) * NYQUIST) * FREQ_PLOT_WIDTH) / max_plot_freq;
         context.lineTo(
           logfreq,
-          (sum_curve[i] * FREQ_PLOT_HEIGHT) / 128 / 5 + FREQ_PLOT_HEIGHT / 2
+          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 128 + FREQ_PLOT_HEIGHT / 2
         );
       }
       context.lineWidth = 2;

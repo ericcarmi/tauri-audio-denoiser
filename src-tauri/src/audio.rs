@@ -95,6 +95,7 @@ where
     let dft_size = 256;
     let mut sdft = SDFT::new(dft_size);
     let mut noise_spectrum = process_filterbank.parallel_transfer(dft_size);
+
     let mut noise_gain = 0.0;
     let mut output_gain = 1.0;
     let mut pre_smooth_gain = 0.5;
@@ -109,7 +110,6 @@ where
                 if let Some(bp) = msg.bp1 {
                     process_filterbank.bp1.update_coeffs(bp);
                     noise_spectrum = process_filterbank.parallel_transfer(dft_size);
-                    // println!("{:?}", noise_spectrum);
                 }
                 if let Some(bp) = msg.bp2 {
                     process_filterbank.bp2.update_coeffs(bp);
@@ -160,7 +160,6 @@ where
                     }
                 }
             }
-            // println!("{:?}", process_filterbank);
 
             // vec for fft, will make another for processed spectrum?
             let mut spectrum: Vec<f32> = vec![];
@@ -200,11 +199,12 @@ where
 
                     // copying to all channels for now
                     for out_sample in frame.iter_mut() {
-                        // *out_sample = v;
+                        *out_sample = v;
                     }
                     time += 1;
                 }
             }
+
             // send a chunk of the fft here
             // let _r = tx_ui.try_send(mfft(spectrum.clone()));
             // let _r = tx_ui.try_send(freq_filter.clone());

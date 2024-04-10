@@ -164,6 +164,7 @@ pub fn update_bypass(bypass: bool, index: usize, streamsend: State<MStreamSend>)
 
 #[tauri::command]
 pub fn update_output_gain(gain: f32, streamsend: State<MStreamSend>) {
+    let g = (10.0_f32).powf(gain / 20.0);
     let _ = streamsend
         .0
         .lock()
@@ -181,7 +182,7 @@ pub fn update_output_gain(gain: f32, streamsend: State<MStreamSend>) {
             bp4: None,
             bp5: None,
             bypass: None,
-            output_gain: Some(gain),
+            output_gain: Some(g),
             noise_gain: None,
             pre_smooth_gain: None,
             noise_variance: None,
@@ -191,7 +192,7 @@ pub fn update_output_gain(gain: f32, streamsend: State<MStreamSend>) {
 
 #[tauri::command]
 pub fn update_noise_gain(gain: f32, streamsend: State<MStreamSend>) {
-    let g = (10.0_f32).powf(gain / 20.0);
+    let g = (10.0_f32).powf(gain / 20.0) / 10.0;
 
     let _ = streamsend
         .0

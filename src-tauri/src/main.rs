@@ -16,7 +16,6 @@ mod sdft;
 mod server;
 use server::*;
 mod settings;
-use settings::*;
 
 fn main() {
     tauri::Builder::default()
