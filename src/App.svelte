@@ -374,7 +374,7 @@
     background: var(--slider-active);
   }
   input[type="range"][data-attribute="true"]::-webkit-slider-thumb {
-    background: var(--purple);
+    background: var(--slider-active);
   }
 
   input[type="range"]::-webkit-slider-runnable-track {
@@ -430,6 +430,8 @@
     width: 30px;
     height: 30px;
     display: inline-flex;
+    transition: filter 0.33s;
+    cursor: pointer;
   }
   .settings:hover {
     filter: invert(50%);
@@ -437,6 +439,9 @@
   .button-bar {
     display: flex;
     justify-content: center;
+    gap: 1em;
+    padding-bottom: 3px;
+    border-bottom: 1px solid var(--gray2);
   }
   .menu-bar {
     display: flex;

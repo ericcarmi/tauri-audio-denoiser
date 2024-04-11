@@ -4,8 +4,6 @@
   line-height: 24px;
   font-weight: 400;
 
-  color: var(--gray200);
-  background: rgb(70,60,60);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -26,6 +24,19 @@
   --gray100: rgb(100,100,100);
   --gray150: rgb(150,150,150);
   --gray200: rgb(200,200,200);
+
+  --gray1: oklch(0.1 0 0);
+  --gray2: oklch(0.2 0 0);
+  --gray3: oklch(0.3 0 0);
+  --gray4: oklch(0.4 0 0);
+  --gray5: oklch(0.5 0 0);
+  --gray6: oklch(0.6 0 0);
+  --gray7: oklch(0.7 0 0);
+  --gray8: oklch(0.8 0 0);
+  --gray9: oklch(0.9 0 0);
+
+  color: var(--gray8);
+  background: var(--gray4);
 
   --rotary-tick: var(--lightpurple);
   --rotary-hover: var(--green);

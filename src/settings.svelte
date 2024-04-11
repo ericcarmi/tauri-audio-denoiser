@@ -92,9 +92,12 @@
   let ref: any;
 </script>
 
-<div class="grid-wrap" bind:this={ref}>
-  {#if settings}
-    <div class="wrapper" data-attribute={on_top}>
+<div class="grid-wrap" bind:this={ref} data-attribute={on_top}>
+  <div class="title-bar">
+    <span class="title">settings</span>
+    <div
+      style="display: flex; width: 100%; position: absolute; justify-content: flex-end; align-items: center;height: 100%; gap: 1em;"
+    >
       <div
         class="top-button"
         role="button"
@@ -118,6 +121,10 @@
       >
         close
       </div>
+    </div>
+  </div>
+  {#if settings}
+    <div class="wrapper">
       <div class="item">
         <span class="group-label">plot scale</span>
         <span
@@ -352,28 +359,31 @@
 <style>
   .grid-wrap {
     display: flex;
-    width: 100%;
     justify-content: center;
+    height: 50%;
+    width: calc(100% - 1px);
+    position: absolute;
+    top: 0px;
+    z-index: 1;
+    transition: top 1s;
+  }
+  .grid-wrap[data-attribute="true"] {
+    top: 50%;
   }
   .wrapper {
-    position: absolute;
     display: grid;
     flex-direction: row;
-    top: 0px;
     border: 1px solid black;
-    width: 99%;
-    background: rgba(130, 130, 130, 0.8);
-    color: black;
+    width: 100%;
+    background: rgb(from var(--gray2) r g b / 0.8);
+    border: 1px solid var(--gray6);
+    color: var(--gray8);
     gap: 1em;
     grid-template-rows: auto auto;
     grid-template-columns: auto auto auto;
     justify-items: center;
-    z-index: 1;
-    transition: top 1s;
-    height: 50%;
-  }
-  .wrapper[data-attribute="true"] {
-    top: 50%;
+    height: calc(100% - 2em);
+    padding-top: 2em;
   }
   .item {
     display: flex;
@@ -400,16 +410,15 @@
   input[type="color"] {
     border: 0px;
     padding: 0;
-    background: black;
+    background: var(--gray5);
   }
 
   .top-button {
     background: black;
     color: white;
     cursor: pointer;
-    position: absolute;
-    top: 0px;
-    right: 0px;
+    padding: 1px;
+    justify-self: flex-end;
     width: max-content;
     transition: color 0.3s;
     border: 1px solid var(--rotary-tick);
@@ -421,14 +430,43 @@
     background: black;
     color: white;
     cursor: pointer;
-    position: absolute;
-    top: 35px;
-    right: 0px;
+    padding: 1px;
     width: max-content;
     transition: color 0.3s;
     border: 1px solid var(--rotary-tick);
   }
   .close-button:hover {
     color: var(--gray150);
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    background: var(--gray100);
+    border: 1px solid var(--gray7);
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    background: black;
+    appearance: none;
+    -webkit-appearance: none;
+    height: 2em;
+    width: 1em;
+  }
+  input[type="range"] {
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  input[type="range"]:active::-webkit-slider-thumb {
+    background: var(--slider-active);
+  }
+  .title-bar {
+    position: absolute;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    border-bottom: 1px solid var(--gray5);
+    height: 2em;
+  }
+  .title {
+    letter-spacing: 0.4em;
+    font-weight: bold;
+    align-self: center;
   }
 </style>
