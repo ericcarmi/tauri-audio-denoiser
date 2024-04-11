@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { linlog, linlog2, loglin } from "./functions.svelte";
-	import { MAX_FREQ, MIN_FREQ } from "./constants.svelte";
-    import { invoke } from "@tauri-apps/api/tauri";
+	import { MAX_FREQ, MIN_FREQ, NYQUIST } from "./constants.svelte";
+	import { invoke } from "@tauri-apps/api/tauri";
 
 	export let value: number;
 	export let index: number;
@@ -15,10 +15,13 @@
 	let width = 150;
 	let is_dragging = false;
 
-	let control_max_freq = MAX_FREQ;
-	let control_min_freq = 100;
+	let control_max_freq = NYQUIST;
+	let control_min_freq = 20;
+
+	let resolution = 1;
 
 	$: value, redraw();
+	$: is_dragging, !is_dragging && (resolution = 1);
 	function update_value() {
 		let x =
 			((position - 1) / width) * (control_max_freq - control_min_freq) +
@@ -82,7 +85,8 @@
 					position = Math.max(Math.min(position, width), 1);
 				}
 				indicator.style.left = position + "px";
-				// value = (0.5 - position / width) * range;
+				console.log(position);
+
 				update_value();
 			}
 			function reset() {
@@ -110,13 +114,15 @@
 	tabindex={-1}
 	on:mousedown={(e) => {
 		is_dragging = true;
+		if (e.shiftKey) {
+			resolution = 0.1;
+		}
 		let wrap_position = el.offsetLeft;
 		if (Math.abs(e.clientX - wrap_position) > 5) {
 			position = e.clientX - wrap_position - 5;
 			position = Math.max(Math.min(position, width), 1);
 		}
 		indicator.style.left = position + "px";
-		// value = (0.5 - position / width) * maxfreq;
 		update_value();
 	}}
 	on:mouseup={() => {
@@ -129,7 +135,10 @@
 		data-attribute={is_dragging}
 		role="button"
 		tabindex={-1}
-		on:mousedown={() => {
+		on:mousedown={(e) => {
+			if (e.shiftKey) {
+				resolution = 0.1;
+			}
 			is_dragging = true;
 		}}
 		on:mouseup={() => {

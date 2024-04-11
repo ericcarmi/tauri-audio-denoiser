@@ -166,7 +166,7 @@
 		pointer-events: none;
 	}
 	span {
-		position: relative;
+		position: absolute;
 		top: 100%;
 		white-space: nowrap;
 	}

@@ -41,9 +41,12 @@
 
   let time_data: any;
 
+  let base_freq_axis_labels = [20, 500, 1000, 2000, 5000, 10000, 20000];
+  let freq_axis_labels = [20, 500, 1000, 2000, 5000, 10000, 20000];
+
   // function pointer instead of if statements inside loop
   // when setting changes, plot_scale points to mel or bark
-  let set_plot_scale = (x: number) => {
+  function set_plot_scale(x: number) {
     if (plot_scale === "Log") {
       return loglin(x, MIN_FREQ, NYQUIST);
     }
@@ -55,7 +58,24 @@
     } else {
       return x;
     }
-  };
+  }
+
+  // input frequency, get position, for setting labels
+  function get_plot_scale(x: number, scale: string) {
+    max_plot_freq = set_plot_scale(NYQUIST);
+    if (scale === "Log") {
+      return (loglin(x, MIN_FREQ, NYQUIST) / max_plot_freq) * FREQ_PLOT_WIDTH;
+    }
+    if (scale === "Mel") {
+      return (mel(x) / max_plot_freq) * FREQ_PLOT_WIDTH;
+    }
+    if (scale === "Bark") {
+      return (bark_scale(x) / max_plot_freq) * FREQ_PLOT_WIDTH;
+    } else {
+      return (x / max_plot_freq) * FREQ_PLOT_WIDTH;
+    }
+  }
+
   let max_plot_freq = set_plot_scale(NYQUIST);
 
   let is_loading = false;
@@ -69,7 +89,6 @@
 
   function update_colors() {
     if (settings) {
-
       plot_total_curve = rgbToHex(settings.colors.plot_total_curve);
       eq_color = rgbToHex(settings.colors.plot_single_filter);
       eq_hover_color = rgbToHex(settings.colors.plot_filter_hover);
@@ -77,6 +96,7 @@
       plot_scale = settings.plot_scale;
       max_plot_freq = set_plot_scale(NYQUIST);
       update_filter_bank(true);
+      update_axes();
       get_time_data();
     }
   }
@@ -100,7 +120,6 @@
   });
 
   function redraw_time_data() {
-
     let renderPlot = () => {
       line = new WebglLine(
         new ColorRGBA(plot_color.r / 255, plot_color.g, plot_color.b / 255, 1),
@@ -213,7 +232,39 @@
       });
   }
 
-  $: bpf_hovering, update_filter_bank(true);
+  // $: plot_scale,
+  //   (freq_axis_labels = base_freq_axis_labels.map((f) => {
+  //     return get_plot_scale(f);
+  //   }));
+
+  function update_axes() {
+    function renderPlot() {
+      const canvas = freqcanvas;
+
+      const height = canvas.height;
+      const width = canvas.width;
+
+      const context: CanvasRenderingContext2D = canvas.getContext("2d");
+      context.clearRect(0, 0, width, height);
+      context.fillStyle = "rgb(140,0,180)";
+      const length = freq_axis_labels.length;
+
+      for (let i = 0; i < length; i++) {
+        context.beginPath();
+        let logfreq = get_plot_scale(freq_axis_labels[i], plot_scale);
+        context.setLineDash([2, 2]);
+        context.moveTo(logfreq, 2);
+        context.lineTo(logfreq, height - 2);
+        context.lineWidth = 2;
+        context.strokeStyle = "rgb(50,50,50)";
+        context.stroke();
+      }
+      context.setLineDash([]);
+    }
+    requestAnimationFrame(renderPlot);
+
+    update_filter_bank(false);
+  }
 
   function update_filter_bank(should_clear: boolean) {
     function renderPlot() {
@@ -277,23 +328,44 @@
     requestAnimationFrame(renderPlot);
   }
 
+  $: bpf_hovering, update_filter_bank(true), update_axes();
   $: selectedRecording, get_time_data();
   $: fft_data, update_fft();
-  $: bpf_filters, !is_playing && update_filter_bank(true);
+  $: bpf_filters, !is_playing && update_filter_bank(true), update_axes();
 </script>
 
-<div>
-  <canvas id="freq_canvas" />
-  <canvas id="time_canvas" />
-  {#if is_loading}
-    <div class="spinner" />
-  {/if}
+<div
+  style="width: 100%; display: flex; flex-direction: column;align-items: center; "
+>
+  <div style="width: {FREQ_PLOT_WIDTH}px; ">
+    <canvas id="freq_canvas" />
+    <div
+      style="display: flex; justify-self: center; height: 1em; align-items: center;"
+    >
+      {#each freq_axis_labels as label}
+        <span
+          class="freq-label"
+          style="left: calc({(get_plot_scale(label, plot_scale) + 25).toFixed(
+            1
+          )}px - 0em);">{label.toFixed(0)}</span
+        >
+      {/each}
+    </div>
+    <canvas id="time_canvas" />
+    {#if is_loading}
+      <div class="spinner" />
+    {/if}
+  </div>
 </div>
 
 <style>
   canvas {
     border: 2px solid var(--plot-main);
     background: black;
+  }
+  .freq-label {
+    position: absolute;
+    font-size: 8px;
   }
   div {
     user-select: none;
