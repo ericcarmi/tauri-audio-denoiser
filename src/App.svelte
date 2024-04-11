@@ -208,7 +208,7 @@
         // console.log(time, time * SAMPLING_RATE / num_time_samples/DOWN_RATE);
       }}
     />
-    <div>
+    <div class="menu-bar">
       <button
         on:click={async () => {
           if (!is_playing) {
@@ -415,9 +415,13 @@
     background-size: 100% 100%;
     width: 30px;
     height: 30px;
-    display: inline-flex;
+    display:inline-flex;
   }
   .settings:hover {
     filter: invert(50%);
+  }
+  .menu-bar{
+    display: flex;
+    justify-content: center;
   }
 </style>

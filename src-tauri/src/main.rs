@@ -3,7 +3,7 @@
 #![allow(non_snake_case)]
 use cpal::traits::StreamTrait;
 use std::sync::Mutex;
-use tauri::{App, AppHandle, Manager, RunEvent, State};
+use tauri::{AppHandle, Manager, State};
 mod audio;
 use audio::*;
 mod types;
@@ -58,7 +58,7 @@ fn main() {
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();
-            // let _ = mainwindow.set_always_on_top(true);
+            let _ = mainwindow.set_always_on_top(true);
             let app_handle = app.app_handle();
 
             let m = mainwindow.available_monitors();
@@ -141,14 +141,14 @@ fn start_server(app_handle: AppHandle) {
         .into_os_string()
         .into_string()
         .unwrap();
-    println!("{:?}", p);
+    // println!("{:?}", p);
 
     let stop = CMD::new_sidecar("redis-cli")
         .expect("failed to stop redis-server")
         .args(["ping"])
         .output()
         .expect("Failed to spawn sidecar");
-    println!("{:?}", stop);
+    // println!("{:?}", stop);
 
     if !stop.stderr.is_empty() {
         let child = CMD::new_sidecar("redis-server")
@@ -157,7 +157,7 @@ fn start_server(app_handle: AppHandle) {
             .spawn()
             .expect("Failed to spawn sidecar");
 
-        println!("{:?}", child);
+        // println!("{:?}", child);
     }
 }
 
@@ -168,5 +168,5 @@ fn stop_server() {
         .spawn()
         .expect("Failed to spawn sidecar");
 
-    println!("{:?}", child);
+    // println!("{:?}", child);
 }

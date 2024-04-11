@@ -13,7 +13,7 @@ use cpal::{
 };
 use dasp_ring_buffer::Fixed;
 use rustfft::num_complex::Complex;
-use tauri::{AppHandle, State};
+use tauri::AppHandle;
 
 pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> Vec<f32> {
     let p = app_handle
@@ -27,7 +27,7 @@ pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> Vec<f32> {
     // println!("{:?}", p);
 
     let file_in = File::open(p).unwrap();
-    let (head, samples) = wav_io::read_from_file(file_in).unwrap();
+    let (_head, samples) = wav_io::read_from_file(file_in).unwrap();
     samples
 }
 
