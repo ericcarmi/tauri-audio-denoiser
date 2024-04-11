@@ -18,17 +18,20 @@
 	let control_max_freq = NYQUIST;
 	let control_min_freq = 20;
 
+	let high_res = 0.1;
+	let low_res = 0.5;
 	let resolution = 1;
 
 	$: value, redraw();
-	$: is_dragging, !is_dragging && (resolution = 1);
+	$: is_dragging, console.log(resolution);
+
 	function update_value() {
 		let x =
 			((position - 1) / width) * (control_max_freq - control_min_freq) +
 			control_min_freq;
 		// let logfreq = linlog(x, control_min_freq, control_max_freq)
-
 		value = x;
+		// console.log(position, value)
 	}
 
 	function redraw() {
@@ -37,7 +40,7 @@
 				((value - control_min_freq) / (control_max_freq - control_min_freq)) *
 					width +
 				1;
-			// console.log(position)
+			// position *= resolution;
 
 			indicator.style.left = position + "px";
 		}
@@ -49,18 +52,17 @@
 		}
 		indicator.addEventListener("mousedown", function (e: MouseEvent) {
 			var offsetX = e.clientX - position;
-			function mouseMoveHandler(e: any) {
+			function mouseMoveHandler(e: MouseEvent) {
 				if (el === null || !is_dragging) {
 					return;
 				}
-				position = e.clientX - offsetX;
+
+				position += e.movementX * resolution;
 				position = Math.max(Math.min(position, width), 1);
 				indicator.style.left = position + "px";
-				// value = (0.5 - position / width) * range;
 				update_value();
 			}
 			function reset() {
-				// have to call this here...maybe want to change how this is handled later
 				is_dragging = false;
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
@@ -78,14 +80,13 @@
 				let wrap_position = el.offsetLeft;
 				// change this and other stuff to not use constants that aren't based on the specified dimensions of the component
 				if (Math.abs(e.clientX - wrap_position) > 5) {
-					position = e.clientX - wrap_position - 5;
+					position += e.movementX * resolution;
 					position = Math.max(Math.min(position, width), 1);
 				} else {
-					position = e.clientX - offsetX;
+					position += e.movementX * resolution;
 					position = Math.max(Math.min(position, width), 1);
 				}
 				indicator.style.left = position + "px";
-				console.log(position);
 
 				update_value();
 			}
@@ -115,11 +116,15 @@
 	on:mousedown={(e) => {
 		is_dragging = true;
 		if (e.shiftKey) {
-			resolution = 0.1;
+			resolution = high_res;
 		}
 		let wrap_position = el.offsetLeft;
 		if (Math.abs(e.clientX - wrap_position) > 5) {
+			console.log("snap");
 			position = e.clientX - wrap_position - 5;
+			position = Math.max(Math.min(position, width), 1);
+		} else {
+			position += e.movementX * resolution;
 			position = Math.max(Math.min(position, width), 1);
 		}
 		indicator.style.left = position + "px";
@@ -127,6 +132,7 @@
 	}}
 	on:mouseup={() => {
 		is_dragging = false;
+		resolution = low_res;
 	}}
 >
 	<div
@@ -137,12 +143,13 @@
 		tabindex={-1}
 		on:mousedown={(e) => {
 			if (e.shiftKey) {
-				resolution = 0.1;
+				resolution = high_res;
 			}
 			is_dragging = true;
 		}}
 		on:mouseup={() => {
 			is_dragging = false;
+			resolution = low_res;
 		}}
 	/>
 	<span class="value-text">{value.toFixed(1)}</span>
@@ -178,7 +185,7 @@
 
 	.thumb {
 		background: black;
-		width: 0.5em;
+		width: 5px;
 		height: 1em;
 		position: absolute;
 	}

@@ -47,7 +47,6 @@
     if (settings) {
       theme = settings.theme;
       update_local_colors();
-      console.log(settings.colors);
     }
   });
   onDestroy(async () => {
