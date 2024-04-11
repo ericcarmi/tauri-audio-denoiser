@@ -70,6 +70,18 @@ body, html {
   text-align: center;
 }
 
+input[type="checkbox"], input[type="radio"] {
+  appearance: none;
+  background: var(--gray1);
+  width: 1em;
+  height: 1em;
+  border: 1px solid var(--gray9);
+  cursor: pointer;
+}
+input[type="checkbox"]:checked, input[type="radio"]:checked {
+  background: var(--orange);
+}
+
 
 button {
   font-family: monospace;
@@ -97,19 +109,6 @@ button:active {
 
 input {
   outline: none;
-}
-
-@media (prefers-color-scheme: dark) {
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-    
-  }
 }
 
 
@@ -155,4 +154,19 @@ input {
 }
 
 
+
+
+
+@media (prefers-color-scheme: dark) {
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+    
+  }
+}
 

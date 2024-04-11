@@ -37,15 +37,22 @@
   let plot_scale: string;
   let plot_color: any;
 
+  let draw_fft_amp_axis = true;
+  let draw_filter_amp_axis = true;
+  let draw_freq_axis = true;
+
   export let settings: any;
 
   let time_data: any;
 
-  let base_freq_axis_labels = [20, 500, 1000, 2000, 5000, 10000, 20000];
   let freq_axis_labels = [20, 500, 1000, 2000, 5000, 10000, 20000];
+  let filter_amp_axis_labels = [30, 20, 10, 0, -10, -20, -30];
+  let fft_amp_axis_labels = [30, 25, 20, 15, 10, 5, 0];
+
+  var last_bar_heights = Array(256).fill(0);
 
   // function pointer instead of if statements inside loop
-  // when setting changes, plot_scale points to mel or bark
+  // when setting changes, plot_scale points to mel or bark...but this still uses if statements for now
   function set_plot_scale(x: number) {
     if (plot_scale === "Log") {
       return loglin(x, MIN_FREQ, NYQUIST);
@@ -85,9 +92,9 @@
   let canvasMain: any;
   let freqcanvas: any;
 
-  $: settings, update_colors();
+  $: settings, update_settings();
 
-  function update_colors() {
+  function update_settings() {
     if (settings) {
       plot_total_curve = rgbToHex(settings.colors.plot_total_curve);
       eq_color = rgbToHex(settings.colors.plot_single_filter);
@@ -95,14 +102,23 @@
       plot_color = settings.colors.plot_main;
       plot_scale = settings.plot_scale;
       max_plot_freq = set_plot_scale(NYQUIST);
+      draw_fft_amp_axis = settings.draw_fft_amp_axis
+      draw_filter_amp_axis = settings.draw_filter_amp_axis
+      draw_freq_axis = settings.draw_freq_axis
       update_filter_bank(true);
       update_axes();
       get_time_data();
     }
   }
 
+  function update_axes() {
+    draw_freq_axis && update_freq_axis();
+    draw_filter_amp_axis && update_filter_amp_axis();
+    draw_fft_amp_axis && update_fft_amp_axis();
+  }
+
   onMount(() => {
-    update_colors();
+    update_settings();
     canvasMain = document.getElementById("time_canvas");
     canvasMain.width = TIME_PLOT_WIDTH;
     canvasMain.height = TIME_PLOT_HEIGHT;
@@ -177,8 +193,6 @@
     });
   }
 
-  var last_bar_heights = Array(256).fill(0);
-
   function update_fft() {
     let data = Promise.resolve(fft_data);
     data
@@ -226,33 +240,26 @@
         data && requestAnimationFrame(renderPlot);
 
         update_filter_bank(false);
+        update_axes();
       })
       .catch((e) => {
         console.error(e);
       });
   }
 
-  // $: plot_scale,
-  //   (freq_axis_labels = base_freq_axis_labels.map((f) => {
-  //     return get_plot_scale(f);
-  //   }));
-
-  function update_axes() {
+  function update_freq_axis() {
     function renderPlot() {
       const canvas = freqcanvas;
-
       const height = canvas.height;
-      const width = canvas.width;
-
       const context: CanvasRenderingContext2D = canvas.getContext("2d");
-      context.clearRect(0, 0, width, height);
+      // context.clearRect(0, 0, width, height);
       context.fillStyle = "rgb(140,0,180)";
       const length = freq_axis_labels.length;
 
+      context.setLineDash([2, 2]);
       for (let i = 0; i < length; i++) {
         context.beginPath();
         let logfreq = get_plot_scale(freq_axis_labels[i], plot_scale);
-        context.setLineDash([2, 2]);
         context.moveTo(logfreq, 2);
         context.lineTo(logfreq, height - 2);
         context.lineWidth = 2;
@@ -262,8 +269,57 @@
       context.setLineDash([]);
     }
     requestAnimationFrame(renderPlot);
+  }
 
-    update_filter_bank(false);
+  function update_filter_amp_axis() {
+    function renderPlot() {
+      const canvas = freqcanvas;
+      const height = canvas.height;
+      const width = canvas.width;
+      const context: CanvasRenderingContext2D = canvas.getContext("2d");
+      // context.clearRect(0, 0, width, height);
+      context.fillStyle = "rgb(140,0,180)";
+      const length = freq_axis_labels.length;
+
+      context.setLineDash([2, 2]);
+      let delta = FREQ_PLOT_HEIGHT / length;
+      for (let i = 0; i < length; i++) {
+        context.beginPath();
+        let amp = (i + 0.5) * delta;
+        context.moveTo(0, amp);
+        context.lineTo(width, amp);
+        context.lineWidth = 1;
+        context.strokeStyle = "rgb(50,50,50)";
+        context.stroke();
+      }
+      context.setLineDash([]);
+    }
+    requestAnimationFrame(renderPlot);
+  }
+
+  function update_fft_amp_axis() {
+    function renderPlot() {
+      const canvas = freqcanvas;
+      const width = canvas.width;
+      const context: CanvasRenderingContext2D = canvas.getContext("2d");
+      // context.clearRect(0, 0, width, height);
+      context.fillStyle = "rgb(140,0,180)";
+      const length = fft_amp_axis_labels.length;
+
+      context.setLineDash([4, 4]);
+      let delta = FREQ_PLOT_HEIGHT / length;
+      for (let i = 0; i < length; i++) {
+        context.beginPath();
+        let amp = (i + 1) * delta;
+        context.moveTo(0, amp);
+        context.lineTo(width, amp);
+        context.lineWidth = 1;
+        context.strokeStyle = "rgb(80,80,80)";
+        context.stroke();
+      }
+      context.setLineDash([]);
+    }
+    requestAnimationFrame(renderPlot);
   }
 
   function update_filter_bank(should_clear: boolean) {
@@ -296,7 +352,7 @@
           (set_plot_scale((i / N) * NYQUIST) * FREQ_PLOT_WIDTH) / max_plot_freq;
         context.lineTo(
           logfreq,
-          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 128 + FREQ_PLOT_HEIGHT / 2
+          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2
         );
       }
       context.lineWidth = 2;
@@ -317,7 +373,7 @@
           sum_curve[i] += curve[i];
           context.lineTo(
             logfreq,
-            (-curve[i] * FREQ_PLOT_HEIGHT) / 128 + FREQ_PLOT_HEIGHT / 2
+            (-curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2
           );
         }
         context.lineWidth = 2;
@@ -328,26 +384,39 @@
     requestAnimationFrame(renderPlot);
   }
 
+  $: bpf_filters, !is_playing && update_filter_bank(true), update_axes();
   $: bpf_hovering, update_filter_bank(true), update_axes();
   $: selectedRecording, get_time_data();
   $: fft_data, update_fft();
-  $: bpf_filters, !is_playing && update_filter_bank(true), update_axes();
 </script>
 
-<div
-  style="width: 100%; display: flex; flex-direction: column;align-items: center; "
->
+<div class="plot-wrapper">
   <div style="width: {FREQ_PLOT_WIDTH}px; ">
     <canvas id="freq_canvas" />
-    <div
-      style="display: flex; justify-self: center; height: 1em; align-items: center;"
-    >
+    <div class="freq-label-box" style="width: {FREQ_PLOT_WIDTH}px;">
       {#each freq_axis_labels as label}
         <span
           class="freq-label"
-          style="left: calc({(get_plot_scale(label, plot_scale) + 25).toFixed(
-            1
-          )}px - 0em);">{label.toFixed(0)}</span
+          style="left: {get_plot_scale(label, plot_scale).toFixed(1)}px;"
+          >{label.toFixed(0)}</span
+        >
+      {/each}
+    </div>
+    <div class="filter-amp-label-box" style="height: {FREQ_PLOT_HEIGHT}px">
+      {#each filter_amp_axis_labels as label, i}
+        <span
+          class="filter-amp-label"
+          style="top: calc({((i + 0.5) * FREQ_PLOT_HEIGHT) /
+            filter_amp_axis_labels.length}px - 1em);">{label.toFixed(0)}</span
+        >
+      {/each}
+    </div>
+    <div class="fft-amp-label-box" style="height: {FREQ_PLOT_HEIGHT}px">
+      {#each fft_amp_axis_labels as label, i}
+        <span
+          class="fft-amp-label"
+          style="top: calc({((i + 1) * FREQ_PLOT_HEIGHT) /
+            fft_amp_axis_labels.length}px - 1.5em);">{label.toFixed(0)}</span
         >
       {/each}
     </div>
@@ -359,13 +428,57 @@
 </div>
 
 <style>
+  .plot-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
   canvas {
     border: 2px solid var(--plot-main);
     background: black;
   }
+
+  .freq-label-box {
+    display: flex;
+    justify-self: center;
+    align-items: center;
+    display: flex;
+    justify-content: flex-start;
+    position: relative;
+    top: -5px;
+    height: 10px;
+  }
   .freq-label {
     position: absolute;
-    font-size: 8px;
+    font-size: 10px;
+  }
+  .filter-amp-label-box {
+    display: flex;
+    justify-content: flex-start;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 2%;
+  }
+  .filter-amp-label {
+    position: absolute;
+    font-size: 10px;
+    left: 0;
+  }
+  .fft-amp-label-box {
+    display: flex;
+    justify-content: flex-start;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2.5%;
+  }
+  .fft-amp-label {
+    position: absolute;
+    font-size: 10px;
+    right: 0;
   }
   div {
     user-select: none;

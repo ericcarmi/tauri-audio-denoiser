@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Settings {
     pub plot_scale: PlotScale,
+    pub draw_freq_axis: bool,
+    pub draw_fft_amp_axis: bool,
+    pub draw_filter_amp_axis: bool,
     pub theme: Theme,
     pub fft_plot_decay: f32,
     pub fft_plot_size: usize,
@@ -15,6 +18,9 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             plot_scale: PlotScale::Linear,
+            draw_freq_axis: true,
+            draw_fft_amp_axis: true,
+            draw_filter_amp_axis: true,
             theme: Theme::POG,
             fft_plot_decay: 0.8,
             fft_plot_size: 256,

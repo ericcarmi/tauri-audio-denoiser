@@ -5,6 +5,9 @@
 
   let fft_plot_decay = 0.8;
   let fft_plot_size = 256;
+  let draw_fft_amp_axis = true;
+  let draw_filter_amp_axis = true;
+  let draw_freq_axis = true;
 
   // this will need to rewrite redis.conf...right?
   let server_update_interval = 30;
@@ -53,6 +56,11 @@
     await invoke("save_settings", { settings: settings });
   });
 
+  $: draw_fft_amp_axis, (settings.draw_fft_amp_axis = draw_fft_amp_axis);
+  $: draw_filter_amp_axis,
+    (settings.draw_filter_amp_axis = draw_filter_amp_axis);
+  $: draw_freq_axis, (settings.draw_freq_axis = draw_freq_axis);
+
   $: plot_scale, update_plot_scale();
 
   function update_plot_scale() {
@@ -97,6 +105,22 @@
     <div
       style="display: flex; width: 100%; position: absolute; justify-content: flex-end; align-items: center;height: 100%; gap: 1em;"
     >
+      <!--
+      <div
+        class="top-button"
+        role="button"
+        tabindex="0"
+        on:keypress={() => {}}
+        on:click={async () => {
+          await invoke("init_settings");
+          settings = await invoke("get_settings");
+          update_local_colors();
+        }}
+      >
+        reset
+      </div> 
+-->
+
       <div
         class="top-button"
         role="button"
@@ -126,7 +150,7 @@
     <div class="wrapper">
       <div class="item">
         <span class="group-label">plot scale</span>
-        <span
+        <span class="check-label"
           ><input
             type="radio"
             name="plot_scale"
@@ -136,7 +160,7 @@
             checked={plot_scale === "Linear"}
           /> linear</span
         >
-        <span
+        <span class="check-label"
           ><input
             type="radio"
             name="plot_scale"
@@ -146,7 +170,7 @@
             checked={plot_scale === "Mel"}
           /> mel</span
         >
-        <span
+        <span class="check-label"
           ><input
             type="radio"
             name="plot_scale"
@@ -156,7 +180,7 @@
             checked={plot_scale === "Log"}
           /> log</span
         >
-        <span
+        <span class="check-label"
           ><input
             type="radio"
             name="plot_scale"
@@ -179,11 +203,40 @@
           bind:value={fft_plot_decay}
         />
         <span style="width:100%;">{fft_plot_decay}</span>
+        <span class="check-label"
+          ><input
+            type="checkbox"
+            on:click={() => {
+              draw_fft_amp_axis = !draw_fft_amp_axis;
+            }}
+            checked={draw_fft_amp_axis}
+          />fft amp axis</span
+        >
+
+        <span class="check-label"
+          ><input
+            type="checkbox"
+            on:click={() => {
+              draw_filter_amp_axis = !draw_filter_amp_axis;
+            }}
+            checked={draw_filter_amp_axis}
+          />filter amp axis</span
+        >
+
+        <span class="check-label"
+          ><input
+            type="checkbox"
+            on:click={() => {
+              draw_freq_axis = !draw_freq_axis;
+            }}
+            checked={draw_freq_axis}
+          />frequency axis</span
+        >
       </div>
 
       <div class="item">
         <span class="group-label">fft plot size</span>
-        <span
+        <span class="check-label"
           ><input
             type="radio"
             name="fft_plot_size"
@@ -193,7 +246,7 @@
             checked={fft_plot_size === 64}
           /> 64</span
         >
-        <span
+        <span class="check-label"
           ><input
             type="radio"
             name="fft_plot_size"
@@ -203,7 +256,7 @@
             checked={fft_plot_size === 128}
           /> 128</span
         >
-        <span
+        <span class="check-label"
           ><input
             type="radio"
             name="fft_plot_size"
@@ -213,7 +266,7 @@
             checked={fft_plot_size === 256}
           /> 256</span
         >
-        <span
+        <span class="check-label"
           ><input
             type="radio"
             name="fft_plot_size"
@@ -243,7 +296,7 @@
 
       <div class="item">
         <span class="group-label">theme</span>
-        <span
+        <span class="check-label"
           ><input
             type="radio"
             name="theme"
@@ -258,7 +311,7 @@
             checked={theme === "RGB"}
           /> rgb</span
         >
-        <span
+        <span class="check-label"
           ><input
             type="radio"
             name="theme"
@@ -273,7 +326,7 @@
             checked={theme === "CYM"}
           /> cym</span
         >
-        <span
+        <span class="check-label"
           ><input
             type="radio"
             name="theme"
@@ -288,7 +341,7 @@
             checked={theme === "POG"}
           /> pog</span
         >
-        <span
+        <span class="check-label"
           ><input
             type="radio"
             name="theme"
@@ -356,6 +409,11 @@
 </div>
 
 <style>
+  .check-label {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
   .grid-wrap {
     display: flex;
     justify-content: center;
@@ -363,7 +421,7 @@
     width: calc(100% - 1px);
     position: absolute;
     top: 0px;
-    z-index: 1;
+    z-index: 2;
     transition: top 1s;
   }
   .grid-wrap[data-attribute="true"] {
