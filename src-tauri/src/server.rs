@@ -199,6 +199,42 @@ pub async fn get_output_gain() -> Result<f32, String> {
     }
 }
 
+async fn redis_get_pre_smooth_gain() -> redis::RedisResult<f32> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+
+    let gain: Result<f32, redis::RedisError> = con.get("pre_smooth_gain").await;
+
+    gain
+}
+
+#[tauri::command]
+pub async fn get_pre_smooth_gain() -> Result<f32, String> {
+    if let Ok(gain) = redis_get_pre_smooth_gain().await {
+        Ok(gain)
+    } else {
+        Err("failed to get pre_smooth gain".to_string())
+    }
+}
+
+async fn redis_get_post_smooth_gain() -> redis::RedisResult<f32> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+
+    let gain: Result<f32, redis::RedisError> = con.get("post_smooth_gain").await;
+
+    gain
+}
+
+#[tauri::command]
+pub async fn get_post_smooth_gain() -> Result<f32, String> {
+    if let Ok(gain) = redis_get_post_smooth_gain().await {
+        Ok(gain)
+    } else {
+        Err("failed to get post_smooth gain".to_string())
+    }
+}
+
 #[tauri::command]
 pub async fn get_global_state() -> Result<Vec<Bpf>, String> {
     if let Ok(bpfs) = redis_get_global_state().await {
@@ -257,6 +293,32 @@ async fn redis_save_output_gain(gain: f32) -> redis::RedisResult<()> {
 #[tauri::command]
 pub async fn save_output_gain(gain: f32) {
     let _r = redis_save_output_gain(gain).await;
+    // println!("{:?}", r);
+}
+
+async fn redis_save_pre_smooth_gain(gain: f32) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+    let a: Result<(), redis::RedisError> = con.set("pre_smooth_gain", gain).await;
+    return a;
+}
+
+#[tauri::command]
+pub async fn save_pre_smooth_gain(gain: f32) {
+    let _r = redis_save_pre_smooth_gain(gain).await;
+    // println!("{:?}", r);
+}
+
+async fn redis_save_post_smooth_gain(gain: f32) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+    let a: Result<(), redis::RedisError> = con.set("post_smooth_gain", gain).await;
+    return a;
+}
+
+#[tauri::command]
+pub async fn save_post_smooth_gain(gain: f32) {
+    let _r = redis_save_post_smooth_gain(gain).await;
     // println!("{:?}", r);
 }
 

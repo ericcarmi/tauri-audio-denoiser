@@ -3,7 +3,7 @@
 #![allow(non_snake_case)]
 use cpal::traits::StreamTrait;
 use std::sync::Mutex;
-use tauri::{Manager, State};
+use tauri::{Manager, PhysicalPosition, State};
 mod audio;
 use audio::*;
 mod types;
@@ -42,6 +42,10 @@ fn main() {
             save_output_gain,
             save_noise_gain,
             get_noise_gain,
+            get_pre_smooth_gain,
+            get_post_smooth_gain,
+            save_pre_smooth_gain,
+            save_post_smooth_gain,
             get_output_gain,
             update_pre_smooth_gain,
             update_post_smooth_gain,
@@ -56,6 +60,10 @@ fn main() {
             let _ = mainwindow.set_always_on_top(true);
 
             let app_handle = app.app_handle();
+
+            let m = mainwindow.available_monitors();
+            mainwindow.set_position(*m.unwrap()[0].position());
+            // println!("{:?}", m);
 
             let mss = MStreamSend({
                 let (ui_tx, rx) = tauri::async_runtime::channel::<Vec<f32>>(2);

@@ -115,9 +115,18 @@
 			is_dragging = false;
 		}}
 	/>
+	<span class="value-text">{value.toFixed(1)}</span>
 </div>
 
 <style>
+	.value-text {
+		position: relative;
+		z-index: 1;
+		top: 100%;
+		font-size: 12px;
+		color: var(--gray200);
+		pointer-events: none;
+	}
 	.wrapper {
 		background: var(--gray100);
 		width: 2.5em;
@@ -126,6 +135,7 @@
 		border: 1px solid var(--slider-border);
 		position: relative;
 		transition: border 0.33s;
+		height: 100%;
 	}
 
 	.wrapper:hover {

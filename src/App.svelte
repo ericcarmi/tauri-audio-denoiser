@@ -88,6 +88,7 @@
     update_css_color(rgbToHex(settings.colors.plot_total_curve),"plot-total-curve")
     update_css_color(rgbToHex(settings.colors.plot_filter_hover),"plot-filter-hover")
 
+
     selectedRecording = "reisman.wav";
     // selected recording also needs to be in sync with backend file...should be resolved once files are imported correctly instead of one by default, tho should still have that for loading saved state?
     get_time_data();
@@ -288,6 +289,7 @@
     <RotarySlider
       bind:value={output_gain}
       index={-1}
+      units="dB"
       max_val={20}
       min_val={-20}
       label="output gain"
@@ -301,9 +303,10 @@
     <RotarySlider
       bind:value={noise_gain}
       index={-1}
-      label="noise"
+      units="dB"
+      label="noise gain"
       max_val={20}
-      min_val={-120}
+      min_val={-80}
       update_backend={() => {
         invoke("update_noise_gain", { gain: noise_gain });
       }}
@@ -314,9 +317,10 @@
     <RotarySlider
       bind:value={pre_smooth_gain}
       index={-1}
-      label="pre_smooth"
-      max_val={0.9999}
+      label="pre smooth"
+      max_val={0.999}
       min_val={0.5}
+      resolution={3}
       update_backend={() => {
         invoke("update_pre_smooth_gain", { gain: pre_smooth_gain });
       }}
@@ -327,9 +331,10 @@
     <RotarySlider
       bind:value={post_smooth_gain}
       index={-1}
-      label="post_smooth"
-      max_val={0.9999}
+      label="post smooth"
+      max_val={0.999}
       min_val={0.7}
+      resolution={3}
       update_backend={() => {
         invoke("update_post_smooth_gain", { gain: post_smooth_gain });
       }}

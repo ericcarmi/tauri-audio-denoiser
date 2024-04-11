@@ -136,9 +136,18 @@
 			is_dragging = false;
 		}}
 	/>
+	<span class="value-text">{value.toFixed(1)}</span>
 </div>
 
 <style>
+	.value-text {
+		position: relative;
+		top: -20%;
+		font-size: 12px;
+		color: var(--gray200);
+		pointer-events: none;
+		font-weight: bold;
+	}
 	.wrapper {
 		background: var(--gray100);
 		width: 10em;

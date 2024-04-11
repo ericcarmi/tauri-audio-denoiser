@@ -5,8 +5,10 @@
 	export let value: any;
 	export let index: number;
 	export let label = "";
+	export let units = "";
 	export let update_backend = () => {};
 	export let update_server = () => {};
+	export let resolution = 1;
 
 	export let min_val = 0.1;
 	export let max_val = 10;
@@ -131,6 +133,7 @@
 <div
 	class="wrapper"
 	role="button"
+	title="units: {units}"
 	bind:this={el}
 	tabindex={-1}
 	data-attribute={is_mouse_down}
@@ -151,12 +154,21 @@
 	{/each}
 	<div bind:this={indicator_el} class="indicator" />
 	<span>{label}</span>
+	<span class="value-text">{value.toFixed(resolution)}</span>
 </div>
 
 <style>
+	.value-text {
+		position: absolute;
+		top: 25%;
+		font-size: 12px;
+		color: black;
+		pointer-events: none;
+	}
 	span {
 		position: relative;
 		top: 100%;
+		white-space: nowrap;
 	}
 	.wrapper {
 		display: flex;
