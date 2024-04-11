@@ -3,7 +3,7 @@
 #![allow(non_snake_case)]
 use cpal::traits::StreamTrait;
 use std::sync::Mutex;
-use tauri::{Manager, PhysicalPosition, State};
+use tauri::{App, AppHandle, Manager, RunEvent, State};
 mod audio;
 use audio::*;
 mod types;
@@ -16,9 +16,10 @@ mod sdft;
 mod server;
 use server::*;
 mod settings;
+use tauri::api::process::Command as CMD;
 
 fn main() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             play_stream,
             pause_stream,
@@ -57,11 +58,11 @@ fn main() {
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();
-            let _ = mainwindow.set_always_on_top(true);
-
+            // let _ = mainwindow.set_always_on_top(true);
             let app_handle = app.app_handle();
 
             let m = mainwindow.available_monitors();
+            start_server(app_handle.clone());
             mainwindow.set_position(*m.unwrap()[0].position());
             // println!("{:?}", m);
 
@@ -81,8 +82,14 @@ fn main() {
             let _ = app.manage(mss);
             Ok(())
         })
-        .run(tauri::generate_context!())
+        .build(tauri::generate_context!())
         .expect("error while running tauri application");
+    app.run(|_app_handle, event| match event {
+        tauri::RunEvent::ExitRequested { api, .. } => {
+            stop_server();
+        }
+        _ => {}
+    });
 }
 
 #[tauri::command]
@@ -124,4 +131,42 @@ fn get_fft_plot_data(streamsend: State<MStreamSend>) -> Result<Vec<f32>, String>
 #[derive(Clone, serde::Serialize)]
 struct Payload {
     message: String,
+}
+
+fn start_server(app_handle: AppHandle) {
+    let p = app_handle
+        .path_resolver()
+        .resolve_resource(ASSETS_PATH)
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+    println!("{:?}", p);
+
+    let stop = CMD::new_sidecar("redis-cli")
+        .expect("failed to stop redis-server")
+        .args(["ping"])
+        .output()
+        .expect("Failed to spawn sidecar");
+    println!("{:?}", stop);
+
+    if !stop.stderr.is_empty() {
+        let child = CMD::new_sidecar("redis-server")
+            .expect("failed to start redis-server")
+            .args([p + "/redis.conf"])
+            .spawn()
+            .expect("Failed to spawn sidecar");
+
+        println!("{:?}", child);
+    }
+}
+
+fn stop_server() {
+    let child = CMD::new_sidecar("redis-cli")
+        .expect("failed to stop redis-server")
+        .args(["-h", "127.0.0.1", "-p", "6379", "shutdown"])
+        .spawn()
+        .expect("Failed to spawn sidecar");
+
+    println!("{:?}", child);
 }

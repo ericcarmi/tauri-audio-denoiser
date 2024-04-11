@@ -11,11 +11,9 @@
   } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
   import type { BPF } from "./types.svelte";
-  import { biquad, hexToRgb, rgbToHex, update_css_color } from "./functions.svelte";
+  import { biquad, rgbToHex, update_css_color } from "./functions.svelte";
   import RotarySlider from "./rotary-slider.svelte";
   import Settings from "./settings.svelte";
-
-  const settings_path = "/src/settings.svelte";
 
   let settings: any;
 
@@ -73,6 +71,7 @@
 
   let time_slider_max = num_time_samples;
   $: num_time_samples, (time_slider_max = num_time_samples);
+
 
   onMount(async () => {
     settings = await invoke("get_settings");
@@ -325,7 +324,7 @@
         invoke("update_pre_smooth_gain", { gain: pre_smooth_gain });
       }}
       update_server={() => {
-        // invoke("save_pre_smooth_gain", { gain: pre_smooth_gain });
+        invoke("save_pre_smooth_gain", { gain: pre_smooth_gain });
       }}
     />
     <RotarySlider
@@ -339,7 +338,7 @@
         invoke("update_post_smooth_gain", { gain: post_smooth_gain });
       }}
       update_server={() => {
-        // invoke("save_post_smooth_gain", { gain: post_smooth_gain });
+        invoke("save_post_smooth_gain", { gain: post_smooth_gain });
       }}
     />
   </div>

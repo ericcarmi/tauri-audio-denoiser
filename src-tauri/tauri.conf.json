@@ -22,6 +22,14 @@
       "fs": {
         "all": true,
         "scope": ["$RESOURCE/**", "$RESOURCE/*", "*/**"]
+      },
+      "shell": {
+        "all": false,
+        "open": true,
+        "scope": [
+          {"name": "binaries/redis-server", "sidecar": true},
+          {"name": "binaries/redis-cli", "sidecar": true}
+        ]
       }
     },
     "windows": [
@@ -37,12 +45,17 @@
     "bundle": {
       "active": true,
       "targets": "all",
+      "externalBin": [
+        "binaries/redis-server",
+        "binaries/redis-cli"
+      ],
       "identifier": "com.audio-eq.dev",
       "resources": [
         "assets/test-file.wav",
         "assets/chirp.wav",
         "assets/*.wav",
-        "assets/440-whitenoise.wav"
+        "assets/440-whitenoise.wav",
+        "assets/redis.conf"
       ],
       "icon": [
         "icons/32x32.png",
