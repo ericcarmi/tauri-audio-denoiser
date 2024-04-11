@@ -143,7 +143,7 @@
 	}
 
 	.wrapper[data-attribute="true"] {
-		border: 1px solid var(--slider-active);
+		border: 1px solid var(--slider-hover);
 	}
 
 	.thumb {
@@ -159,6 +159,6 @@
 	}
 
 	.thumb[data-attribute="true"] {
-		background: var(--slider-hover);
+		background: var(--slider-active);
 	}
 </style>

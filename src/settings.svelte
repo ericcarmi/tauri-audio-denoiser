@@ -47,8 +47,7 @@
     if (settings) {
       theme = settings.theme;
       update_local_colors();
-      console.log(settings.colors)
-
+      console.log(settings.colors);
     }
   });
   onDestroy(async () => {
@@ -93,7 +92,7 @@
   let ref: any;
 </script>
 
-<div style="display: flex;" bind:this={ref}>
+<div class="grid-wrap" bind:this={ref}>
   {#if settings}
     <div class="wrapper" data-attribute={on_top}>
       <div
@@ -351,14 +350,18 @@
 </div>
 
 <style>
+  .grid-wrap {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+  }
   .wrapper {
     position: absolute;
     display: grid;
     flex-direction: row;
-    top: 45px;
-    left: 25px;
+    top: 0px;
     border: 1px solid black;
-    width: 95%;
+    width: 99%;
     background: rgba(130, 130, 130, 0.8);
     color: black;
     gap: 1em;
@@ -367,6 +370,7 @@
     justify-items: center;
     z-index: 1;
     transition: top 1s;
+    height: 50%;
   }
   .wrapper[data-attribute="true"] {
     top: 50%;

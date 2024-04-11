@@ -35,7 +35,9 @@
 </script>
 
 <div class="wrapper">
-	<div style="display:flex; height:4em; justify-content: space-evenly; margin-bottom: 1.5em;">
+	<div
+		style="display:flex; height:4em; justify-content: space-evenly; margin-bottom: 1.5em;"
+	>
 		<RotarySlider bind:value={Q} bind:index />
 		<Slider bind:value={gain} bind:index />
 	</div>
@@ -46,18 +48,20 @@
 			invoke("save_bpf_freq", { gain: freq, index: index });
 		}}
 	/>
-	<div style="display: flex; justify-content: space-evenly;">
-		<button
-			title="reset to 0 dB"
-			on:click={() => {
-				gain = 0;
-			}}
-		>rst gain </button>
-
-	</div>
+	<button
+		title="reset to 0 dB"
+		on:click={() => {
+			gain = 0;
+		}}
+		>rst gain
+	</button>
 </div>
 
 <style>
+	button {
+		align-self: center;
+		margin-top: 0.4em;
+	}
 	.wrapper {
 		display: flex;
 		flex-direction: column;

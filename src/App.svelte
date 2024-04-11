@@ -72,21 +72,31 @@
   let time_slider_max = num_time_samples;
   $: num_time_samples, (time_slider_max = num_time_samples);
 
-
   onMount(async () => {
     settings = await invoke("get_settings");
 
-    update_css_color(rgbToHex(settings.colors.rotary_tick),"rotary-tick")
-    update_css_color(rgbToHex(settings.colors.rotary_hover),"rotary-hover")
-    update_css_color(rgbToHex(settings.colors.slider_border),"slider-border")
-    update_css_color(rgbToHex(settings.colors.slider_indicator),"slider-indicator")
-    update_css_color(rgbToHex(settings.colors.slider_hover),"slider-hover")
-    update_css_color(rgbToHex(settings.colors.slider_active),"slider-active")
-    update_css_color(rgbToHex(settings.colors.plot_main),"plot-main")
-    update_css_color(rgbToHex(settings.colors.plot_single_filter),"plot-single-filter")
-    update_css_color(rgbToHex(settings.colors.plot_total_curve),"plot-total-curve")
-    update_css_color(rgbToHex(settings.colors.plot_filter_hover),"plot-filter-hover")
-
+    update_css_color(rgbToHex(settings.colors.rotary_tick), "rotary-tick");
+    update_css_color(rgbToHex(settings.colors.rotary_hover), "rotary-hover");
+    update_css_color(rgbToHex(settings.colors.slider_border), "slider-border");
+    update_css_color(
+      rgbToHex(settings.colors.slider_indicator),
+      "slider-indicator"
+    );
+    update_css_color(rgbToHex(settings.colors.slider_hover), "slider-hover");
+    update_css_color(rgbToHex(settings.colors.slider_active), "slider-active");
+    update_css_color(rgbToHex(settings.colors.plot_main), "plot-main");
+    update_css_color(
+      rgbToHex(settings.colors.plot_single_filter),
+      "plot-single-filter"
+    );
+    update_css_color(
+      rgbToHex(settings.colors.plot_total_curve),
+      "plot-total-curve"
+    );
+    update_css_color(
+      rgbToHex(settings.colors.plot_filter_hover),
+      "plot-filter-hover"
+    );
 
     selectedRecording = "reisman.wav";
     // selected recording also needs to be in sync with backend file...should be resolved once files are imported correctly instead of one by default, tho should still have that for loading saved state?
@@ -99,6 +109,8 @@
 
     noise_gain = await invoke("get_noise_gain");
     output_gain = await invoke("get_output_gain");
+    post_smooth_gain = await invoke("get_post_smooth_gain");
+    pre_smooth_gain = await invoke("get_pre_smooth_gain");
   });
 
   function resetInterval() {
@@ -208,7 +220,7 @@
         // console.log(time, time * SAMPLING_RATE / num_time_samples/DOWN_RATE);
       }}
     />
-    <div class="menu-bar">
+    <div class="button-bar">
       <button
         on:click={async () => {
           if (!is_playing) {
@@ -233,15 +245,6 @@
       >
         {clean ? "clean" : "dirty"}
       </button>
-      <div
-        class="settings"
-        role="button"
-        tabindex="0"
-        on:keypress={() => {}}
-        on:click={() => {
-          show_settings = !show_settings;
-        }}
-      />
     </div>
   </div>
 
@@ -271,7 +274,7 @@
     {/each}
   </div>
   <div
-    style="display: flex; flex-direction: row; justify-content: space-evenly;height:auto;"
+    style="display: flex; flex-direction: row; justify-content: space-evenly;height:6em;"
   >
     <button
       class="reset-all-gains-switch"
@@ -342,6 +345,17 @@
       }}
     />
   </div>
+  <div class="menu-bar">
+    <div
+      class="settings"
+      role="button"
+      tabindex="0"
+      on:keypress={() => {}}
+      on:click={() => {
+        show_settings = !show_settings;
+      }}
+    />
+  </div>
 </main>
 
 <style>
@@ -399,7 +413,7 @@
     border-radius: 0;
     padding: 0;
     margin: 0;
-    align-self: flex-end;
+    align-self: center;
     width: max-content;
     border: 1px solid var(--rotary-tick);
     color: var(--gray200);
@@ -415,13 +429,18 @@
     background-size: 100% 100%;
     width: 30px;
     height: 30px;
-    display:inline-flex;
+    display: inline-flex;
   }
   .settings:hover {
     filter: invert(50%);
   }
-  .menu-bar{
+  .button-bar {
     display: flex;
     justify-content: center;
+  }
+  .menu-bar {
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid black;
   }
 </style>
