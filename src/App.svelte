@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/tauri";
   import { listen } from "@tauri-apps/api/event";
+  import { message, open, save } from "@tauri-apps/api/dialog";
   import { onMount } from "svelte";
 
   import Plot from "./plot.svelte";
@@ -25,9 +26,13 @@
   var Qs = [0.5, 0.5, 0.5, 0.5, 50.5];
 
   const unlisten = listen("tauri://file-drop", async (event: any) => {
-    selectedRecording = event.payload[0] as string
-    invoke("update_file_path", {path: selectedRecording})
+    change_file(event.payload[0] as string);
   });
+
+  function change_file(path: string) {
+    selectedRecording = path;
+    invoke("update_file_path", { path: selectedRecording });
+  }
 
   let bpf_filters: Array<BPF> = Array(num_sliders)
     .fill(0)
@@ -60,20 +65,22 @@
 
   async function get_time_data(from_assets?: boolean) {
     if (selectedRecording === "") return;
-    await invoke("get_time_data", { path: selectedRecording, fromAssets: from_assets }).then(
-      (res) => {
-        let data: any = res;
-        // need to sync this and the downsample rate from the backend
-        // or not...when it reads the correct number of samples
-        num_time_samples = data.length;
-      }
-    );
+    await invoke("get_time_data", {
+      path: selectedRecording,
+      fromAssets: from_assets,
+    }).then((res) => {
+      let data: any = res;
+      // need to sync this and the downsample rate from the backend
+      // or not...when it reads the correct number of samples
+      num_time_samples = data.length;
+    });
   }
 
   let time_slider_max = num_time_samples;
   $: num_time_samples, (time_slider_max = num_time_samples);
 
   onMount(async () => {
+    // await message("Tauri is awesome", "Tauri");
     settings = await invoke("get_settings");
 
     update_css_color(rgbToHex(settings.colors.rotary_tick), "rotary-tick");
@@ -243,7 +250,25 @@
           invoke("update_clean", { clean: clean });
         }}
       >
-        {clean ? "clean" : "dirty"}
+        {clean ? "dry" : "wet"}
+      </button>
+      <button
+        on:click={async () => {
+          const selected = await open({
+            multiple: false,
+            filters: [
+              {
+                name: "audio",
+                extensions: ["wav"],
+              },
+            ],
+          });
+          if (selected !== null && !(selected instanceof Array)) {
+            change_file(selected);
+          }
+        }}
+      >
+        import
       </button>
     </div>
   </div>
@@ -447,5 +472,8 @@
     display: flex;
     justify-content: center;
     border-top: 1px solid black;
+  }
+  button {
+    padding: 0 1em 0 1em;
   }
 </style>
