@@ -54,7 +54,6 @@ fn main() {
             get_output_gain,
             update_pre_smooth_gain,
             update_post_smooth_gain,
-            update_noise_variance,
             get_settings,
             save_settings,
             init_settings,

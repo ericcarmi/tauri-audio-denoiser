@@ -153,9 +153,31 @@ impl FilterBank {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum StereoControl {
+    Left,
+    Right,
+    Both,
+}
+
+#[derive(Clone, Debug)]
+pub struct ChannelMessage {
+    pub time: Option<f32>,
+    pub clean: Option<bool>,
+    pub bp1: Option<IIR2>,
+    pub bp2: Option<IIR2>,
+    pub bp3: Option<IIR2>,
+    pub bp4: Option<IIR2>,
+    pub bp5: Option<IIR2>,
+    pub output_gain: Option<f32>,
+    pub noise_gain: Option<f32>,
+    pub pre_smooth_gain: Option<f32>,
+    pub post_smooth_gain: Option<f32>,
+}
+
 // use options with everything...a little annoying but then use None when passing to ignore most sub-structs
 // this struct is for messages sent from UI to audio thread
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Message {
     pub time: Option<f32>,
     pub clean: Option<bool>,
@@ -164,13 +186,12 @@ pub struct Message {
     pub bp3: Option<IIR2>,
     pub bp4: Option<IIR2>,
     pub bp5: Option<IIR2>,
-    pub bypass: Option<Vec<Option<bool>>>,
     pub output_gain: Option<f32>,
     pub noise_gain: Option<f32>,
     pub pre_smooth_gain: Option<f32>,
     pub post_smooth_gain: Option<f32>,
-    pub noise_variance: Option<f32>,
     pub file_path: Option<String>,
+    pub stereo_control: StereoControl,
 }
 
 // use all None for default message to shorten other functions that send one thing at a time
@@ -184,73 +205,113 @@ impl Default for Message {
             bp3: None,
             bp4: None,
             bp5: None,
-            bypass: None,
             output_gain: None,
             noise_gain: None,
             pre_smooth_gain: None,
-            noise_variance: None,
             post_smooth_gain: None,
             file_path: None,
+            stereo_control: StereoControl::Both,
         }
     }
 }
 
 impl Message {
-    pub fn receive(
-        &self,
-        dft_size: usize,
-        num_file_samples: usize,
-        process_filterbank: &mut FilterBank,
-        noise_spectrum: &mut Vec<f32>,
-        time: &mut usize,
-        sdft: &mut SDFT,
-        clean: &mut bool,
-        output_gain: &mut f32,
-        noise_gain: &mut f32,
-        pre_smooth_gain: &mut f32,
-        post_smooth_gain: &mut f32,
-    ) {
+    pub fn receive(&self, params: &mut AudioParams) {
         if let Some(bp) = self.bp1 {
-            process_filterbank.bp1.update_coeffs(bp);
-            *noise_spectrum = process_filterbank.parallel_transfer(dft_size);
+            params.filter_bank.bp1.update_coeffs(bp);
+            params.noise_spectrum = params.filter_bank.parallel_transfer(params.dft_size);
         }
         if let Some(bp) = self.bp2 {
-            process_filterbank.bp2.update_coeffs(bp);
-            *noise_spectrum = process_filterbank.parallel_transfer(dft_size);
+            params.filter_bank.bp2.update_coeffs(bp);
+            params.noise_spectrum = params.filter_bank.parallel_transfer(params.dft_size);
         }
         if let Some(bp) = self.bp3 {
-            process_filterbank.bp3.update_coeffs(bp);
-            *noise_spectrum = process_filterbank.parallel_transfer(dft_size);
+            params.filter_bank.bp3.update_coeffs(bp);
+            params.noise_spectrum = params.filter_bank.parallel_transfer(params.dft_size);
         }
         if let Some(bp) = self.bp4 {
-            process_filterbank.bp4.update_coeffs(bp);
-            *noise_spectrum = process_filterbank.parallel_transfer(dft_size);
+            params.filter_bank.bp5.update_coeffs(bp);
+            params.noise_spectrum = params.filter_bank.parallel_transfer(params.dft_size);
         }
         if let Some(bp) = self.bp5 {
-            process_filterbank.bp5.update_coeffs(bp);
-            *noise_spectrum = process_filterbank.parallel_transfer(dft_size);
+            params.filter_bank.bp5.update_coeffs(bp);
+            params.noise_spectrum = params.filter_bank.parallel_transfer(params.dft_size);
         }
         if let Some(t) = self.time {
-            *time = (num_file_samples as f32 * t) as usize;
-            sdft.freq_history = czerov(dft_size);
-            sdft.time_history = Fixed::from(vec![Complex::new(0.0, 0.0); dft_size]);
+            params.time = (params.num_file_samples as f32 * t) as usize;
+            params.sdft.freq_history = czerov(params.dft_size);
+            params.sdft.time_history = Fixed::from(vec![Complex::new(0.0, 0.0); params.dft_size]);
         }
         if let Some(c) = self.clean {
-            *clean = c;
-            sdft.freq_history = czerov(dft_size);
-            sdft.time_history = Fixed::from(vec![Complex::new(0.0, 0.0); dft_size]);
+            params.clean = c;
+            params.sdft.freq_history = czerov(params.dft_size);
+            params.sdft.time_history = Fixed::from(vec![Complex::new(0.0, 0.0); params.dft_size]);
         }
         if let Some(g) = self.output_gain {
-            *output_gain = g;
+            params.output_gain = g;
         }
         if let Some(g) = self.noise_gain {
-            *noise_gain = g;
+            params.noise_gain = g;
         }
         if let Some(g) = self.pre_smooth_gain {
-            *pre_smooth_gain = g;
+            params.pre_smooth_gain = g;
         }
         if let Some(g) = self.post_smooth_gain {
-            *post_smooth_gain = g;
+            params.post_smooth_gain = g;
+        }
+    }
+}
+
+/// same as message but not options, these are storing in the thread after receiving message
+// ... or it isn't the same? dft_size isn't there but it could be added later, was planning on that
+#[derive(Clone)]
+pub struct AudioParams {
+    pub dft_size: usize,
+    pub num_file_samples: usize,
+    pub time: usize,
+    pub clean: bool,
+    pub bp1: IIR2,
+    pub bp2: IIR2,
+    pub bp3: IIR2,
+    pub bp4: IIR2,
+    pub bp5: IIR2,
+    pub filter_bank: FilterBank,
+    pub bypass: Vec<bool>,
+    pub output_gain: f32,
+    pub noise_gain: f32,
+    pub pre_smooth_gain: f32,
+    pub post_smooth_gain: f32,
+    pub file_path: String,
+    pub output_spectrum: Vec<f32>,
+    pub noise_spectrum: Vec<f32>,
+    pub sdft: SDFT,
+}
+
+// bp1..5 should be changed to filterbank, so new filters can be added easily
+
+impl AudioParams {
+    pub fn new() -> Self {
+        let fb = FilterBank::new();
+        Self {
+            dft_size: 256,
+            num_file_samples: 0,
+            time: 0,
+            clean: false,
+            bp1: fb.bp1,
+            bp2: fb.bp2,
+            bp3: fb.bp3,
+            bp4: fb.bp4,
+            bp5: fb.bp5,
+            bypass: vec![],
+            output_gain: 1.0,
+            noise_gain: 0.0,
+            pre_smooth_gain: 0.5,
+            post_smooth_gain: 0.5,
+            file_path: "".to_string(),
+            output_spectrum: vec![],
+            noise_spectrum: vec![],
+            filter_bank: fb,
+            sdft: SDFT::new(256),
         }
     }
 }

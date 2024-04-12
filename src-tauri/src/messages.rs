@@ -66,24 +66,6 @@ pub fn update_clean(clean: bool, streamsend: State<MStreamSend>) {
 }
 
 #[tauri::command]
-pub fn update_bypass(bypass: bool, index: usize, streamsend: State<MStreamSend>) {
-    let mut bp = vec![None; 5];
-    bp[index] = Some(bypass);
-    let _ = streamsend
-        .0
-        .lock()
-        .unwrap()
-        .msender
-        .0
-        .lock()
-        .unwrap()
-        .try_send(Message {
-            bypass: Some(bp),
-            ..Default::default()
-        });
-}
-
-#[tauri::command]
 pub fn update_output_gain(gain: f32, streamsend: State<MStreamSend>) {
     let g = (10.0_f32).powf(gain / 20.0);
     let _ = streamsend
@@ -146,22 +128,6 @@ pub fn update_post_smooth_gain(gain: f32, streamsend: State<MStreamSend>) {
         .unwrap()
         .try_send(Message {
             post_smooth_gain: Some(gain),
-            ..Default::default()
-        });
-}
-
-#[tauri::command]
-pub fn update_noise_variance(gain: f32, streamsend: State<MStreamSend>) {
-    let _ = streamsend
-        .0
-        .lock()
-        .unwrap()
-        .msender
-        .0
-        .lock()
-        .unwrap()
-        .try_send(Message {
-            noise_variance: Some(gain),
             ..Default::default()
         });
 }

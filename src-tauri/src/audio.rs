@@ -1,7 +1,5 @@
-use std::fs::File;
-
 use crate::constants::*;
-use crate::fourier::mfft;
+// use crate::fourier::mfft;
 use crate::sdft::SDFT;
 use crate::types::*;
 use anyhow;
@@ -11,8 +9,7 @@ use cpal::{
     traits::{DeviceTrait, HostTrait},
     SizedSample,
 };
-use dasp_ring_buffer::Fixed;
-use rustfft::num_complex::Complex;
+use std::fs::File;
 use tauri::AppHandle;
 
 pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> Vec<f32> {
@@ -112,55 +109,52 @@ where
     let err_fn = |err| eprintln!("Error building output sound stream: {}", err);
 
     let (tx, mut rx) = tauri::async_runtime::channel::<Message>(1);
-    let mut process_filterbank = FilterBank::new();
 
+    // file samples are not an audio param, stream is remade when file is changed so this stays
+    // also time, because it should be same for both channels
+    let mut time = 0;
     let file_samples;
     if let Some(f) = file_path {
         file_samples = get_wav_samples(f.as_str());
     } else {
         file_samples = get_resource_wav_samples(TEST_FILE_PATH, app_handle);
     }
-    let mut time = 0;
-    let num_file_samples = file_samples.len();
-    let mut clean = false;
-    let dft_size = 256;
-    let mut sdft = SDFT::new(dft_size);
-    let mut noise_spectrum = process_filterbank.parallel_transfer(dft_size);
+    // let mut process_filterbank = FilterBank::new();
+    // let num_file_samples = file_samples.len();
+    // let mut clean = false;
+    // let dft_size = 256;
+    // let mut sdft = SDFT::new(dft_size);
+    // let mut noise_spectrum = process_filterbank.parallel_transfer(dft_size);
 
-    let mut noise_gain = 0.0;
-    let mut output_gain = 1.0;
-    let mut pre_smooth_gain = 0.5;
-    let mut post_smooth_gain = 0.5;
+    // let mut noise_gain = 0.0;
+    // let mut output_gain = 1.0;
+    // let mut pre_smooth_gain = 0.5;
+    // let mut post_smooth_gain = 0.5;
+
+    let mut left_audio_params = AudioParams::new();
+    left_audio_params.num_file_samples = file_samples.len();
+    left_audio_params.noise_spectrum = left_audio_params
+        .filter_bank
+        .parallel_transfer(left_audio_params.dft_size);
 
     let stream = device.build_output_stream(
         config,
         move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
             // check for messages sent to receiver...update things
             if let Ok(msg) = rx.try_recv() {
-                msg.receive(
-                    dft_size,
-                    num_file_samples,
-                    &mut process_filterbank,
-                    &mut noise_spectrum,
-                    &mut time,
-                    &mut sdft,
-                    &mut clean,
-                    &mut output_gain,
-                    &mut noise_gain,
-                    &mut pre_smooth_gain,
-                    &mut post_smooth_gain,
-                )
+                msg.receive(&mut left_audio_params)
             }
 
             // vec for fft, will make another for processed spectrum?
             let mut spectrum: Vec<f32> = vec![];
-            if clean {
+            if left_audio_params.clean {
                 // ...each frame has 2 samples
                 for frame in output.chunks_mut(num_channels) {
-                    if time >= num_file_samples {
+                    if left_audio_params.time >= left_audio_params.num_file_samples {
                         break;
                     }
-                    let sample = file_samples[time] * output_gain;
+                    let sample =
+                        file_samples[left_audio_params.time] * left_audio_params.output_gain;
                     let v: T = T::from_sample(sample);
                     spectrum.push(sample);
 
@@ -168,20 +162,21 @@ where
                     for out_sample in frame.iter_mut() {
                         *out_sample = v;
                     }
-                    time += 1;
+                    left_audio_params.time += 1;
                 }
             } else {
                 for frame in output.chunks_mut(num_channels) {
-                    if time >= num_file_samples {
+                    if left_audio_params.time >= left_audio_params.num_file_samples {
                         break;
                     }
-                    let sample = file_samples[time] * output_gain;
-                    let filtered = sdft.spectral_subtraction(
+                    let sample =
+                        file_samples[left_audio_params.time] * left_audio_params.output_gain;
+                    let filtered = left_audio_params.sdft.spectral_subtraction(
                         sample,
-                        &noise_spectrum,
-                        noise_gain,
-                        pre_smooth_gain,
-                        post_smooth_gain,
+                        &left_audio_params.noise_spectrum,
+                        left_audio_params.noise_gain,
+                        left_audio_params.pre_smooth_gain,
+                        left_audio_params.post_smooth_gain,
                     );
 
                     let v: T = T::from_sample(filtered);
@@ -191,14 +186,16 @@ where
                     for out_sample in frame.iter_mut() {
                         *out_sample = v;
                     }
-                    time += 1;
+                    left_audio_params.time += 1;
                 }
             }
 
             // send a chunk of the fft here
             // let _r = tx_ui.try_send(mfft(spectrum.clone()));
             // let _r = tx_ui.try_send(freq_filter.clone());
-            let _r = tx_ui.try_send(sdft.norm_vec()[0..sdft.size / 2].to_vec());
+            let _r = tx_ui.try_send(
+                left_audio_params.sdft.norm_vec()[0..left_audio_params.sdft.size / 2].to_vec(),
+            );
 
             // println!("{:?}", r);
         },
