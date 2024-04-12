@@ -157,7 +157,7 @@
   }
 
   async function get_time_data(file_path: string) {
-  console.log(file_path)
+    console.log(file_path);
 
     if (file_path === "" || plot_color === undefined) return;
     // check cache...maybe
@@ -165,7 +165,6 @@
     //   redraw_time_data();
     //   return;
     // }
-    console.log("sup", file_path);
     is_loading = true;
     invoke("get_time_data", { path: file_path }).then((res) => {
       let data: any = res;
@@ -210,7 +209,11 @@
 
           const context: CanvasRenderingContext2D = canvas.getContext("2d");
           context.clearRect(0, 0, width, height);
-          context.fillStyle = "rgb(140,0,180)";
+          if (plot_color !== undefined) {
+            context.fillStyle = `rgb(${plot_color.r},${plot_color.g}, ${plot_color.b})`;
+          } else {
+            context.fillStyle = "rgb(140,0,180)";
+          }
           const length = data.length;
 
           let barWidth = (width / length) * 1.0;
@@ -281,7 +284,8 @@
       const width = canvas.width;
       const context: CanvasRenderingContext2D = canvas.getContext("2d");
       // context.clearRect(0, 0, width, height);
-      context.fillStyle = "rgb(140,0,180)";
+      // context.fillStyle = "rgb(140,0,180)";
+      //   context.strokeStyle = "rgb(50,50,50)";
       const length = freq_axis_labels.length;
 
       context.setLineDash([2, 2]);
@@ -292,7 +296,6 @@
         context.moveTo(0, amp);
         context.lineTo(width, amp);
         context.lineWidth = 1;
-        context.strokeStyle = "rgb(50,50,50)";
         context.stroke();
       }
       context.setLineDash([]);
@@ -317,7 +320,6 @@
         context.moveTo(0, amp);
         context.lineTo(width, amp);
         context.lineWidth = 1;
-        context.strokeStyle = "rgb(80,80,80)";
         context.stroke();
       }
       context.setLineDash([]);
