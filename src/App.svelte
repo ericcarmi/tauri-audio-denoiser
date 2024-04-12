@@ -262,24 +262,6 @@
       >
         {clean ? "dry" : "wet"}
       </button>
-      <button
-        on:click={async () => {
-          const selected = await open({
-            multiple: false,
-            filters: [
-              {
-                name: "audio",
-                extensions: ["wav"],
-              },
-            ],
-          });
-          if (selected !== null && !(selected instanceof Array)) {
-            change_file(selected);
-          }
-        }}
-      >
-        import
-      </button>
       <span
         title="full path: {selectedRecording}"
         style="position: absolute; right: 0; padding-right: 2em; align-self: center;"
@@ -386,6 +368,24 @@
         ];
       }}>reset gains</button
     >
+    <button
+      on:click={async () => {
+        const selected = await open({
+          multiple: false,
+          filters: [
+            {
+              name: "audio",
+              extensions: ["wav"],
+            },
+          ],
+        });
+        if (selected !== null && !(selected instanceof Array)) {
+          change_file(selected);
+        }
+      }}
+    >
+      import file
+    </button>
     <div
       class="settings"
       role="button"
@@ -426,7 +426,6 @@
     justify-items: center;
     grid-template-rows: auto;
     appearance: none;
-    height: 100%;
     margin-top: 5px;
     margin-bottom: 10px;
   }
@@ -444,6 +443,7 @@
   }
   .bpf-wrap {
     display: flex;
+    height: max-content;
   }
 
   .reset-all-gains-switch {
@@ -488,9 +488,13 @@
   .menu-bar {
     display: flex;
     justify-content: space-evenly;
+    flex-grow: 1;
+    align-items: center;
     border-top: 1px solid black;
+    border-bottom: 1px solid black;
   }
   button {
     padding: 0 1em 0 1em;
+    align-self: center;
   }
 </style>
