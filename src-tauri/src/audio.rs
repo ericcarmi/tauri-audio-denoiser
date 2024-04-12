@@ -123,7 +123,6 @@ where
     let mut time = 0;
     let num_file_samples = file_samples.len();
     let mut clean = false;
-    let mut bypass_filters = vec![false; 5];
     let dft_size = 256;
     let mut sdft = SDFT::new(dft_size);
     let mut noise_spectrum = process_filterbank.parallel_transfer(dft_size);
@@ -132,65 +131,25 @@ where
     let mut output_gain = 1.0;
     let mut pre_smooth_gain = 0.5;
     let mut post_smooth_gain = 0.5;
-    let mut noise_variance = 0.0;
 
     let stream = device.build_output_stream(
         config,
         move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
             // check for messages sent to receiver...update things
             if let Ok(msg) = rx.try_recv() {
-                if let Some(bp) = msg.bp1 {
-                    process_filterbank.bp1.update_coeffs(bp);
-                    noise_spectrum = process_filterbank.parallel_transfer(dft_size);
-                }
-                if let Some(bp) = msg.bp2 {
-                    process_filterbank.bp2.update_coeffs(bp);
-                    noise_spectrum = process_filterbank.parallel_transfer(dft_size);
-                }
-                if let Some(bp) = msg.bp3 {
-                    process_filterbank.bp3.update_coeffs(bp);
-                    noise_spectrum = process_filterbank.parallel_transfer(dft_size);
-                }
-                if let Some(bp) = msg.bp4 {
-                    process_filterbank.bp4.update_coeffs(bp);
-                    noise_spectrum = process_filterbank.parallel_transfer(dft_size);
-                }
-                if let Some(bp) = msg.bp5 {
-                    process_filterbank.bp5.update_coeffs(bp);
-                    noise_spectrum = process_filterbank.parallel_transfer(dft_size);
-                }
-                if let Some(t) = msg.time {
-                    time = (num_file_samples as f32 * t) as usize;
-                    sdft.freq_history = czerov(dft_size);
-                    sdft.time_history = Fixed::from(vec![Complex::new(0.0, 0.0); dft_size]);
-                }
-                if let Some(c) = msg.clean {
-                    clean = c;
-                    sdft.freq_history = czerov(dft_size);
-                    sdft.time_history = Fixed::from(vec![Complex::new(0.0, 0.0); dft_size]);
-                }
-                if let Some(g) = msg.output_gain {
-                    output_gain = g;
-                }
-                if let Some(g) = msg.noise_gain {
-                    noise_gain = g;
-                }
-                if let Some(g) = msg.pre_smooth_gain {
-                    pre_smooth_gain = g;
-                }
-                if let Some(g) = msg.post_smooth_gain {
-                    post_smooth_gain = g;
-                }
-                if let Some(g) = msg.noise_variance {
-                    noise_variance = g;
-                }
-                if let Some(v) = msg.bypass {
-                    for (i, bp) in v.iter().enumerate() {
-                        if let Some(b) = bp {
-                            bypass_filters[i] = *b;
-                        }
-                    }
-                }
+                msg.receive(
+                    dft_size,
+                    num_file_samples,
+                    &mut process_filterbank,
+                    &mut noise_spectrum,
+                    &mut time,
+                    &mut sdft,
+                    &mut clean,
+                    &mut output_gain,
+                    &mut noise_gain,
+                    &mut pre_smooth_gain,
+                    &mut post_smooth_gain,
+                )
             }
 
             // vec for fft, will make another for processed spectrum?
@@ -223,7 +182,6 @@ where
                         noise_gain,
                         pre_smooth_gain,
                         post_smooth_gain,
-                        noise_variance,
                     );
 
                     let v: T = T::from_sample(filtered);

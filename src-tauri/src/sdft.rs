@@ -110,7 +110,6 @@ impl SDFT {
         noise_gain: f32,
         pre_smooth_gain: f32,
         post_smooth_gain: f32,
-        noise_variance: f32,
     ) -> f32 {
         let oldest_input = self.time_history.get(0);
         let delta = signal - oldest_input;

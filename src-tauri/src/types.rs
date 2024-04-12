@@ -1,9 +1,13 @@
 use cpal::Stream;
-use rustfft::num_complex::Complex32;
+use dasp_ring_buffer::Fixed;
+use rustfft::num_complex::{Complex, Complex32};
 use serde::{Deserialize, Serialize};
 use std::{f32::consts::PI, sync::Mutex};
 
-use crate::constants::CZERO;
+use crate::{
+    constants::{czerov, CZERO},
+    sdft::SDFT,
+};
 
 pub struct MStream(pub Mutex<Stream>);
 
@@ -187,6 +191,66 @@ impl Default for Message {
             noise_variance: None,
             post_smooth_gain: None,
             file_path: None,
+        }
+    }
+}
+
+impl Message {
+    pub fn receive(
+        &self,
+        dft_size: usize,
+        num_file_samples: usize,
+        process_filterbank: &mut FilterBank,
+        noise_spectrum: &mut Vec<f32>,
+        time: &mut usize,
+        sdft: &mut SDFT,
+        clean: &mut bool,
+        output_gain: &mut f32,
+        noise_gain: &mut f32,
+        pre_smooth_gain: &mut f32,
+        post_smooth_gain: &mut f32,
+    ) {
+        if let Some(bp) = self.bp1 {
+            process_filterbank.bp1.update_coeffs(bp);
+            *noise_spectrum = process_filterbank.parallel_transfer(dft_size);
+        }
+        if let Some(bp) = self.bp2 {
+            process_filterbank.bp2.update_coeffs(bp);
+            *noise_spectrum = process_filterbank.parallel_transfer(dft_size);
+        }
+        if let Some(bp) = self.bp3 {
+            process_filterbank.bp3.update_coeffs(bp);
+            *noise_spectrum = process_filterbank.parallel_transfer(dft_size);
+        }
+        if let Some(bp) = self.bp4 {
+            process_filterbank.bp4.update_coeffs(bp);
+            *noise_spectrum = process_filterbank.parallel_transfer(dft_size);
+        }
+        if let Some(bp) = self.bp5 {
+            process_filterbank.bp5.update_coeffs(bp);
+            *noise_spectrum = process_filterbank.parallel_transfer(dft_size);
+        }
+        if let Some(t) = self.time {
+            *time = (num_file_samples as f32 * t) as usize;
+            sdft.freq_history = czerov(dft_size);
+            sdft.time_history = Fixed::from(vec![Complex::new(0.0, 0.0); dft_size]);
+        }
+        if let Some(c) = self.clean {
+            *clean = c;
+            sdft.freq_history = czerov(dft_size);
+            sdft.time_history = Fixed::from(vec![Complex::new(0.0, 0.0); dft_size]);
+        }
+        if let Some(g) = self.output_gain {
+            *output_gain = g;
+        }
+        if let Some(g) = self.noise_gain {
+            *noise_gain = g;
+        }
+        if let Some(g) = self.pre_smooth_gain {
+            *pre_smooth_gain = g;
+        }
+        if let Some(g) = self.post_smooth_gain {
+            *post_smooth_gain = g;
         }
     }
 }
