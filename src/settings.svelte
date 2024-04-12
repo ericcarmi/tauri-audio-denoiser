@@ -2,6 +2,7 @@
   import { invoke } from "@tauri-apps/api/tauri";
   import { onDestroy, onMount } from "svelte";
   import { hexToRgb, rgbToHex } from "./functions.svelte";
+  import { shortcut } from "./shortcut.svelte";
 
   let fft_plot_decay = 0.8;
   let fft_plot_size = 256;
@@ -134,6 +135,12 @@
       </div>
       <div
         class="close-button"
+        use:shortcut={{
+          code: "Escape",
+          callback: () => {
+            show_settings = false;
+          },
+        }}
         role="button"
         tabindex="0"
         on:keypress={() => {}}
@@ -371,6 +378,7 @@
         <span class="group-label">colors</span>
         <span
           ><input
+            style="--col: {rotary_tick};"
             type="color"
             on:change={(e) => {
               // console.log(e.currentTarget.value);
@@ -378,30 +386,68 @@
             bind:value={rotary_tick}
           />rotary ticks</span
         >
-        <span><input type="color" bind:value={rotary_hover} />rotary hover</span
+        <span
+          ><input
+            style="--col: {rotary_hover};"
+            type="color"
+            bind:value={rotary_hover}
+          />rotary hover</span
         >
         <span
-          ><input type="color" bind:value={slider_border} />slider border</span
+          ><input
+            style="--col: {slider_border};"
+            type="color"
+            bind:value={slider_border}
+          />slider border</span
         >
         <span
-          ><input type="color" bind:value={slider_indicator} />slider indicator</span
-        >
-        <span><input type="color" bind:value={slider_hover} />slider hover</span
+          ><input
+            style="--col: {slider_indicator};"
+            type="color"
+            bind:value={slider_indicator}
+          />slider indicator</span
         >
         <span
-          ><input type="color" bind:value={slider_active} />slider active</span
+          ><input
+            style="--col: {slider_hover};"
+            type="color"
+            bind:value={slider_hover}
+          />slider hover</span
         >
-        <span><input type="color" bind:value={plot_main} />plot main</span>
         <span
-          ><input type="color" bind:value={plot_single_filter} />plot single
-          filter
+          ><input
+            style="--col: {slider_active};"
+            type="color"
+            bind:value={slider_active}
+          />slider active</span
+        >
+        <span
+          ><input
+            style="--col: {plot_main};"
+            type="color"
+            bind:value={plot_main}
+          />plot main</span
+        >
+        <span
+          ><input
+            style="--col: {plot_single_filter};"
+            type="color"
+            bind:value={plot_single_filter}
+          />plot single filter
         </span>
         <span
-          ><input type="color" bind:value={plot_total_curve} />plot total curve</span
+          ><input
+            style="--col: {plot_total_curve};"
+            type="color"
+            bind:value={plot_total_curve}
+          />plot total curve</span
         >
         <span
-          ><input type="color" bind:value={plot_filter_hover} />plot filter
-          hover</span
+          ><input
+            style="--col: {plot_filter_hover};"
+            type="color"
+            bind:value={plot_filter_hover}
+          />plot filter hover</span
         >
       </div>
     </div>
@@ -467,7 +513,10 @@
   input[type="color"] {
     border: 0px;
     padding: 0;
-    background: var(--gray5);
+    /*background: lch(from var(--col) calc(l + 20) calc(c + 200) calc(h + 180deg));*/
+    background: hsl(
+      from var(--col) calc(h + 180deg) calc(s * 0.3) calc(l + 30%)
+    );
   }
 
   .top-button {
@@ -478,7 +527,7 @@
     justify-self: flex-end;
     width: max-content;
     transition: color 0.3s;
-    border: 1px solid var(--rotary-tick);
+    border: 1px solid var(--orange);
   }
   .top-button:hover {
     color: var(--gray150);
@@ -490,7 +539,7 @@
     padding: 1px;
     width: max-content;
     transition: color 0.3s;
-    border: 1px solid var(--rotary-tick);
+    border: 1px solid var(--orange);
   }
   .close-button:hover {
     color: var(--gray150);
@@ -522,6 +571,7 @@
     height: 2em;
   }
   .title {
+    color: var(--orange);
     letter-spacing: 0.4em;
     font-weight: bold;
     align-self: center;

@@ -36,7 +36,7 @@
 
 <div class="wrapper">
 	<div
-		style="display:flex; height:4em; justify-content: space-evenly; margin-bottom: 1.5em;"
+		style="display:flex; height:4em; justify-content: space-evenly; margin-bottom: 0.5em;"
 	>
 		<RotarySlider bind:value={Q} bind:index />
 		<Slider bind:value={gain} bind:index />

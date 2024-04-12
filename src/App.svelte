@@ -3,6 +3,7 @@
   import { listen } from "@tauri-apps/api/event";
   import { message, open, save } from "@tauri-apps/api/dialog";
   import { onMount } from "svelte";
+  import { shortcut, shortcutRelease } from "./shortcut.svelte";
 
   import Plot from "./plot.svelte";
   import {
@@ -188,6 +189,15 @@
       }
     }
   }
+
+  function remove_slashes_ext(s: string) {
+    if (s.includes("/")) {
+      let x = s.split("/");
+      return x[x.length - 1].split(".")[0];
+    } else {
+      return s.split(".")[0];
+    }
+  }
 </script>
 
 <main class="container" id="app-container">
@@ -270,6 +280,11 @@
       >
         import
       </button>
+      <span
+        title="full path: {selectedRecording}"
+        style="position: absolute; right: 0; padding-right: 2em; align-self: center;"
+        >current file: {remove_slashes_ext(selectedRecording)}</span
+      >
     </div>
   </div>
 
@@ -301,32 +316,6 @@
   <div
     style="display: flex; flex-direction: row; justify-content: space-evenly;height:6em;"
   >
-    <button
-      class="reset-all-gains-switch"
-      title="reset all gains to 0 dB"
-      on:click={() => {
-        bpf_filters = [
-          ...bpf_filters.map((filt, i) => {
-            update_filters(i + 1, 0.0, filt.freq, filt.Q, true);
-            return { gain: 0.0, freq: filt.freq, Q: filt.Q };
-          }),
-        ];
-      }}>reset gains</button
-    >
-    <RotarySlider
-      bind:value={output_gain}
-      index={-1}
-      units="dB"
-      max_val={20}
-      min_val={-20}
-      label="output gain"
-      update_backend={() => {
-        invoke("update_output_gain", { gain: output_gain });
-      }}
-      update_server={() => {
-        invoke("save_output_gain", { gain: output_gain });
-      }}
-    />
     <RotarySlider
       bind:value={noise_gain}
       index={-1}
@@ -369,8 +358,34 @@
         invoke("save_post_smooth_gain", { gain: post_smooth_gain });
       }}
     />
+    <RotarySlider
+      bind:value={output_gain}
+      index={-1}
+      units="dB"
+      max_val={20}
+      min_val={-20}
+      label="output gain"
+      update_backend={() => {
+        invoke("update_output_gain", { gain: output_gain });
+      }}
+      update_server={() => {
+        invoke("save_output_gain", { gain: output_gain });
+      }}
+    />
   </div>
   <div class="menu-bar">
+    <button
+      class="reset-all-gains-switch"
+      title="reset all gains to 0 dB"
+      on:click={() => {
+        bpf_filters = [
+          ...bpf_filters.map((filt, i) => {
+            update_filters(i + 1, 0.0, filt.freq, filt.Q, true);
+            return { gain: 0.0, freq: filt.freq, Q: filt.Q };
+          }),
+        ];
+      }}>reset gains</button
+    >
     <div
       class="settings"
       role="button"
@@ -456,10 +471,12 @@
     height: 30px;
     display: inline-flex;
     transition: filter 0.33s;
+    filter: invert(70%);
     cursor: pointer;
+    outline: none;
   }
   .settings:hover {
-    filter: invert(50%);
+    filter: invert(40%);
   }
   .button-bar {
     display: flex;
@@ -470,7 +487,7 @@
   }
   .menu-bar {
     display: flex;
-    justify-content: center;
+    justify-content: space-evenly;
     border-top: 1px solid black;
   }
   button {

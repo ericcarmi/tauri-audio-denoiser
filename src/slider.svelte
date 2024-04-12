@@ -120,9 +120,9 @@
 
 <style>
 	.value-text {
-		position: relative;
+		position: absolute;
 		z-index: 1;
-		top: 100%;
+		top: 30%;
 		font-size: 12px;
 		color: var(--gray200);
 		pointer-events: none;
