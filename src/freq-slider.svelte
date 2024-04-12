@@ -23,7 +23,6 @@
 	let resolution = 1;
 
 	$: value, redraw();
-	$: is_dragging, console.log(resolution);
 
 	function update_value() {
 		let x =
@@ -31,7 +30,6 @@
 			control_min_freq;
 		// let logfreq = linlog(x, control_min_freq, control_max_freq)
 		value = x;
-		// console.log(position, value)
 	}
 
 	function redraw() {
@@ -120,7 +118,6 @@
 		}
 		let wrap_position = el.offsetLeft;
 		if (Math.abs(e.clientX - wrap_position) > 5) {
-			console.log("snap");
 			position = e.clientX - wrap_position - 5;
 			position = Math.max(Math.min(position, width), 1);
 		} else {

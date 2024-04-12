@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/tauri";
+  import { listen } from "@tauri-apps/api/event";
   import { onMount } from "svelte";
 
   import Plot from "./plot.svelte";
@@ -23,17 +24,17 @@
   var freqs = [2000, 500, 1000, 200, 10000];
   var Qs = [0.5, 0.5, 0.5, 0.5, 50.5];
 
+  const unlisten = listen("tauri://file-drop", async (event: any) => {
+    selectedRecording = event.payload[0] as string
+    invoke("update_file_path", {path: selectedRecording})
+  });
+
   let bpf_filters: Array<BPF> = Array(num_sliders)
     .fill(0)
     .map((_, i) => {
       return { gain: gains[i], freq: freqs[i], Q: Qs[i] };
     });
   let bpf_hovering = Array(num_sliders).fill(false);
-
-  // listen("tauri://file-drop", async (event) => {
-  // need to handle this getting history of all files dropped...
-  // let s = event.payload[0] as string;
-  // });
 
   let time = 0;
   let time_position = 0;
@@ -57,9 +58,9 @@
   let post_smooth_gain = 0.5;
   let noise_variance = 0.0;
 
-  async function get_time_data() {
+  async function get_time_data(from_assets?: boolean) {
     if (selectedRecording === "") return;
-    return await invoke("get_time_data", { path: selectedRecording }).then(
+    await invoke("get_time_data", { path: selectedRecording, fromAssets: from_assets }).then(
       (res) => {
         let data: any = res;
         // need to sync this and the downsample rate from the backend
@@ -100,7 +101,7 @@
 
     selectedRecording = "reisman.wav";
     // selected recording also needs to be in sync with backend file...should be resolved once files are imported correctly instead of one by default, tho should still have that for loading saved state?
-    get_time_data();
+    get_time_data(true);
     resetInterval();
 
     // load from server
@@ -192,7 +193,7 @@
       bind:bpf_hovering
       bind:is_playing
       bind:bpf_filters
-      {selectedRecording}
+      bind:selectedRecording
       {fft_data}
     />
     <input
@@ -217,7 +218,6 @@
         await invoke("update_time", {
           t: (time * SAMPLING_RATE) / num_time_samples / DOWN_RATE,
         });
-        // console.log(time, time * SAMPLING_RATE / num_time_samples/DOWN_RATE);
       }}
     />
     <div class="button-bar">

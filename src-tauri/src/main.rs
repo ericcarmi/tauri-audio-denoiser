@@ -15,7 +15,11 @@ use fourier::*;
 mod sdft;
 mod server;
 use server::*;
+mod messages;
 mod settings;
+use messages::*;
+mod file_io;
+use file_io::*;
 use tauri::api::process::Command as CMD;
 
 fn main() {
@@ -55,6 +59,7 @@ fn main() {
             save_settings,
             init_settings,
             get_theme_colors,
+            update_file_path,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();
@@ -63,12 +68,12 @@ fn main() {
 
             let m = mainwindow.available_monitors();
             start_server(app_handle.clone());
-            mainwindow.set_position(*m.unwrap()[0].position());
+            let _ = mainwindow.set_position(*m.unwrap()[0].position());
             // println!("{:?}", m);
 
             let mss = MStreamSend({
                 let (ui_tx, rx) = tauri::async_runtime::channel::<Vec<f32>>(2);
-                let (stream, tx) = setup_stream(ui_tx, app_handle).unwrap();
+                let (stream, tx) = setup_stream(ui_tx, app_handle, None).unwrap();
                 let _ = stream.pause();
                 let mtx = Mutex::new(tx);
 
@@ -151,7 +156,7 @@ fn start_server(app_handle: AppHandle) {
     // println!("{:?}", stop);
 
     if !stop.stderr.is_empty() {
-        let child = CMD::new_sidecar("redis-server")
+        let _child = CMD::new_sidecar("redis-server")
             .expect("failed to start redis-server")
             .args([p + "/redis.conf"])
             .spawn()
@@ -162,7 +167,7 @@ fn start_server(app_handle: AppHandle) {
 }
 
 fn stop_server() {
-    let child = CMD::new_sidecar("redis-cli")
+    let _child = CMD::new_sidecar("redis-cli")
         .expect("failed to stop redis-server")
         .args(["-h", "127.0.0.1", "-p", "6379", "shutdown"])
         .spawn()

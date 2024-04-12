@@ -102,12 +102,12 @@
       plot_color = settings.colors.plot_main;
       plot_scale = settings.plot_scale;
       max_plot_freq = set_plot_scale(NYQUIST);
-      draw_fft_amp_axis = settings.draw_fft_amp_axis
-      draw_filter_amp_axis = settings.draw_filter_amp_axis
-      draw_freq_axis = settings.draw_freq_axis
+      draw_fft_amp_axis = settings.draw_fft_amp_axis;
+      draw_filter_amp_axis = settings.draw_filter_amp_axis;
+      draw_freq_axis = settings.draw_freq_axis;
       update_filter_bank(true);
       update_axes();
-      get_time_data();
+      get_time_data(selectedRecording);
     }
   }
 
@@ -156,15 +156,18 @@
     requestAnimationFrame(renderPlot);
   }
 
-  async function get_time_data() {
-    if (selectedRecording === "" || plot_color === undefined) return;
+  async function get_time_data(file_path: string) {
+  console.log(file_path)
+
+    if (file_path === "" || plot_color === undefined) return;
     // check cache...maybe
-    if (time_data !== undefined) {
-      redraw_time_data();
-      return;
-    }
+    // if (time_data !== undefined) {
+    //   redraw_time_data();
+    //   return;
+    // }
+    console.log("sup", file_path);
     is_loading = true;
-    invoke("get_time_data", { path: selectedRecording }).then((res) => {
+    invoke("get_time_data", { path: file_path }).then((res) => {
       let data: any = res;
       time_data = data;
       let renderPlot = () => {
@@ -386,7 +389,7 @@
 
   $: bpf_filters, !is_playing && update_filter_bank(true), update_axes();
   $: bpf_hovering, update_filter_bank(true), update_axes();
-  $: selectedRecording, get_time_data();
+  $: selectedRecording, get_time_data(selectedRecording);
   $: fft_data, update_fft();
 </script>
 

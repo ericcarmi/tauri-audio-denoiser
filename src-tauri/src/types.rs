@@ -166,4 +166,27 @@ pub struct Message {
     pub pre_smooth_gain: Option<f32>,
     pub post_smooth_gain: Option<f32>,
     pub noise_variance: Option<f32>,
+    pub file_path: Option<String>,
+}
+
+// use all None for default message to shorten other functions that send one thing at a time
+impl Default for Message {
+    fn default() -> Self {
+        Self {
+            time: None,
+            clean: None,
+            bp1: None,
+            bp2: None,
+            bp3: None,
+            bp4: None,
+            bp5: None,
+            bypass: None,
+            output_gain: None,
+            noise_gain: None,
+            pre_smooth_gain: None,
+            noise_variance: None,
+            post_smooth_gain: None,
+            file_path: None,
+        }
+    }
 }

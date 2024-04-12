@@ -15,7 +15,7 @@ use dasp_ring_buffer::Fixed;
 use rustfft::num_complex::Complex;
 use tauri::AppHandle;
 
-pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> Vec<f32> {
+pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> Vec<f32> {
     let p = app_handle
         .path_resolver()
         .resolve_resource(path)
@@ -24,10 +24,15 @@ pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> Vec<f32> {
         .into_string()
         .unwrap();
 
-    // println!("{:?}", p);
-
     let file_in = File::open(p).unwrap();
     let (_head, samples) = wav_io::read_from_file(file_in).unwrap();
+    samples
+}
+
+pub fn get_wav_samples(path: &str) -> Vec<f32> {
+    let file_in = File::open(path).unwrap();
+    let (_head, samples) = wav_io::read_from_file(file_in).unwrap();
+
     samples
 }
 
@@ -35,22 +40,43 @@ pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> Vec<f32> {
 pub fn setup_stream(
     tx: tauri::async_runtime::Sender<Vec<f32>>,
     app_handle: AppHandle,
+    file_path: Option<String>,
 ) -> Result<(cpal::Stream, tauri::async_runtime::Sender<Message>), anyhow::Error>
 where
 {
     let (_host, device, config) = host_device_setup()?;
 
     match config.sample_format() {
-        cpal::SampleFormat::I8 => make_stream::<i8>(&device, &config.into(), tx, app_handle),
-        cpal::SampleFormat::I16 => make_stream::<i16>(&device, &config.into(), tx, app_handle),
-        cpal::SampleFormat::I32 => make_stream::<i32>(&device, &config.into(), tx, app_handle),
-        cpal::SampleFormat::I64 => make_stream::<i64>(&device, &config.into(), tx, app_handle),
-        cpal::SampleFormat::U8 => make_stream::<u8>(&device, &config.into(), tx, app_handle),
-        cpal::SampleFormat::U16 => make_stream::<u16>(&device, &config.into(), tx, app_handle),
-        cpal::SampleFormat::U32 => make_stream::<u32>(&device, &config.into(), tx, app_handle),
-        cpal::SampleFormat::U64 => make_stream::<u64>(&device, &config.into(), tx, app_handle),
-        cpal::SampleFormat::F32 => make_stream::<f32>(&device, &config.into(), tx, app_handle),
-        cpal::SampleFormat::F64 => make_stream::<f64>(&device, &config.into(), tx, app_handle),
+        cpal::SampleFormat::I8 => {
+            make_stream::<i8>(&device, &config.into(), tx, app_handle, file_path)
+        }
+        cpal::SampleFormat::I16 => {
+            make_stream::<i16>(&device, &config.into(), tx, app_handle, file_path)
+        }
+        cpal::SampleFormat::I32 => {
+            make_stream::<i32>(&device, &config.into(), tx, app_handle, file_path)
+        }
+        cpal::SampleFormat::I64 => {
+            make_stream::<i64>(&device, &config.into(), tx, app_handle, file_path)
+        }
+        cpal::SampleFormat::U8 => {
+            make_stream::<u8>(&device, &config.into(), tx, app_handle, file_path)
+        }
+        cpal::SampleFormat::U16 => {
+            make_stream::<u16>(&device, &config.into(), tx, app_handle, file_path)
+        }
+        cpal::SampleFormat::U32 => {
+            make_stream::<u32>(&device, &config.into(), tx, app_handle, file_path)
+        }
+        cpal::SampleFormat::U64 => {
+            make_stream::<u64>(&device, &config.into(), tx, app_handle, file_path)
+        }
+        cpal::SampleFormat::F32 => {
+            make_stream::<f32>(&device, &config.into(), tx, app_handle, file_path)
+        }
+        cpal::SampleFormat::F64 => {
+            make_stream::<f64>(&device, &config.into(), tx, app_handle, file_path)
+        }
         sample_format => Err(anyhow::Error::msg(format!(
             "Unsupported sample format '{sample_format}'"
         ))),
@@ -64,10 +90,10 @@ pub fn host_device_setup(
     let device = host
         .default_output_device()
         .ok_or_else(|| anyhow::Error::msg("Default output device is not available"))?;
-    println!("Output device : {}", device.name()?);
+    // println!("Output device : {}", device.name()?);
 
     let config = device.default_output_config()?;
-    println!("Default output config : {:?}", config);
+    // println!("Default output config : {:?}", config);
 
     Ok((host, device, config))
 }
@@ -77,6 +103,7 @@ pub fn make_stream<T>(
     config: &cpal::StreamConfig,
     tx_ui: tauri::async_runtime::Sender<Vec<f32>>,
     app_handle: AppHandle,
+    file_path: Option<String>,
 ) -> Result<(cpal::Stream, tauri::async_runtime::Sender<Message>), anyhow::Error>
 where
     T: SizedSample + FromSample<f32>,
@@ -87,7 +114,12 @@ where
     let (tx, mut rx) = tauri::async_runtime::channel::<Message>(1);
     let mut process_filterbank = FilterBank::new();
 
-    let file_samples = get_wav_samples(TEST_FILE_PATH, app_handle);
+    let file_samples;
+    if let Some(f) = file_path {
+        file_samples = get_wav_samples(f.as_str());
+    } else {
+        file_samples = get_resource_wav_samples(TEST_FILE_PATH, app_handle);
+    }
     let mut time = 0;
     let num_file_samples = file_samples.len();
     let mut clean = false;
