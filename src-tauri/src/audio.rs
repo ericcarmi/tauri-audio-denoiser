@@ -27,11 +27,27 @@ pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>,
     (samples, is_stereo)
 }
 
-pub fn get_wav_samples(path: &str) -> (Vec<f32>, bool) {
-    let file_in = File::open(path).unwrap();
-    let (head, samples) = wav_io::read_from_file(file_in).unwrap();
-    let is_stereo = if head.channels == 1 { false } else { true };
-    (samples, is_stereo)
+pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>, bool) {
+    if let Ok(file_in) = File::open(path) {
+        let (head, samples) = wav_io::read_from_file(file_in).unwrap();
+        let is_stereo = if head.channels == 1 { false } else { true };
+        (samples, is_stereo)
+    } else {
+        let p = app_handle
+            .path_resolver()
+            .resolve_resource("assets/".to_owned() + path)
+            .expect("failed to resolve resource")
+            .into_os_string()
+            .into_string()
+            .unwrap();
+
+        println!("{:?}", p);
+
+        let f = File::open(p).unwrap();
+        let (head, samples) = wav_io::read_from_file(f).unwrap();
+        let is_stereo = if head.channels == 1 { false } else { true };
+        (samples, is_stereo)
+    }
 }
 
 #[tauri::command]
@@ -115,7 +131,7 @@ where
     let file_samples;
     let is_stereo;
     if let Some(f) = file_path {
-        (file_samples, is_stereo) = get_wav_samples(f.as_str());
+        (file_samples, is_stereo) = get_wav_samples(f.as_str(), app_handle);
     } else {
         (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE_PATH, app_handle);
     }

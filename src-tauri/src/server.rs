@@ -172,155 +172,27 @@ pub async fn get_global_state() -> Result<Vec<Bpf>, String> {
     }
 }
 
-async fn redis_get_left_channel_state() -> redis::RedisResult<UIParams> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
-
-    let mut params = UIParams::new();
-    let mut bpfs = vec![];
-    for i in 0..5 {
-        let gain: Result<f32, redis::RedisError> = con.get(format!("left_gain-{}", i + 1)).await;
-        if gain.is_err() {
-            // this isn't good but weird since this needs to turn bpf and redis result
-            return Err(gain.err().unwrap());
-        }
-        let freq: Result<f32, redis::RedisError> = con.get(format!("left_freq-{}", i + 1)).await;
-        if freq.is_err() {
-            // return Ok(bpfs);
-        }
-        let Q: Result<f32, redis::RedisError> = con.get(format!("left_Q-{}", i + 1)).await;
-        if Q.is_err() {
-            // return Ok(bpfs);
-        }
-        bpfs.push(Bpf {
-            gain: gain.unwrap(),
-            freq: freq.unwrap(),
-            Q: Q.unwrap(),
-        })
-    }
-    params.bpfs = bpfs.clone();
-
-    let noise_gain: Result<f32, redis::RedisError> = con.get("left_noise_gain").await;
-    if noise_gain.is_err() {
-        // return Ok(bpfs);
-    }
-    params.noise_gain = noise_gain.unwrap();
-    let output_gain: Result<f32, redis::RedisError> = con.get("left_output_gain").await;
-    if output_gain.is_err() {
-        // return Ok(bpfs);
-    }
-    params.output_gain = output_gain.unwrap();
-    let post_smooth_gain: Result<f32, redis::RedisError> = con.get("left_post_smooth_gain").await;
-    if post_smooth_gain.is_err() {
-        // return Ok(bpfs);
-    }
-    params.post_smooth_gain = post_smooth_gain.unwrap();
-    let pre_smooth_gain: Result<f32, redis::RedisError> = con.get("left_pre_smooth_gain").await;
-    if pre_smooth_gain.is_err() {
-        // return Ok(bpfs);
-    }
-    params.pre_smooth_gain = pre_smooth_gain.unwrap();
-
-    Ok(params)
-}
-
-#[tauri::command]
-pub async fn get_left_channel_state() -> Result<UIParams, String> {
-    let ui_params = redis_get_left_channel_state().await;
-    if ui_params.is_ok() {
-        Ok(ui_params.unwrap())
-    } else {
-        ui_params
-            .map_err(|e| "error getting left channel state -- ".to_owned() + e.to_string().as_str())
-    }
-}
-
-async fn redis_get_right_channel_state() -> redis::RedisResult<UIParams> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
-
-    let mut params = UIParams::new();
-    let mut bpfs = vec![];
-    for i in 0..5 {
-        let gain: Result<f32, redis::RedisError> = con.get(format!("right_gain-{}", i + 1)).await;
-        if gain.is_err() {
-            // this isn't good but weird since this needs to turn bpf and redis result
-            return Err(gain.err().unwrap());
-        }
-        let freq: Result<f32, redis::RedisError> = con.get(format!("right_freq-{}", i + 1)).await;
-        if freq.is_err() {
-            // return Ok(bpfs);
-        }
-        let Q: Result<f32, redis::RedisError> = con.get(format!("right_Q-{}", i + 1)).await;
-        if Q.is_err() {
-            // return Ok(bpfs);
-        }
-        bpfs.push(Bpf {
-            gain: gain.unwrap(),
-            freq: freq.unwrap(),
-            Q: Q.unwrap(),
-        })
-    }
-    params.bpfs = bpfs.clone();
-
-    let noise_gain: Result<f32, redis::RedisError> = con.get("right_noise_gain").await;
-    if noise_gain.is_err() {
-        // return Ok(bpfs);
-    }
-    params.noise_gain = noise_gain.unwrap();
-    let output_gain: Result<f32, redis::RedisError> = con.get("right_output_gain").await;
-    if output_gain.is_err() {
-        // return Ok(bpfs);
-    }
-    params.output_gain = output_gain.unwrap();
-    let post_smooth_gain: Result<f32, redis::RedisError> = con.get("right_post_smooth_gain").await;
-    if post_smooth_gain.is_err() {
-        // return Ok(bpfs);
-    }
-    params.post_smooth_gain = post_smooth_gain.unwrap();
-    let pre_smooth_gain: Result<f32, redis::RedisError> = con.get("right_pre_smooth_gain").await;
-    if pre_smooth_gain.is_err() {
-        // return Ok(bpfs);
-    }
-    params.pre_smooth_gain = pre_smooth_gain.unwrap();
-
-    Ok(params)
-}
-
-#[tauri::command]
-pub async fn get_right_channel_state() -> Result<UIParams, String> {
-    let ui_params = redis_get_right_channel_state().await;
-    if ui_params.is_ok() {
-        Ok(ui_params.unwrap())
-    } else {
-        ui_params.map_err(|e| {
-            "error getting right channel state -- ".to_owned() + e.to_string().as_str()
-        })
-    }
-}
-
 async fn redis_get_channel_state(channel: StereoControl) -> redis::RedisResult<UIParams> {
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_multiplexed_async_connection().await?;
 
-    let chan = channel.as_str();
+    let ch = channel.as_str().to_lowercase();
 
     let mut params = UIParams::new();
     let mut bpfs = vec![];
     for i in 0..5 {
-        let gain: Result<f32, redis::RedisError> =
-            con.get(format!("{}_gain-{}", chan, i + 1)).await;
+        let gain: Result<f32, redis::RedisError> = con.get(format!("{}_gain-{}", ch, i + 1)).await;
         if gain.is_err() {
+            // this isn't good but weird since this needs to turn bpf and redis result
             return Err(gain.err().unwrap());
         }
-        let freq: Result<f32, redis::RedisError> =
-            con.get(format!("{}_freq-{}", chan, i + 1)).await;
+        let freq: Result<f32, redis::RedisError> = con.get(format!("{}_freq-{}", ch, i + 1)).await;
         if freq.is_err() {
-            return Err(freq.err().unwrap());
+            // return Ok(bpfs);
         }
-        let Q: Result<f32, redis::RedisError> = con.get(format!("{}_Q-{}", chan, i + 1)).await;
+        let Q: Result<f32, redis::RedisError> = con.get(format!("{}_Q-{}", ch, i + 1)).await;
         if Q.is_err() {
-            return Err(Q.err().unwrap());
+            // return Ok(bpfs);
         }
         bpfs.push(Bpf {
             gain: gain.unwrap(),
@@ -330,27 +202,26 @@ async fn redis_get_channel_state(channel: StereoControl) -> redis::RedisResult<U
     }
     params.bpfs = bpfs.clone();
 
-    let noise_gain: Result<f32, redis::RedisError> = con.get(format!("{}_noise_gain", chan)).await;
+    let noise_gain: Result<f32, redis::RedisError> = con.get(format!("{}_noise_gain", ch)).await;
     if noise_gain.is_err() {
-        return Err(noise_gain.err().unwrap());
+        // return Ok(bpfs);
     }
     params.noise_gain = noise_gain.unwrap();
-    let output_gain: Result<f32, redis::RedisError> =
-        con.get(format!("{}_output_gain", chan)).await;
+    let output_gain: Result<f32, redis::RedisError> = con.get(format!("{}_output_gain", ch)).await;
     if output_gain.is_err() {
-        return Err(output_gain.err().unwrap());
+        // return Ok(bpfs);
     }
     params.output_gain = output_gain.unwrap();
     let post_smooth_gain: Result<f32, redis::RedisError> =
-        con.get(format!("{}_post_smooth_gain", chan)).await;
+        con.get(format!("{}_post_smooth_gain", ch)).await;
     if post_smooth_gain.is_err() {
-        return Err(post_smooth_gain.err().unwrap());
+        // return Ok(bpfs);
     }
     params.post_smooth_gain = post_smooth_gain.unwrap();
     let pre_smooth_gain: Result<f32, redis::RedisError> =
-        con.get(format!("{}_pre_smooth_gain", chan)).await;
+        con.get(format!("{}_pre_smooth_gain", ch)).await;
     if pre_smooth_gain.is_err() {
-        return Err(pre_smooth_gain.err().unwrap());
+        // return Ok(bpfs);
     }
     params.pre_smooth_gain = pre_smooth_gain.unwrap();
 
@@ -363,7 +234,8 @@ pub async fn get_channel_state(channel: StereoControl) -> Result<UIParams, Strin
     if ui_params.is_ok() {
         Ok(ui_params.unwrap())
     } else {
-        ui_params.map_err(|e| "error getting channel state -- ".to_owned() + e.to_string().as_str())
+        ui_params
+            .map_err(|e| "error getting left channel state -- ".to_owned() + e.to_string().as_str())
     }
 }
 
@@ -467,7 +339,7 @@ async fn redis_save_bpf_gain(
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_multiplexed_async_connection().await?;
     let a: Result<(), redis::RedisError>;
-    let b: Result<(), redis::RedisError>;
+
     if let Some(stereo) = stereo_control {
         use StereoControl::*;
         match stereo {
@@ -501,7 +373,6 @@ async fn redis_save_bpf_freq(
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_multiplexed_async_connection().await?;
     let a: Result<(), redis::RedisError>;
-    let b: Result<(), redis::RedisError>;
     if let Some(stereo) = stereo_control {
         use StereoControl::*;
         match stereo {
@@ -558,6 +429,45 @@ async fn redis_save_bpf_Q(
 #[tauri::command]
 pub async fn save_bpf_Q(Q: f32, index: usize, stereo_control: Option<StereoControl>) {
     let _r = redis_save_bpf_Q(Q, index, stereo_control).await;
+    // println!("{:?}", r);
+}
+
+async fn redis_get_stereo_control() -> redis::RedisResult<String> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+    let st: Result<String, redis::RedisError> = con.get("stereo_control").await;
+    st
+}
+
+#[tauri::command]
+pub async fn get_stereo_control() -> Result<StereoControl, String> {
+    if let Ok(st) = redis_get_stereo_control().await {
+        use StereoControl::*;
+        println!("{:?}", st);
+
+        let s: StereoControl = match st.as_str() {
+            "Left" => Left,
+            "Right" => Right,
+            "Both" => Both,
+            _ => return Err("something wrong with stereo_control in database".to_string()),
+        };
+
+        Ok(s)
+    } else {
+        Err("failed to get stereo control".to_string())
+    }
+}
+
+async fn redis_save_stereo_control(stereo_control: StereoControl) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+    let a: Result<(), redis::RedisError> = con.set("stereo_control", stereo_control.as_str()).await;
+    return a;
+}
+
+#[tauri::command]
+pub async fn save_stereo_control(stereo_control: StereoControl) {
+    let _r = redis_save_stereo_control(stereo_control).await;
     // println!("{:?}", r);
 }
 
@@ -693,7 +603,7 @@ pub async fn save_noise_gain(gain: f32, stereo_control: Option<StereoControl>) {
     // println!("{:?}", r);
 }
 
-// just for creating the default settings in db
+// for creating the default settings in db
 #[tauri::command]
 pub async fn init_settings() {
     let settings = Settings::default();
@@ -702,6 +612,8 @@ pub async fn init_settings() {
     let _r = redis_save_output_gain(0.0, Some(StereoControl::Both)).await;
     let _r = redis_save_pre_smooth_gain(0.0, Some(StereoControl::Both)).await;
     let _r = redis_save_post_smooth_gain(0.0, Some(StereoControl::Both)).await;
+    let _r = redis_save_post_smooth_gain(0.0, Some(StereoControl::Both)).await;
+    let _r = redis_save_stereo_control(StereoControl::Both).await;
     for i in 1..=5 {
         let _r = redis_save_bpf_gain(0.0, i, Some(StereoControl::Both)).await;
         let _r = redis_save_bpf_freq(1000.0, i, Some(StereoControl::Both)).await;

@@ -2,50 +2,58 @@
 	import Slider from "./slider.svelte";
 	import RotarySlider from "./rotary-slider.svelte";
 	import { invoke } from "@tauri-apps/api/tauri";
-	import { biquad } from "./functions.svelte";
+	import { update_filters } from "./functions.svelte";
 	import FreqSlider from "./freq-slider.svelte";
+	import type { StereoControl } from "./types.svelte";
 
 	export let gain = 0;
 	export let freq = 1000;
 	export let Q = 1;
 	export let index: number;
-
-	let bypass = false;
+	export let stereo_control: StereoControl;
 
 	// one param changes all coefficients, so this goes here instead of inside individual sliders
-	function update() {
-		let b = biquad(gain, freq, Q);
-		b.x = [0, 0];
-		b.y = [0, 0];
-		if (index == 1) {
-			invoke("update_filters", { bp1: b });
-		} else if (index == 2) {
-			invoke("update_filters", { bp2: b });
-		} else if (index == 3) {
-			invoke("update_filters", { bp3: b });
-		} else if (index == 4) {
-			invoke("update_filters", { bp4: b });
-		} else if (index == 5) {
-			invoke("update_filters", { bp5: b });
-		}
-	}
-	$: gain, update();
-	$: freq, update();
-	$: Q, update();
+	$: gain, update_filters(index, gain, freq, Q, false, stereo_control);
+	$: freq, update_filters(index, gain, freq, Q, false, stereo_control);
+	$: Q, update_filters(index, gain, freq, Q, false, stereo_control);
 </script>
 
 <div class="wrapper">
 	<div
 		style="display:flex; height:4em; justify-content: space-evenly; margin-bottom: 0.5em;"
 	>
-		<RotarySlider bind:value={Q} bind:index />
-		<Slider bind:value={gain} bind:index />
+		<RotarySlider
+			bind:value={Q}
+			bind:index
+			update_server={() => {
+				invoke("save_bpf_Q", {
+					q: Q,
+					index: index,
+					stereoControl: stereo_control,
+				});
+			}}
+		/>
+		<Slider
+			bind:value={gain}
+			bind:index
+			update_server={() => {
+				invoke("save_bpf_gain", {
+					gain: gain,
+					index: index,
+					stereoControl: stereo_control,
+				});
+			}}
+		/>
 	</div>
 	<FreqSlider
 		bind:value={freq}
 		bind:index
 		update_server={() => {
-			invoke("save_bpf_freq", { gain: freq, index: index });
+			invoke("save_bpf_freq", {
+				gain: freq,
+				index: index,
+				stereoControl: stereo_control,
+			});
 		}}
 	/>
 	<button

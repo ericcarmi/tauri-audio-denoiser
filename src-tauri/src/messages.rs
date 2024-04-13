@@ -147,6 +147,7 @@ pub fn update_file_path(
     ss.mreceiver = MUIReceiver(Mutex::new(rx));
 }
 
+/// the channel message is applied to left, right, or both
 fn stereo_message(
     stereo: Option<StereoControl>,
     streamsend: State<MStreamSend>,
@@ -363,21 +364,23 @@ impl Message {
     }
 }
 
-// #[tauri::command]
-// pub fn get_is_stereo(t: f32, streamsend: State<MStreamSend>, stereo: Option<StereoControl>) {
-//     let _ = streamsend
-//         .0
-//         .lock()
-//         .unwrap()
-//         .msender
-//         .0
-//         .lock()
-//         .unwrap()
-//         .try_send(Message {
-//             time: Some(t),
-//             ..Default::default()
-//         });
-// }
+#[tauri::command]
+pub fn get_is_stereo(streamsend: State<MStreamSend>) -> Result<AudioUIMessage, String> {
+    let r = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .mreceiver
+        .0
+        .lock()
+        .unwrap()
+        .try_recv();
+    if r.is_ok() {
+        Ok(r.unwrap())
+    } else {
+        r.map_err(|e| e.to_string())
+    }
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AudioUIMessage {

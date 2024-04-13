@@ -25,7 +25,7 @@
     num_sliders,
   } from "./constants.svelte";
 
-  export let bpf_filters: Array<BPF>;
+  export let bpfs: Array<BPF>;
   export let fft_data: any;
   export let is_playing = false;
   export let selectedRecording: string;
@@ -35,7 +35,7 @@
   let eq_hover_color: string;
   let plot_total_curve: string;
   let plot_scale: string;
-  let plot_color: any;
+  let plot_color: any = {r: 140, g: 0, b: 180};
 
   let draw_fft_amp_axis = true;
   let draw_filter_amp_axis = true;
@@ -157,8 +157,6 @@
   }
 
   async function get_time_data(file_path: string) {
-    console.log(file_path);
-
     if (file_path === "" || plot_color === undefined) return;
     // check cache...maybe
     // if (time_data !== undefined) {
@@ -167,8 +165,6 @@
     // }
     is_loading = true;
     invoke("get_time_data", { path: file_path }).then((res) => {
-    console.log(res)
-
       let data: any = res;
       time_data = data;
       let renderPlot = () => {
@@ -221,9 +217,13 @@
           let barWidth = (width / length) * 1.0;
           barWidth = 1;
 
+          context.beginPath();
+          context.moveTo(0, FREQ_PLOT_HEIGHT / 2);
+          // for (let i = 0; i < length; i++) {
+          // let logfreq = get_plot_scale(freq_axis_labels[i], plot_scale);
+          // }
           for (let i = 0; i < data.length; i++) {
             let value = data[i];
-
             let logfreq =
               (set_plot_scale((i / length) * NYQUIST) * FREQ_PLOT_WIDTH) /
               max_plot_freq;
@@ -234,16 +234,25 @@
             let h = height - barHeight / 4;
 
             if (h > 0) {
-              last_bar_heights[i] = barHeight;
+              last_bar_heights[i] += barHeight;
               context.fillRect(
                 logfreq,
                 height,
                 barWidth,
-                -last_bar_heights[i] / 1
+                -last_bar_heights[i] / 6
               );
             }
-            // last_bar_heights[i] *= 0.86;
+            last_bar_heights[i] *= 0.85;
+
+            // last_bar_heights[i] += barHeight/8;
+
+            // context.lineTo(logfreq, height-last_bar_heights[i]);
+            // context.lineWidth = 5;
+            // context.strokeStyle = `rgb(${plot_color.r},${plot_color.g},${plot_color.b})`;
+            // last_bar_heights[i] *= 0.85;
           }
+            // console.log(last_bar_heights)
+          context.stroke();
         }
         data && requestAnimationFrame(renderPlot);
 
@@ -265,15 +274,15 @@
       const length = freq_axis_labels.length;
 
       context.setLineDash([2, 2]);
+      context.beginPath();
       for (let i = 0; i < length; i++) {
-        context.beginPath();
         let logfreq = get_plot_scale(freq_axis_labels[i], plot_scale);
         context.moveTo(logfreq, 2);
         context.lineTo(logfreq, height - 2);
         context.lineWidth = 2;
         context.strokeStyle = "rgb(50,50,50)";
-        context.stroke();
       }
+      context.stroke();
       context.setLineDash([]);
     }
     requestAnimationFrame(renderPlot);
@@ -292,14 +301,14 @@
 
       context.setLineDash([2, 2]);
       let delta = FREQ_PLOT_HEIGHT / length;
+      context.beginPath();
       for (let i = 0; i < length; i++) {
-        context.beginPath();
         let amp = (i + 0.5) * delta;
         context.moveTo(0, amp);
         context.lineTo(width, amp);
         context.lineWidth = 1;
-        context.stroke();
       }
+      context.stroke();
       context.setLineDash([]);
     }
     requestAnimationFrame(renderPlot);
@@ -342,7 +351,7 @@
       let N = FREQ_PLOT_WIDTH;
       let sum_curve: Array<number> = Array(N).fill(0);
 
-      bpf_filters.map((filt) => {
+      bpfs.map((filt) => {
         let coeffs = biquad(filt.gain, filt.freq, filt.Q);
         const curve = freq_response(coeffs, N);
         for (let i = 0; i < N; i++) {
@@ -366,7 +375,7 @@
       context.strokeStyle = plot_total_curve;
       context.stroke();
 
-      bpf_filters.map((filt, idx) => {
+      bpfs.map((filt, idx) => {
         let coeffs = biquad(filt.gain, filt.freq, filt.Q);
         const curve = freq_response(coeffs, N);
 
@@ -391,7 +400,7 @@
     requestAnimationFrame(renderPlot);
   }
 
-  $: bpf_filters, !is_playing && update_filter_bank(true), update_axes();
+  $: bpfs, !is_playing && update_filter_bank(true), update_axes();
   $: bpf_hovering, update_filter_bank(true), update_axes();
   $: selectedRecording, get_time_data(selectedRecording);
   $: fft_data, update_fft();

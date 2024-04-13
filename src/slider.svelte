@@ -4,6 +4,7 @@
 
 	export let value: number;
 	export let index: number;
+	export let update_server = () => {};
 
 	let position = 0;
 	let el: HTMLElement;
@@ -40,7 +41,7 @@
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
 				is_dragging = false;
-				invoke("save_bpf_gain", { gain: value, index: index });
+				update_server();
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}

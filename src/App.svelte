@@ -3,7 +3,6 @@
   import { listen } from "@tauri-apps/api/event";
   import { message, open, save } from "@tauri-apps/api/dialog";
   import { onMount } from "svelte";
-  import { shortcut, shortcutRelease } from "./shortcut.svelte";
 
   import Plot from "./plot.svelte";
   import {
@@ -13,12 +12,17 @@
     num_sliders,
   } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
-  import type { BPF } from "./types.svelte";
+  import type {
+    BPF,
+    StereoControl,
+    StereoParams,
+  } from "./types.svelte";
   import {
-    biquad,
     init_channel_params,
+    remove_slashes_ext,
     rgbToHex,
     update_css_color,
+    update_filters,
   } from "./functions.svelte";
   import RotarySlider from "./rotary-slider.svelte";
   import Settings from "./settings.svelte";
@@ -27,24 +31,31 @@
 
   let show_settings = false;
   // if these values are the same as what is in server, values will not update when loaded, so use values that are way out of range? silly but it works
-  var gains = [-300, -300, -300, -300, -300];
-  var freqs = [2000, 500, 1000, 200, 10000];
-  var Qs = [0.5, 0.5, 0.5, 0.5, 50.5];
+  var gains = [0, 0, 0, 0, 0];
+  var freqs = [0, 0, 0, 0, 0];
+  var Qs = [0, 0, 0, 0, 0];
 
   const unlisten = listen("tauri://file-drop", async (event: any) => {
     change_file(event.payload[0] as string);
   });
-  let is_stereo = false;
 
-  function change_file(path: string) {
+  function change_file(path: string, from_assets?: boolean) {
     selectedRecording = path;
     invoke("update_file_path", { path: selectedRecording });
     invoke("get_is_stereo").then((r: any) => {
       if (r.is_stereo !== undefined) {
-        is_stereo = r.is_stereo;
+        stereo_params.is_stereo = r.is_stereo;
       }
-      // console.log(is_stereo);
     });
+    invoke("get_stereo_control").then((r: any) => {
+      console.log(r);
+      if (r !== undefined) {
+        stereo_params.control = r;
+        console.log(r)
+
+      }
+    });
+    get_time_data(from_assets);
   }
 
   let time = 0;
@@ -62,19 +73,39 @@
 
   // these values are retrieved onMount from server...want to also get the types over eventually to not copy-paste
   // but also the audio params aren't an exact copy of the rust type?
+  // keep this values to be connected to single sliders, then depending on stereo_control, will get sent to left/right/both
   let output_gain = 0.0;
   let noise_gain = 0.0;
   let pre_smooth_gain = 0.5;
   let post_smooth_gain = 0.5;
+  let bpfs: Array<BPF>;
   let clean = false;
-  let bpf_filters: Array<BPF> = Array(num_sliders)
-    .fill(0)
-    .map((_, i) => {
-      return { gain: gains[i], freq: freqs[i], Q: Qs[i] };
-    });
 
-  let left_channel_params = init_channel_params(gains, freqs, Qs);
-  let right_channel_params = init_channel_params(gains, freqs, Qs);
+  let stereo_params: StereoParams = init_channel_params(gains, freqs, Qs);
+
+  function set_params_control(s: StereoControl) {
+    if (s == "Left") {
+      bpfs = [...stereo_params.left.bpfs];
+      noise_gain = stereo_params.left.noise_gain;
+      output_gain = stereo_params.left.output_gain;
+      post_smooth_gain = stereo_params.left.post_smooth_gain;
+      pre_smooth_gain = stereo_params.left.pre_smooth_gain;
+    } else if (s === "Right") {
+      bpfs = stereo_params.right.bpfs;
+      noise_gain = stereo_params.right.noise_gain;
+      output_gain = stereo_params.right.output_gain;
+      post_smooth_gain = stereo_params.right.post_smooth_gain;
+      pre_smooth_gain = stereo_params.right.pre_smooth_gain;
+    } else if (s === "Both") {
+      bpfs = stereo_params.both.bpfs;
+      noise_gain = stereo_params.both.noise_gain;
+      output_gain = stereo_params.both.output_gain;
+      post_smooth_gain = stereo_params.both.post_smooth_gain;
+      pre_smooth_gain = stereo_params.both.pre_smooth_gain;
+    }
+  }
+
+  $: stereo_params.control, set_params_control(stereo_params.control)
 
   let bpf_hovering = Array(num_sliders).fill(false);
   let num_time_samples = 1;
@@ -124,22 +155,24 @@
 
     selectedRecording = "reisman.wav";
     // selected recording also needs to be in sync with backend file...should be resolved once files are imported correctly instead of one by default, tho should still have that for loading saved state?
-    get_time_data(true);
+    change_file(selectedRecording, true);
     resetInterval();
 
     // load from server
-    let bpfs: Array<BPF> = await invoke("get_global_state");
-    bpf_filters = bpfs;
+    let b: Array<BPF> = await invoke("get_global_state");
+    bpfs = b;
 
     noise_gain = await invoke("get_noise_gain");
     output_gain = await invoke("get_output_gain");
     post_smooth_gain = await invoke("get_post_smooth_gain");
     pre_smooth_gain = await invoke("get_pre_smooth_gain");
 
-    left_channel_params = await invoke("get_left_channel_state");
-    right_channel_params = await invoke("get_right_channel_state");
-    console.log(left_channel_params);
-    console.log(right_channel_params);
+    stereo_params.left = await invoke("get_channel_state", {channel: "Left"});
+    stereo_params.right = await invoke("get_channel_state", {channel: "Right"});
+    stereo_params.both = await invoke("get_channel_state", {channel: "Both"});
+
+    // console.log(left_channel_params);
+    // console.log(right_channel_params);
   });
 
   function resetInterval() {
@@ -165,63 +198,6 @@
     );
   }
 
-  // for now just using this for the reset all gain switch, so the filters on backend are updated, and server at same time, which usually doesn't happen when moving gain slider (only sends to server on mouse up)
-  function update_filters(
-    index: number,
-    gain: number,
-    freq: number,
-    Q: number,
-    update_server: boolean
-  ) {
-    let b = biquad(gain, freq, Q);
-    b.x = [0, 0];
-    b.y = [0, 0];
-    if (index == 1) {
-      invoke("update_filters", { bp1: b });
-      if (update_server) {
-        invoke("save_bpf_gain", { gain: gain, index: index });
-        invoke("save_bpf_freq", { freq: freq, index: index });
-        invoke("save_bpf_Q", { q: Q, index: index });
-      }
-    } else if (index == 2) {
-      if (update_server) {
-        invoke("update_filters", { bp2: b });
-        invoke("save_bpf_gain", { gain: gain, index: index });
-        invoke("save_bpf_freq", { freq: freq, index: index });
-        invoke("save_bpf_Q", { q: Q, index: index });
-      }
-    } else if (index == 3) {
-      if (update_server) {
-        invoke("update_filters", { bp3: b });
-        invoke("save_bpf_gain", { gain: gain, index: index });
-        invoke("save_bpf_freq", { freq: freq, index: index });
-        invoke("save_bpf_Q", { q: Q, index: index });
-      }
-    } else if (index == 4) {
-      if (update_server) {
-        invoke("update_filters", { bp4: b });
-        invoke("save_bpf_gain", { gain: gain, index: index });
-        invoke("save_bpf_freq", { freq: freq, index: index });
-        invoke("save_bpf_Q", { q: Q, index: index });
-      }
-    } else if (index == 5) {
-      if (update_server) {
-        invoke("update_filters", { bp5: b });
-        invoke("save_bpf_gain", { gain: gain, index: index });
-        invoke("save_bpf_freq", { freq: freq, index: index });
-        invoke("save_bpf_Q", { q: Q, index: index });
-      }
-    }
-  }
-
-  function remove_slashes_ext(s: string) {
-    if (s.includes("/")) {
-      let x = s.split("/");
-      return x[x.length - 1].split(".")[0];
-    } else {
-      return s.split(".")[0];
-    }
-  }
 </script>
 
 <main class="container" id="app-container">
@@ -233,7 +209,7 @@
       bind:settings
       bind:bpf_hovering
       bind:is_playing
-      bind:bpf_filters
+      bind:bpfs
       bind:selectedRecording
       {fft_data}
     />
@@ -262,8 +238,52 @@
       }}
     />
     <div class="button-bar">
-      <button disabled={!is_stereo} on:click={async () => {}}> left </button>
-      <button disabled={!is_stereo} on:click={async () => {}}> right </button>
+      <div class="stereo-control-buttons">
+        <button
+          style="background: {stereo_params.control === 'Right'
+            ? ''
+            : 'var(--green)'}"
+          on:click={() => {
+            // also need to update ui to switch between left/right channel params
+            if (stereo_params.control === "Left") {
+              stereo_params.control = "Right";
+              // set_params_control(stereo_params.control);
+            } else if (stereo_params.control === "Right") {
+              stereo_params.control = "Both";
+              // set_params_control(stereo_params.control);
+            } else if (stereo_params.control === "Both") {
+              stereo_params.control = "Right";
+              // set_params_control(stereo_params.control);
+            }
+            invoke("save_stereo_control", {
+              stereoControl: stereo_params.control,
+            });
+          }}>L</button
+        >
+        <button
+          style="background: {stereo_params.control === 'Left'
+            ? ''
+            : 'var(--green)'}"
+          on:click={() => {
+            if (stereo_params.control === "Left") {
+              stereo_params.control = "Both";
+              // set_params_control(stereo_params.control);
+            } else if (stereo_params.control === "Right") {
+              stereo_params.control = "Left";
+              // set_params_control(stereo_params.control);
+            } else if (stereo_params.control === "Both") {
+              stereo_params.control = "Left";
+              // set_params_control(stereo_params.control);
+            }
+            invoke("save_stereo_control", {
+              stereoControl: stereo_params.control,
+            });
+          }}>R</button
+        >
+        control: {stereo_params.control}
+      </div>
+      <button disabled={!stereo_params.is_stereo} on:click={async () => {}}> left </button>
+      <button disabled={!stereo_params.is_stereo} on:click={async () => {}}> right </button>
       <button
         on:click={async () => {
           if (!is_playing) {
@@ -272,7 +292,6 @@
             time_origin = performance.now();
           } else {
             await invoke("pause_stream");
-            // time_origin = time
             is_playing = false;
           }
           resetInterval();
@@ -295,7 +314,7 @@
     class="filter-grid"
     style="grid-template-columns:repeat({num_sliders}, auto)"
   >
-    {#each bpf_filters as _, i}
+    {#each bpfs as _, i}
       <div
         class="bpf-wrap"
         role="button"
@@ -308,9 +327,10 @@
         }}
       >
         <BandpassSlider
-          bind:gain={bpf_filters[i].gain}
-          bind:freq={bpf_filters[i].freq}
-          bind:Q={bpf_filters[i].Q}
+          bind:gain={bpfs[i].gain}
+          bind:freq={bpfs[i].freq}
+          bind:Q={bpfs[i].Q}
+          bind:stereo_control={stereo_params.control}
           index={i + 1}
         />
       </div>
@@ -338,7 +358,7 @@
       index={-1}
       label="pre smooth"
       max_val={0.999}
-      min_val={0.5}
+      min_val={0.0}
       resolution={3}
       update_backend={() => {
         invoke("update_pre_smooth_gain", { gain: pre_smooth_gain });
@@ -352,7 +372,7 @@
       index={-1}
       label="post smooth"
       max_val={0.999}
-      min_val={0.7}
+      min_val={0.0}
       resolution={3}
       update_backend={() => {
         invoke("update_post_smooth_gain", { gain: post_smooth_gain });
@@ -381,9 +401,9 @@
       class="reset-all-gains-switch"
       title="reset all gains to 0 dB"
       on:click={() => {
-        bpf_filters = [
-          ...bpf_filters.map((filt, i) => {
-            update_filters(i + 1, 0.0, filt.freq, filt.Q, true);
+        bpfs = [
+          ...bpfs.map((filt, i) => {
+            update_filters(i + 1, 0.0, filt.freq, filt.Q, true, stereo_params.control);
             return { gain: 0.0, freq: filt.freq, Q: filt.Q };
           }),
         ];
@@ -410,7 +430,7 @@
     <span
       title="full path: {selectedRecording}"
       style="position: absolute; bottom: 0; padding-right: 2em; align-self: center;"
-      >current file ({is_stereo ? "stereo" : "mono"}): {remove_slashes_ext(
+      >current file ({stereo_params.is_stereo ? "stereo" : "mono"}): {remove_slashes_ext(
         selectedRecording
       )}</span
     >
@@ -528,5 +548,9 @@
   button:disabled {
     text-decoration: line-through;
     filter: contrast(70%);
+  }
+  .stereo-control-buttons {
+    position: absolute;
+    left: 2.5%;
   }
 </style>

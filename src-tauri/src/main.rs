@@ -16,9 +16,9 @@ mod sdft;
 mod server;
 use server::*;
 mod messages;
-mod settings;
 use messages::*;
 mod file_io;
+mod settings;
 use file_io::*;
 use tauri::api::process::Command as CMD;
 
@@ -39,8 +39,7 @@ fn main() {
             get_is_stereo,
             save_global_state,
             get_global_state,
-            get_left_channel_state,
-            get_right_channel_state,
+            get_channel_state,
             save_bpf_gain,
             save_bpf_freq,
             save_bpf_Q,
@@ -51,6 +50,8 @@ fn main() {
             get_noise_gain,
             get_pre_smooth_gain,
             get_post_smooth_gain,
+            get_stereo_control,
+            save_stereo_control,
             save_pre_smooth_gain,
             save_post_smooth_gain,
             get_output_gain,
@@ -118,24 +119,6 @@ fn pause_stream(streamsend: State<MStreamSend>) {
 
 #[tauri::command]
 fn get_fft_plot_data(streamsend: State<MStreamSend>) -> Result<AudioUIMessage, String> {
-    let r = streamsend
-        .0
-        .lock()
-        .unwrap()
-        .mreceiver
-        .0
-        .lock()
-        .unwrap()
-        .try_recv();
-    if r.is_ok() {
-        Ok(r.unwrap())
-    } else {
-        r.map_err(|e| e.to_string())
-    }
-}
-
-#[tauri::command]
-fn get_is_stereo(streamsend: State<MStreamSend>) -> Result<AudioUIMessage, String> {
     let r = streamsend
         .0
         .lock()

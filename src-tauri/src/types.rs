@@ -165,9 +165,9 @@ impl StereoControl {
     pub fn as_str(&self) -> &str {
         use StereoControl::*;
         match self {
-            Left => "left",
-            Right => "right",
-            Both => "both",
+            Left => "Left",
+            Right => "Right",
+            Both => "Both",
         }
     }
 }

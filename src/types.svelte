@@ -8,13 +8,24 @@
 
 
 	export type ChannelParams = {
-		bpf_filters: Array<BPF>,
+		bpfs: Array<BPF>,
 		output_gain: number;
 		noise_gain: number;
 		pre_smooth_gain: number;
 		post_smooth_gain: number;
 		clean: boolean,
 	}
+
+	export type StereoParams = {
+		left: ChannelParams,
+		right: ChannelParams,
+		both: ChannelParams,
+		control: StereoControl,
+		is_stereo: boolean,
+		clean: boolean,
+	}
+
+	export type StereoControl = "Left" | "Right" | "Both";
 
 	export type FilterBank = {
 		bp1: FilterCoeffs2;

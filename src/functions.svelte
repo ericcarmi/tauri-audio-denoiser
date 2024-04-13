@@ -1,10 +1,13 @@
 <script lang="ts" context="module">
+	import { invoke } from "@tauri-apps/api/tauri";
 	import { FREQ_PLOT_WIDTH, SAMPLING_RATE } from "./constants.svelte";
 	import type {
 		BPF,
 		ChannelParams,
 		Complex,
 		FilterCoeffs2,
+		StereoControl,
+		StereoParams,
 	} from "./types.svelte";
 
 	export function cabs(z: Complex) {
@@ -15,10 +18,10 @@
 		gains: number[],
 		freqs: number[],
 		Qs: number[]
-	): ChannelParams | void {
+	): StereoParams {
 		if (gains.length !== freqs.length || gains.length !== Qs.length) {
 			console.error("array length mismatch");
-			return;
+			// return;
 		}
 		let output_gain = 0.0;
 		let noise_gain = 0.0;
@@ -31,13 +34,22 @@
 				return { gain: gains[i], freq: freqs[i], Q: Qs[i] };
 			});
 
-		return {
-			bpf_filters: bpf_filters,
+		let c = {
+			bpfs: bpf_filters,
 			output_gain: output_gain,
 			noise_gain: noise_gain,
 			pre_smooth_gain: pre_smooth_gain,
 			post_smooth_gain: post_smooth_gain,
 			clean: clean,
+		};
+
+		return {
+			left: c,
+			right: c,
+			both: c,
+			control: "Both",
+			is_stereo: true,
+			clean: false,
 		};
 	}
 
@@ -206,5 +218,64 @@
 					b: parseInt(result[3], 16),
 			  }
 			: null;
+	}
+
+	// for now just using this for the reset all gain switch, so the filters on backend are updated, and server at same time, which usually doesn't happen when moving gain slider (only sends to server on mouse up)
+	export function update_filters(
+		index: number,
+		gain: number,
+		freq: number,
+		Q: number,
+		update_server: boolean,
+		stereo_control: StereoControl,
+	) {
+		let b = biquad(gain, freq, Q);
+		b.x = [0, 0];
+		b.y = [0, 0];
+		if (index == 1) {
+			invoke("update_filters", { bp1: b, stereoControl: stereo_control });
+			if (update_server) {
+				invoke("save_bpf_gain", { gain: gain, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_freq", { freq: freq, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_Q", { q: Q, index: index, stereoControl: stereo_control });
+			}
+		} else if (index == 2) {
+			invoke("update_filters", { bp2: b, stereoControl: stereo_control });
+			if (update_server) {
+				invoke("save_bpf_gain", { gain: gain, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_freq", { freq: freq, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_Q", { q: Q, index: index, stereoControl: stereo_control });
+			}
+		} else if (index == 3) {
+			invoke("update_filters", { bp3: b, stereoControl: stereo_control });
+			if (update_server) {
+				invoke("save_bpf_gain", { gain: gain, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_freq", { freq: freq, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_Q", { q: Q, index: index, stereoControl: stereo_control });
+			}
+		} else if (index == 4) {
+			invoke("update_filters", { bp4: b, stereoControl: stereo_control });
+			if (update_server) {
+				invoke("save_bpf_gain", { gain: gain, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_freq", { freq: freq, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_Q", { q: Q, index: index, stereoControl: stereo_control });
+			}
+		} else if (index == 5) {
+			invoke("update_filters", { bp5: b, stereoControl: stereo_control });
+			if (update_server) {
+				invoke("save_bpf_gain", { gain: gain, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_freq", { freq: freq, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_Q", { q: Q, index: index, stereoControl: stereo_control });
+			}
+		}
+	}
+
+	export function remove_slashes_ext(s: string) {
+		if (s.includes("/")) {
+			let x = s.split("/");
+			return x[x.length - 1].split(".")[0];
+		} else {
+			return s.split(".")[0];
+		}
 	}
 </script>
