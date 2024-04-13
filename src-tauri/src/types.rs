@@ -161,6 +161,17 @@ pub enum StereoControl {
     Both = 2,
 }
 
+impl StereoControl {
+    pub fn as_str(&self) -> &str {
+        use StereoControl::*;
+        match self {
+            Left => "left",
+            Right => "right",
+            Both => "both",
+        }
+    }
+}
+
 /// audio params to be used in the audio thread -- some variables can be set directly from messages, others are computed (spectra, sdft)
 #[derive(Clone)]
 pub struct AudioParams {

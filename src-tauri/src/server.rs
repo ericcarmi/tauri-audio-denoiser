@@ -299,6 +299,74 @@ pub async fn get_right_channel_state() -> Result<UIParams, String> {
     }
 }
 
+async fn redis_get_channel_state(channel: StereoControl) -> redis::RedisResult<UIParams> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+
+    let chan = channel.as_str();
+
+    let mut params = UIParams::new();
+    let mut bpfs = vec![];
+    for i in 0..5 {
+        let gain: Result<f32, redis::RedisError> =
+            con.get(format!("{}_gain-{}", chan, i + 1)).await;
+        if gain.is_err() {
+            return Err(gain.err().unwrap());
+        }
+        let freq: Result<f32, redis::RedisError> =
+            con.get(format!("{}_freq-{}", chan, i + 1)).await;
+        if freq.is_err() {
+            return Err(freq.err().unwrap());
+        }
+        let Q: Result<f32, redis::RedisError> = con.get(format!("{}_Q-{}", chan, i + 1)).await;
+        if Q.is_err() {
+            return Err(Q.err().unwrap());
+        }
+        bpfs.push(Bpf {
+            gain: gain.unwrap(),
+            freq: freq.unwrap(),
+            Q: Q.unwrap(),
+        })
+    }
+    params.bpfs = bpfs.clone();
+
+    let noise_gain: Result<f32, redis::RedisError> = con.get(format!("{}_noise_gain", chan)).await;
+    if noise_gain.is_err() {
+        return Err(noise_gain.err().unwrap());
+    }
+    params.noise_gain = noise_gain.unwrap();
+    let output_gain: Result<f32, redis::RedisError> =
+        con.get(format!("{}_output_gain", chan)).await;
+    if output_gain.is_err() {
+        return Err(output_gain.err().unwrap());
+    }
+    params.output_gain = output_gain.unwrap();
+    let post_smooth_gain: Result<f32, redis::RedisError> =
+        con.get(format!("{}_post_smooth_gain", chan)).await;
+    if post_smooth_gain.is_err() {
+        return Err(post_smooth_gain.err().unwrap());
+    }
+    params.post_smooth_gain = post_smooth_gain.unwrap();
+    let pre_smooth_gain: Result<f32, redis::RedisError> =
+        con.get(format!("{}_pre_smooth_gain", chan)).await;
+    if pre_smooth_gain.is_err() {
+        return Err(pre_smooth_gain.err().unwrap());
+    }
+    params.pre_smooth_gain = pre_smooth_gain.unwrap();
+
+    Ok(params)
+}
+
+#[tauri::command]
+pub async fn get_channel_state(channel: StereoControl) -> Result<UIParams, String> {
+    let ui_params = redis_get_channel_state(channel).await;
+    if ui_params.is_ok() {
+        Ok(ui_params.unwrap())
+    } else {
+        ui_params.map_err(|e| "error getting channel state -- ".to_owned() + e.to_string().as_str())
+    }
+}
+
 async fn redis_get_noise_gain(left: Option<bool>) -> redis::RedisResult<f32> {
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_multiplexed_async_connection().await?;
@@ -410,8 +478,7 @@ async fn redis_save_bpf_gain(
                 a = con.set(format!("right_gain-{}", index), gain).await;
             }
             Both => {
-                a = con.set(format!("left_gain-{}", index), gain).await;
-                b = con.set(format!("right_gain-{}", index), gain).await;
+                a = con.set(format!("both_gain-{}", index), gain).await;
             }
         }
     } else {
@@ -445,8 +512,7 @@ async fn redis_save_bpf_freq(
                 a = con.set(format!("right_freq-{}", index), freq).await;
             }
             Both => {
-                a = con.set(format!("left_freq-{}", index), freq).await;
-                b = con.set(format!("right_freq-{}", index), freq).await;
+                a = con.set(format!("both_freq-{}", index), freq).await;
             }
         }
     } else {
@@ -480,8 +546,7 @@ async fn redis_save_bpf_Q(
                 a = con.set(format!("right_Q-{}", index), Q).await;
             }
             Both => {
-                a = con.set(format!("left_Q-{}", index), Q).await;
-                b = con.set(format!("right_Q-{}", index), Q).await;
+                a = con.set(format!("both_Q-{}", index), Q).await;
             }
         }
     } else {
@@ -514,8 +579,7 @@ async fn redis_save_output_gain(
                 a = con.set("right_output_gain", gain).await;
             }
             Both => {
-                a = con.set("left_output_gain", gain).await;
-                b = con.set("right_output_gain", gain).await;
+                a = con.set("both_output_gain", gain).await;
             }
         }
     } else {
@@ -548,8 +612,7 @@ async fn redis_save_pre_smooth_gain(
                 a = con.set("right_pre_smooth_gain", gain).await;
             }
             Both => {
-                a = con.set("left_pre_smooth_gain", gain).await;
-                b = con.set("right_pre_smooth_gain", gain).await;
+                a = con.set("both_pre_smooth_gain", gain).await;
             }
         }
     } else {
@@ -582,8 +645,7 @@ async fn redis_save_post_smooth_gain(
                 a = con.set("right_post_smooth_gain", gain).await;
             }
             Both => {
-                a = con.set("left_post_smooth_gain", gain).await;
-                b = con.set("right_post_smooth_gain", gain).await;
+                a = con.set("both_post_smooth_gain", gain).await;
             }
         }
     } else {
@@ -616,8 +678,7 @@ async fn redis_save_noise_gain(
                 a = con.set("right_noise_gain", gain).await;
             }
             Both => {
-                a = con.set("left_noise_gain", gain).await;
-                b = con.set("right_noise_gain", gain).await;
+                a = con.set("both_noise_gain", gain).await;
             }
         }
     } else {
@@ -645,6 +706,14 @@ pub async fn init_settings() {
         let _r = redis_save_bpf_gain(0.0, i, Some(StereoControl::Both)).await;
         let _r = redis_save_bpf_freq(1000.0, i, Some(StereoControl::Both)).await;
         let _r = redis_save_bpf_Q(1.0, i, Some(StereoControl::Both)).await;
+
+        let _r = redis_save_bpf_gain(0.0, i, Some(StereoControl::Left)).await;
+        let _r = redis_save_bpf_freq(1000.0, i, Some(StereoControl::Left)).await;
+        let _r = redis_save_bpf_Q(1.0, i, Some(StereoControl::Left)).await;
+
+        let _r = redis_save_bpf_gain(0.0, i, Some(StereoControl::Right)).await;
+        let _r = redis_save_bpf_freq(1000.0, i, Some(StereoControl::Right)).await;
+        let _r = redis_save_bpf_Q(1.0, i, Some(StereoControl::Right)).await;
     }
 }
 
