@@ -6,6 +6,16 @@
 		Q: number;
 	};
 
+
+	export type ChannelParams = {
+		bpf_filters: Array<BPF>,
+		output_gain: number;
+		noise_gain: number;
+		pre_smooth_gain: number;
+		post_smooth_gain: number;
+		clean: boolean,
+	}
+
 	export type FilterBank = {
 		bp1: FilterCoeffs2;
 		bp2: FilterCoeffs2;

@@ -206,8 +206,14 @@ impl AudioParams {
             sdft: SDFT::new(256),
         }
     }
-    // pub fn filter_bank(&self) -> [IIR2; 5] {
-    //     [self.bp1, self.bp2, self.bp3, self.bp4, self.bp5]
+    pub fn filter_bank(&self) -> [IIR2; 5] {
+        [self.bp1, self.bp2, self.bp3, self.bp4, self.bp5]
+    }
+    // pub fn set_filters(&mut self, filters: Vec<IIR2>) {
+    //     let old = self.filter_bank();
+    //     for (o, n) in old.iter().zip(filters) {
+    //         o = n;
+    //     }
     // }
 }
 
@@ -234,6 +240,31 @@ impl StereoAudioParams {
             file_path: "".to_string(),
             is_stereo: false,
             time: 0,
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct UIParams {
+    pub bpfs: Vec<Bpf>,
+    pub clean: bool,
+    pub output_gain: f32,
+    pub noise_gain: f32,
+    pub pre_smooth_gain: f32,
+    pub post_smooth_gain: f32,
+    pub dft_size: usize,
+}
+
+impl UIParams {
+    pub fn new() -> Self {
+        Self {
+            dft_size: 256,
+            clean: false,
+            output_gain: 1.0,
+            noise_gain: 0.0,
+            pre_smooth_gain: 0.5,
+            post_smooth_gain: 0.5,
+            bpfs: vec![],
         }
     }
 }

@@ -1,20 +1,54 @@
 <script lang="ts" context="module">
 	import { FREQ_PLOT_WIDTH, SAMPLING_RATE } from "./constants.svelte";
-	import type { Complex, FilterCoeffs2 } from "./types.svelte";
+	import type {
+		BPF,
+		ChannelParams,
+		Complex,
+		FilterCoeffs2,
+	} from "./types.svelte";
 
 	export function cabs(z: Complex) {
 		return Math.sqrt(z.re * z.re + z.im * z.im);
 	}
 
-	
-  export function update_css_color(color: string, color_name: string) {
-    if (color !== undefined) {
-      document.body.style.setProperty(
-        `--${color_name.replace("_", "-")}`,
-        color
-      );
-    }
-  }
+	export function init_channel_params(
+		gains: number[],
+		freqs: number[],
+		Qs: number[]
+	): ChannelParams | void {
+		if (gains.length !== freqs.length || gains.length !== Qs.length) {
+			console.error("array length mismatch");
+			return;
+		}
+		let output_gain = 0.0;
+		let noise_gain = 0.0;
+		let pre_smooth_gain = 0.5;
+		let post_smooth_gain = 0.5;
+		let clean = false;
+		let bpf_filters: Array<BPF> = Array(gains.length)
+			.fill(0)
+			.map((_, i) => {
+				return { gain: gains[i], freq: freqs[i], Q: Qs[i] };
+			});
+
+		return {
+			bpf_filters: bpf_filters,
+			output_gain: output_gain,
+			noise_gain: noise_gain,
+			pre_smooth_gain: pre_smooth_gain,
+			post_smooth_gain: post_smooth_gain,
+			clean: clean,
+		};
+	}
+
+	export function update_css_color(color: string, color_name: string) {
+		if (color !== undefined) {
+			document.body.style.setProperty(
+				`--${color_name.replace("_", "-")}`,
+				color
+			);
+		}
+	}
 
 	export function cdiv(z1: Complex, z2: Complex) {
 		let a = z1.re;

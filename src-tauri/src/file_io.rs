@@ -21,6 +21,7 @@ pub async fn get_time_data(
         let filepath = p + "/" + path;
 
         let thread = tauri::async_runtime::spawn(async move {
+            // println!("{:?}", samples);
             if let Ok(f) = File::open(filepath) {
                 let (_head, samples) = wav_io::read_from_file(f).unwrap();
 
@@ -39,8 +40,6 @@ pub async fn get_time_data(
         let thread = tauri::async_runtime::spawn(async move {
             if let Ok(f) = File::open(PathBuf::from(filepath)) {
                 let (head, samples) = wav_io::read_from_file(f).unwrap();
-                println!("{:?}", head);
-                println!("{:?}", samples);
 
                 return samples.iter().step_by(16).cloned().collect::<Vec<f32>>();
             }

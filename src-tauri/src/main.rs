@@ -39,6 +39,8 @@ fn main() {
             get_is_stereo,
             save_global_state,
             get_global_state,
+            get_left_channel_state,
+            get_right_channel_state,
             save_bpf_gain,
             save_bpf_freq,
             save_bpf_Q,

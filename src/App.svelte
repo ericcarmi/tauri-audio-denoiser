@@ -14,7 +14,12 @@
   } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
   import type { BPF } from "./types.svelte";
-  import { biquad, rgbToHex, update_css_color } from "./functions.svelte";
+  import {
+    biquad,
+    init_channel_params,
+    rgbToHex,
+    update_css_color,
+  } from "./functions.svelte";
   import RotarySlider from "./rotary-slider.svelte";
   import Settings from "./settings.svelte";
 
@@ -42,34 +47,37 @@
     });
   }
 
-  let bpf_filters: Array<BPF> = Array(num_sliders)
-    .fill(0)
-    .map((_, i) => {
-      return { gain: gains[i], freq: freqs[i], Q: Qs[i] };
-    });
-  let bpf_hovering = Array(num_sliders).fill(false);
-
   let time = 0;
   let time_position = 0;
   let selectedRecording = "";
   let is_playing = false;
 
-  let clean = false;
   let perf_time = performance.now();
   let time_origin = 0;
   let time_delta = 0;
-  let num_time_samples = 1;
   let is_time_slider_dragging = false;
 
   let interval: any;
   let fft_data: any;
 
-  // these values should also be synced with backend on startup, should not require changing sliders...these values are initialized in audio stream setup, might need to call from server from both places?
+  // these values are retrieved onMount from server...want to also get the types over eventually to not copy-paste
+  // but also the audio params aren't an exact copy of the rust type?
   let output_gain = 0.0;
   let noise_gain = 0.0;
   let pre_smooth_gain = 0.5;
   let post_smooth_gain = 0.5;
-  let noise_variance = 0.0;
+  let clean = false;
+  let bpf_filters: Array<BPF> = Array(num_sliders)
+    .fill(0)
+    .map((_, i) => {
+      return { gain: gains[i], freq: freqs[i], Q: Qs[i] };
+    });
+
+  let left_channel_params = init_channel_params(gains, freqs, Qs);
+  let right_channel_params = init_channel_params(gains, freqs, Qs);
+
+  let bpf_hovering = Array(num_sliders).fill(false);
+  let num_time_samples = 1;
 
   async function get_time_data(from_assets?: boolean) {
     if (selectedRecording === "") return;
@@ -127,6 +135,11 @@
     output_gain = await invoke("get_output_gain");
     post_smooth_gain = await invoke("get_post_smooth_gain");
     pre_smooth_gain = await invoke("get_pre_smooth_gain");
+
+    left_channel_params = await invoke("get_left_channel_state");
+    right_channel_params = await invoke("get_right_channel_state");
+    console.log(left_channel_params);
+    console.log(right_channel_params);
   });
 
   function resetInterval() {
@@ -397,7 +410,9 @@
     <span
       title="full path: {selectedRecording}"
       style="position: absolute; bottom: 0; padding-right: 2em; align-self: center;"
-      >current file: {remove_slashes_ext(selectedRecording)}</span
+      >current file ({is_stereo ? "stereo" : "mono"}): {remove_slashes_ext(
+        selectedRecording
+      )}</span
     >
     <div
       class="settings"
@@ -512,5 +527,6 @@
   }
   button:disabled {
     text-decoration: line-through;
+    filter: contrast(70%);
   }
 </style>
