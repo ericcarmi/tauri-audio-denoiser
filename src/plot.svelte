@@ -167,6 +167,8 @@
     // }
     is_loading = true;
     invoke("get_time_data", { path: file_path }).then((res) => {
+    console.log(res)
+
       let data: any = res;
       time_data = data;
       let renderPlot = () => {
@@ -490,14 +492,13 @@
   }
   .spinner {
     position: absolute;
-    top: calc(60% - 1em);
+    top: calc(44.7% - 1em);
     left: calc(50% - 1em);
     width: 2em;
     height: 2em;
     border: 3px solid var(--gray150);
-    border-bottom-color: var(--plot-main);
     border-top-color: var(--plot-main);
     border-radius: 20px;
-    animation: 2s infinite linear spin;
+    animation: 1.47s infinite linear spin;
   }
 </style>

@@ -36,6 +36,7 @@ fn main() {
             get_file_fft,
             set_file_fft,
             get_fft_plot_data,
+            get_is_stereo,
             save_global_state,
             get_global_state,
             save_bpf_gain,
@@ -70,7 +71,7 @@ fn main() {
             // println!("{:?}", m);
 
             let mss = MStreamSend({
-                let (ui_tx, rx) = tauri::async_runtime::channel::<Vec<f32>>(2);
+                let (ui_tx, rx) = tauri::async_runtime::channel::<AudioUIMessage>(2);
                 let (stream, tx) = setup_stream(ui_tx, app_handle, None).unwrap();
                 let _ = stream.pause();
                 let mtx = Mutex::new(tx);
@@ -114,7 +115,7 @@ fn pause_stream(streamsend: State<MStreamSend>) {
 }
 
 #[tauri::command]
-fn get_fft_plot_data(streamsend: State<MStreamSend>) -> Result<Vec<f32>, String> {
+fn get_fft_plot_data(streamsend: State<MStreamSend>) -> Result<AudioUIMessage, String> {
     let r = streamsend
         .0
         .lock()
@@ -127,7 +128,25 @@ fn get_fft_plot_data(streamsend: State<MStreamSend>) -> Result<Vec<f32>, String>
     if r.is_ok() {
         Ok(r.unwrap())
     } else {
-        Err("recv error".into())
+        r.map_err(|e| e.to_string())
+    }
+}
+
+#[tauri::command]
+fn get_is_stereo(streamsend: State<MStreamSend>) -> Result<AudioUIMessage, String> {
+    let r = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .mreceiver
+        .0
+        .lock()
+        .unwrap()
+        .try_recv();
+    if r.is_ok() {
+        Ok(r.unwrap())
+    } else {
+        r.map_err(|e| e.to_string())
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::constants::*;
+use crate::messages::{AudioUIMessage, Message};
 // use crate::fourier::mfft;
-use crate::sdft::SDFT;
 use crate::types::*;
 use anyhow;
 use cpal::FromSample;
@@ -12,7 +12,7 @@ use cpal::{
 use std::fs::File;
 use tauri::AppHandle;
 
-pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> Vec<f32> {
+pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>, bool) {
     let p = app_handle
         .path_resolver()
         .resolve_resource(path)
@@ -22,20 +22,21 @@ pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> Vec<f32> {
         .unwrap();
 
     let file_in = File::open(p).unwrap();
-    let (_head, samples) = wav_io::read_from_file(file_in).unwrap();
-    samples
+    let (head, samples) = wav_io::read_from_file(file_in).unwrap();
+    let is_stereo = if head.channels == 1 { false } else { true };
+    (samples, is_stereo)
 }
 
-pub fn get_wav_samples(path: &str) -> Vec<f32> {
+pub fn get_wav_samples(path: &str) -> (Vec<f32>, bool) {
     let file_in = File::open(path).unwrap();
-    let (_head, samples) = wav_io::read_from_file(file_in).unwrap();
-
-    samples
+    let (head, samples) = wav_io::read_from_file(file_in).unwrap();
+    let is_stereo = if head.channels == 1 { false } else { true };
+    (samples, is_stereo)
 }
 
 #[tauri::command]
 pub fn setup_stream(
-    tx: tauri::async_runtime::Sender<Vec<f32>>,
+    tx: tauri::async_runtime::Sender<AudioUIMessage>,
     app_handle: AppHandle,
     file_path: Option<String>,
 ) -> Result<(cpal::Stream, tauri::async_runtime::Sender<Message>), anyhow::Error>
@@ -98,7 +99,7 @@ pub fn host_device_setup(
 pub fn make_stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
-    tx_ui: tauri::async_runtime::Sender<Vec<f32>>,
+    tx_ui: tauri::async_runtime::Sender<AudioUIMessage>,
     app_handle: AppHandle,
     file_path: Option<String>,
 ) -> Result<(cpal::Stream, tauri::async_runtime::Sender<Message>), anyhow::Error>
@@ -111,27 +112,19 @@ where
     let (tx, mut rx) = tauri::async_runtime::channel::<Message>(1);
 
     // file samples are not an audio param, stream is remade when file is changed so this stays
-    // also time, because it should be same for both channels
-    let mut time = 0;
     let file_samples;
+    let is_stereo;
     if let Some(f) = file_path {
-        file_samples = get_wav_samples(f.as_str());
+        (file_samples, is_stereo) = get_wav_samples(f.as_str());
     } else {
-        file_samples = get_resource_wav_samples(TEST_FILE_PATH, app_handle);
+        (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE_PATH, app_handle);
     }
-    // let mut process_filterbank = FilterBank::new();
-    // let num_file_samples = file_samples.len();
-    // let mut clean = false;
-    // let dft_size = 256;
-    // let mut sdft = SDFT::new(dft_size);
-    // let mut noise_spectrum = process_filterbank.parallel_transfer(dft_size);
-
-    // let mut noise_gain = 0.0;
-    // let mut output_gain = 1.0;
-    // let mut pre_smooth_gain = 0.5;
-    // let mut post_smooth_gain = 0.5;
-
     let mut stereo_audio_params = StereoAudioParams::new();
+    stereo_audio_params.is_stereo = is_stereo;
+    let _ = tx_ui.try_send(AudioUIMessage {
+        is_stereo: Some(is_stereo),
+        ..Default::default()
+    });
 
     stereo_audio_params.num_file_samples = file_samples.len();
     stereo_audio_params.left.noise_spectrum = stereo_audio_params
@@ -153,10 +146,10 @@ where
                 if stereo_audio_params.clean {
                     // ...each frame has 2 samples
                     for frame in output.chunks_mut(num_channels) {
-                        if stereo_audio_params.left.time >= stereo_audio_params.num_file_samples {
+                        if stereo_audio_params.time >= stereo_audio_params.num_file_samples {
                             break;
                         }
-                        let sample = file_samples[stereo_audio_params.left.time]
+                        let sample = file_samples[stereo_audio_params.time]
                             * stereo_audio_params.left.output_gain;
                         let v: T = T::from_sample(sample);
                         spectrum.push(sample);
@@ -165,14 +158,14 @@ where
                         for out_sample in frame.iter_mut() {
                             *out_sample = v;
                         }
-                        stereo_audio_params.left.time += 1;
+                        stereo_audio_params.time += 1;
                     }
                 } else {
                     for frame in output.chunks_mut(num_channels) {
-                        if stereo_audio_params.left.time >= stereo_audio_params.num_file_samples {
+                        if stereo_audio_params.time >= stereo_audio_params.num_file_samples {
                             break;
                         }
-                        let sample = file_samples[stereo_audio_params.left.time]
+                        let sample = file_samples[stereo_audio_params.time]
                             * stereo_audio_params.left.output_gain;
                         let filtered = stereo_audio_params.left.sdft.spectral_subtraction(
                             sample,
@@ -189,18 +182,21 @@ where
                         for out_sample in frame.iter_mut() {
                             *out_sample = v;
                         }
-                        stereo_audio_params.left.time += 1;
+                        stereo_audio_params.time += 1;
                     }
                 }
 
                 // send a chunk of the fft here
                 // let _r = tx_ui.try_send(mfft(spectrum.clone()));
                 // let _r = tx_ui.try_send(freq_filter.clone());
-                let _r = tx_ui.try_send(
-                    stereo_audio_params.left.sdft.norm_vec()
-                        [0..stereo_audio_params.left.sdft.size / 2]
-                        .to_vec(),
-                );
+                let _r = tx_ui.try_send(AudioUIMessage {
+                    spectrum: Some(
+                        stereo_audio_params.left.sdft.norm_vec()
+                            [0..stereo_audio_params.left.sdft.size / 2]
+                            .to_vec(),
+                    ),
+                    ..Default::default()
+                });
 
                 // println!("{:?}", r);
             }

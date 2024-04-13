@@ -1,11 +1,12 @@
 use cpal::Stream;
-use dasp_ring_buffer::Fixed;
-use rustfft::num_complex::{Complex, Complex32};
+// use dasp_ring_buffer::Fixed;
+use rustfft::num_complex::Complex32;
 use serde::{Deserialize, Serialize};
 use std::{f32::consts::PI, sync::Mutex};
 
 use crate::{
-    constants::{czerov, CZERO},
+    constants::CZERO,
+    messages::{AudioUIMessage, Message},
     sdft::SDFT,
 };
 
@@ -14,7 +15,7 @@ pub struct MStream(pub Mutex<Stream>);
 unsafe impl Sync for MStream {}
 unsafe impl Send for MStream {}
 
-pub struct MUIReceiver(pub Mutex<tauri::async_runtime::Receiver<Vec<f32>>>);
+pub struct MUIReceiver(pub Mutex<tauri::async_runtime::Receiver<AudioUIMessage>>);
 pub struct MSender(pub Mutex<tauri::async_runtime::Sender<Message>>);
 
 pub struct MStreamSend(pub Mutex<StreamSend>);
@@ -155,150 +156,12 @@ impl FilterBank {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum StereoControl {
-    Left,
-    Right,
-    Both,
+    Left = 0,
+    Right = 1,
+    Both = 2,
 }
 
-/// a message from a single channel (left or right)
-#[derive(Clone, Debug, Copy)]
-pub struct ChannelMessage {
-    pub time: Option<f32>,
-    pub clean: Option<bool>,
-    pub bp1: Option<IIR2>,
-    pub bp2: Option<IIR2>,
-    pub bp3: Option<IIR2>,
-    pub bp4: Option<IIR2>,
-    pub bp5: Option<IIR2>,
-    pub output_gain: Option<f32>,
-    pub noise_gain: Option<f32>,
-    pub pre_smooth_gain: Option<f32>,
-    pub post_smooth_gain: Option<f32>,
-    pub id: &'static str,
-}
-
-impl Default for ChannelMessage {
-    fn default() -> Self {
-        Self {
-            time: None,
-            clean: None,
-            bp1: None,
-            bp2: None,
-            bp3: None,
-            bp4: None,
-            bp5: None,
-            output_gain: None,
-            noise_gain: None,
-            pre_smooth_gain: None,
-            post_smooth_gain: None,
-            id: "left",
-        }
-    }
-}
-
-// not sure if this is needed, maybe it should be in AudioParams?
-// impl ChannelMessage {
-//     pub fn filters_as_slice(&self) -> [IIR2; 5] {
-//         return [self.bp1, self.bp2, self.bp3, self.bp4, self.bp5];
-//     }
-// }
-
-// use options with everything...a little annoying but then use None when passing to ignore most sub-structs
-// this struct is for messages sent from UI to audio thread
-#[derive(Clone, Debug)]
-pub struct Message {
-    pub left_channel: Option<ChannelMessage>,
-    pub right_channel: Option<ChannelMessage>,
-    pub file_path: Option<String>,
-    pub stereo_control: StereoControl,
-}
-
-// use all None for default message to shorten other functions that send one thing at a time
-impl Default for Message {
-    fn default() -> Self {
-        Self {
-            file_path: None,
-            stereo_control: StereoControl::Both,
-            left_channel: Some(ChannelMessage::default()),
-            right_channel: Some(ChannelMessage {
-                id: "right",
-                ..Default::default()
-            }),
-        }
-    }
-}
-
-impl Message {
-    pub fn receive(&self, params: &mut StereoAudioParams) {
-        if let Some(ch) = self.left_channel {
-            // would eventually like to iterate over all filters in the filter bank instead of doing this
-            if let Some(bp) = ch.bp1 {
-                params.left.filter_bank.bp1.update_coeffs(bp);
-                params.left.noise_spectrum = params
-                    .left
-                    .filter_bank
-                    .parallel_transfer(params.left.dft_size);
-            }
-            if let Some(bp) = ch.bp2 {
-                params.left.filter_bank.bp2.update_coeffs(bp);
-                params.left.noise_spectrum = params
-                    .left
-                    .filter_bank
-                    .parallel_transfer(params.left.dft_size);
-            }
-            if let Some(bp) = ch.bp3 {
-                params.left.filter_bank.bp3.update_coeffs(bp);
-                params.left.noise_spectrum = params
-                    .left
-                    .filter_bank
-                    .parallel_transfer(params.left.dft_size);
-            }
-            if let Some(bp) = ch.bp4 {
-                params.left.filter_bank.bp5.update_coeffs(bp);
-                params.left.noise_spectrum = params
-                    .left
-                    .filter_bank
-                    .parallel_transfer(params.left.dft_size);
-            }
-            if let Some(bp) = ch.bp5 {
-                params.left.filter_bank.bp5.update_coeffs(bp);
-                params.left.noise_spectrum = params
-                    .left
-                    .filter_bank
-                    .parallel_transfer(params.left.dft_size);
-            }
-            if let Some(t) = ch.time {
-                params.left.time = (params.num_file_samples as f32 * t) as usize;
-                params.left.sdft.freq_history = czerov(params.left.dft_size);
-                params.left.sdft.time_history =
-                    Fixed::from(vec![Complex::new(0.0, 0.0); params.left.dft_size]);
-            }
-            if let Some(c) = ch.clean {
-                params.left.clean = c;
-                params.left.sdft.freq_history = czerov(params.left.dft_size);
-                params.left.sdft.time_history =
-                    Fixed::from(vec![Complex::new(0.0, 0.0); params.left.dft_size]);
-            }
-            if let Some(g) = ch.output_gain {
-                params.left.output_gain = g;
-            }
-            if let Some(g) = ch.noise_gain {
-                params.left.noise_gain = g;
-            }
-            if let Some(g) = ch.pre_smooth_gain {
-                params.left.pre_smooth_gain = g;
-            }
-            if let Some(g) = ch.post_smooth_gain {
-                params.left.post_smooth_gain = g;
-            }
-        }
-        if let Some(ch) = self.right_channel {
-            self.recv_channel(ch, params);
-        }
-    }
-    pub fn recv_channel(&self, channel: ChannelMessage, params: &mut StereoAudioParams) {}
-}
-
+/// audio params to be used in the audio thread -- some variables can be set directly from messages, others are computed (spectra, sdft)
 #[derive(Clone)]
 pub struct AudioParams {
     pub time: usize,
@@ -319,8 +182,6 @@ pub struct AudioParams {
     pub noise_spectrum: Vec<f32>,
     pub sdft: SDFT,
 }
-
-// bp1..5 should be changed to filterbank, so new filters can be added easily
 
 impl AudioParams {
     pub fn new() -> Self {
@@ -350,6 +211,7 @@ impl AudioParams {
     // }
 }
 
+/// stereo params includes AudioParams for both channels as well as other params that are independent of the channels
 pub struct StereoAudioParams {
     pub left: AudioParams,
     pub right: AudioParams,
@@ -358,6 +220,7 @@ pub struct StereoAudioParams {
     pub num_file_samples: usize,
     pub file_path: String,
     pub is_stereo: bool,
+    pub time: usize,
 }
 
 impl StereoAudioParams {
@@ -370,6 +233,7 @@ impl StereoAudioParams {
             num_file_samples: 0,
             file_path: "".to_string(),
             is_stereo: false,
+            time: 0,
         }
     }
 }

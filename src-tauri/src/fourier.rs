@@ -1,10 +1,7 @@
-use std::fs::File;
-
-use chrono::{self, DateTime, Utc};
-use dsp;
-
 use crate::constants::*;
+use dsp;
 use rustfft::{num_complex::Complex, FftPlanner};
+use std::fs::File;
 
 #[tauri::command]
 pub async fn get_time_onefft(
@@ -26,7 +23,7 @@ pub async fn get_time_onefft(
 
     let thread = tauri::async_runtime::spawn(async move {
         let file_in = File::open(filepath).unwrap();
-        let (head, w) = wav_io::read_from_file(file_in).unwrap();
+        let (_head, w) = wav_io::read_from_file(file_in).unwrap();
         let mut buffer = vec![];
         let len = w.len();
         for s in w.clone() {

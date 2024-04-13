@@ -29,10 +29,17 @@
   const unlisten = listen("tauri://file-drop", async (event: any) => {
     change_file(event.payload[0] as string);
   });
+  let is_stereo = false;
 
   function change_file(path: string) {
     selectedRecording = path;
     invoke("update_file_path", { path: selectedRecording });
+    invoke("get_is_stereo").then((r: any) => {
+      if (r.is_stereo !== undefined) {
+        is_stereo = r.is_stereo;
+      }
+      // console.log(is_stereo);
+    });
   }
 
   let bpf_filters: Array<BPF> = Array(num_sliders)
@@ -133,7 +140,11 @@
           time += 10 / 1000;
           time_position = (time / DOWN_RATE) * SAMPLING_RATE;
 
-          fft_data = invoke("get_fft_plot_data");
+          invoke("get_fft_plot_data").then((r: any) => {
+            if (r.spectrum) {
+              fft_data = r.spectrum;
+            }
+          });
         }
       },
       // this works for now, just have to call resetInterval after pressing button
@@ -238,12 +249,8 @@
       }}
     />
     <div class="button-bar">
-      <button
-        on:click={async () => {
-        }}
-      >
-        stereo
-      </button>
+      <button disabled={!is_stereo} on:click={async () => {}}> left </button>
+      <button disabled={!is_stereo} on:click={async () => {}}> right </button>
       <button
         on:click={async () => {
           if (!is_playing) {
@@ -268,11 +275,6 @@
       >
         {clean ? "dry" : "wet"}
       </button>
-      <span
-        title="full path: {selectedRecording}"
-        style="position: absolute; right: 0; padding-right: 2em; align-self: center;"
-        >current file: {remove_slashes_ext(selectedRecording)}</span
-      >
     </div>
   </div>
 
@@ -392,6 +394,11 @@
     >
       import file
     </button>
+    <span
+      title="full path: {selectedRecording}"
+      style="position: absolute; bottom: 0; padding-right: 2em; align-self: center;"
+      >current file: {remove_slashes_ext(selectedRecording)}</span
+    >
     <div
       class="settings"
       role="button"
@@ -502,5 +509,8 @@
   button {
     padding: 0 1em 0 1em;
     align-self: center;
+  }
+  button:disabled {
+    text-decoration: line-through;
   }
 </style>

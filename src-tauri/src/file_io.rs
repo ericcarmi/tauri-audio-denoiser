@@ -40,6 +40,7 @@ pub async fn get_time_data(
             if let Ok(f) = File::open(PathBuf::from(filepath)) {
                 let (head, samples) = wav_io::read_from_file(f).unwrap();
                 println!("{:?}", head);
+                println!("{:?}", samples);
 
                 return samples.iter().step_by(16).cloned().collect::<Vec<f32>>();
             }
