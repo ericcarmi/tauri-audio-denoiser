@@ -131,73 +131,79 @@ where
     // let mut pre_smooth_gain = 0.5;
     // let mut post_smooth_gain = 0.5;
 
-    let mut left_audio_params = AudioParams::new();
-    left_audio_params.num_file_samples = file_samples.len();
-    left_audio_params.noise_spectrum = left_audio_params
+    let mut stereo_audio_params = StereoAudioParams::new();
+
+    stereo_audio_params.num_file_samples = file_samples.len();
+    stereo_audio_params.left.noise_spectrum = stereo_audio_params
+        .left
         .filter_bank
-        .parallel_transfer(left_audio_params.dft_size);
+        .parallel_transfer(stereo_audio_params.left.dft_size);
 
     let stream = device.build_output_stream(
         config,
         move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
             // check for messages sent to receiver...update things
             if let Ok(msg) = rx.try_recv() {
-                msg.receive(&mut left_audio_params)
+                msg.receive(&mut stereo_audio_params)
             }
 
-            // vec for fft, will make another for processed spectrum?
-            let mut spectrum: Vec<f32> = vec![];
-            if left_audio_params.clean {
-                // ...each frame has 2 samples
-                for frame in output.chunks_mut(num_channels) {
-                    if left_audio_params.time >= left_audio_params.num_file_samples {
-                        break;
-                    }
-                    let sample =
-                        file_samples[left_audio_params.time] * left_audio_params.output_gain;
-                    let v: T = T::from_sample(sample);
-                    spectrum.push(sample);
+            if !stereo_audio_params.is_stereo {
+                // vec for fft, will make another for processed spectrum?
+                let mut spectrum: Vec<f32> = vec![];
+                if stereo_audio_params.clean {
+                    // ...each frame has 2 samples
+                    for frame in output.chunks_mut(num_channels) {
+                        if stereo_audio_params.left.time >= stereo_audio_params.num_file_samples {
+                            break;
+                        }
+                        let sample = file_samples[stereo_audio_params.left.time]
+                            * stereo_audio_params.left.output_gain;
+                        let v: T = T::from_sample(sample);
+                        spectrum.push(sample);
 
-                    // copying to all channels for now
-                    for out_sample in frame.iter_mut() {
-                        *out_sample = v;
+                        // copying to all channels for now
+                        for out_sample in frame.iter_mut() {
+                            *out_sample = v;
+                        }
+                        stereo_audio_params.left.time += 1;
                     }
-                    left_audio_params.time += 1;
+                } else {
+                    for frame in output.chunks_mut(num_channels) {
+                        if stereo_audio_params.left.time >= stereo_audio_params.num_file_samples {
+                            break;
+                        }
+                        let sample = file_samples[stereo_audio_params.left.time]
+                            * stereo_audio_params.left.output_gain;
+                        let filtered = stereo_audio_params.left.sdft.spectral_subtraction(
+                            sample,
+                            &stereo_audio_params.left.noise_spectrum,
+                            stereo_audio_params.left.noise_gain,
+                            stereo_audio_params.left.pre_smooth_gain,
+                            stereo_audio_params.left.post_smooth_gain,
+                        );
+
+                        let v: T = T::from_sample(filtered);
+                        spectrum.push(filtered);
+
+                        // copying to all channels for now
+                        for out_sample in frame.iter_mut() {
+                            *out_sample = v;
+                        }
+                        stereo_audio_params.left.time += 1;
+                    }
                 }
-            } else {
-                for frame in output.chunks_mut(num_channels) {
-                    if left_audio_params.time >= left_audio_params.num_file_samples {
-                        break;
-                    }
-                    let sample =
-                        file_samples[left_audio_params.time] * left_audio_params.output_gain;
-                    let filtered = left_audio_params.sdft.spectral_subtraction(
-                        sample,
-                        &left_audio_params.noise_spectrum,
-                        left_audio_params.noise_gain,
-                        left_audio_params.pre_smooth_gain,
-                        left_audio_params.post_smooth_gain,
-                    );
 
-                    let v: T = T::from_sample(filtered);
-                    spectrum.push(filtered);
+                // send a chunk of the fft here
+                // let _r = tx_ui.try_send(mfft(spectrum.clone()));
+                // let _r = tx_ui.try_send(freq_filter.clone());
+                let _r = tx_ui.try_send(
+                    stereo_audio_params.left.sdft.norm_vec()
+                        [0..stereo_audio_params.left.sdft.size / 2]
+                        .to_vec(),
+                );
 
-                    // copying to all channels for now
-                    for out_sample in frame.iter_mut() {
-                        *out_sample = v;
-                    }
-                    left_audio_params.time += 1;
-                }
+                // println!("{:?}", r);
             }
-
-            // send a chunk of the fft here
-            // let _r = tx_ui.try_send(mfft(spectrum.clone()));
-            // let _r = tx_ui.try_send(freq_filter.clone());
-            let _r = tx_ui.try_send(
-                left_audio_params.sdft.norm_vec()[0..left_audio_params.sdft.size / 2].to_vec(),
-            );
-
-            // println!("{:?}", r);
         },
         err_fn,
         None,

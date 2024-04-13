@@ -41,7 +41,6 @@ fn main() {
             save_bpf_gain,
             save_bpf_freq,
             save_bpf_Q,
-            update_bypass,
             update_output_gain,
             update_noise_gain,
             save_output_gain,

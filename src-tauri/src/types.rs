@@ -153,14 +153,15 @@ impl FilterBank {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum StereoControl {
     Left,
     Right,
     Both,
 }
 
-#[derive(Clone, Debug)]
+/// a message from a single channel (left or right)
+#[derive(Clone, Debug, Copy)]
 pub struct ChannelMessage {
     pub time: Option<f32>,
     pub clean: Option<bool>,
@@ -173,29 +174,10 @@ pub struct ChannelMessage {
     pub noise_gain: Option<f32>,
     pub pre_smooth_gain: Option<f32>,
     pub post_smooth_gain: Option<f32>,
+    pub id: &'static str,
 }
 
-// use options with everything...a little annoying but then use None when passing to ignore most sub-structs
-// this struct is for messages sent from UI to audio thread
-#[derive(Clone, Debug)]
-pub struct Message {
-    pub time: Option<f32>,
-    pub clean: Option<bool>,
-    pub bp1: Option<IIR2>,
-    pub bp2: Option<IIR2>,
-    pub bp3: Option<IIR2>,
-    pub bp4: Option<IIR2>,
-    pub bp5: Option<IIR2>,
-    pub output_gain: Option<f32>,
-    pub noise_gain: Option<f32>,
-    pub pre_smooth_gain: Option<f32>,
-    pub post_smooth_gain: Option<f32>,
-    pub file_path: Option<String>,
-    pub stereo_control: StereoControl,
-}
-
-// use all None for default message to shorten other functions that send one thing at a time
-impl Default for Message {
+impl Default for ChannelMessage {
     fn default() -> Self {
         Self {
             time: None,
@@ -209,65 +191,116 @@ impl Default for Message {
             noise_gain: None,
             pre_smooth_gain: None,
             post_smooth_gain: None,
+            id: "left",
+        }
+    }
+}
+
+// not sure if this is needed, maybe it should be in AudioParams?
+// impl ChannelMessage {
+//     pub fn filters_as_slice(&self) -> [IIR2; 5] {
+//         return [self.bp1, self.bp2, self.bp3, self.bp4, self.bp5];
+//     }
+// }
+
+// use options with everything...a little annoying but then use None when passing to ignore most sub-structs
+// this struct is for messages sent from UI to audio thread
+#[derive(Clone, Debug)]
+pub struct Message {
+    pub left_channel: Option<ChannelMessage>,
+    pub right_channel: Option<ChannelMessage>,
+    pub file_path: Option<String>,
+    pub stereo_control: StereoControl,
+}
+
+// use all None for default message to shorten other functions that send one thing at a time
+impl Default for Message {
+    fn default() -> Self {
+        Self {
             file_path: None,
             stereo_control: StereoControl::Both,
+            left_channel: Some(ChannelMessage::default()),
+            right_channel: Some(ChannelMessage {
+                id: "right",
+                ..Default::default()
+            }),
         }
     }
 }
 
 impl Message {
-    pub fn receive(&self, params: &mut AudioParams) {
-        if let Some(bp) = self.bp1 {
-            params.filter_bank.bp1.update_coeffs(bp);
-            params.noise_spectrum = params.filter_bank.parallel_transfer(params.dft_size);
+    pub fn receive(&self, params: &mut StereoAudioParams) {
+        if let Some(ch) = self.left_channel {
+            // would eventually like to iterate over all filters in the filter bank instead of doing this
+            if let Some(bp) = ch.bp1 {
+                params.left.filter_bank.bp1.update_coeffs(bp);
+                params.left.noise_spectrum = params
+                    .left
+                    .filter_bank
+                    .parallel_transfer(params.left.dft_size);
+            }
+            if let Some(bp) = ch.bp2 {
+                params.left.filter_bank.bp2.update_coeffs(bp);
+                params.left.noise_spectrum = params
+                    .left
+                    .filter_bank
+                    .parallel_transfer(params.left.dft_size);
+            }
+            if let Some(bp) = ch.bp3 {
+                params.left.filter_bank.bp3.update_coeffs(bp);
+                params.left.noise_spectrum = params
+                    .left
+                    .filter_bank
+                    .parallel_transfer(params.left.dft_size);
+            }
+            if let Some(bp) = ch.bp4 {
+                params.left.filter_bank.bp5.update_coeffs(bp);
+                params.left.noise_spectrum = params
+                    .left
+                    .filter_bank
+                    .parallel_transfer(params.left.dft_size);
+            }
+            if let Some(bp) = ch.bp5 {
+                params.left.filter_bank.bp5.update_coeffs(bp);
+                params.left.noise_spectrum = params
+                    .left
+                    .filter_bank
+                    .parallel_transfer(params.left.dft_size);
+            }
+            if let Some(t) = ch.time {
+                params.left.time = (params.num_file_samples as f32 * t) as usize;
+                params.left.sdft.freq_history = czerov(params.left.dft_size);
+                params.left.sdft.time_history =
+                    Fixed::from(vec![Complex::new(0.0, 0.0); params.left.dft_size]);
+            }
+            if let Some(c) = ch.clean {
+                params.left.clean = c;
+                params.left.sdft.freq_history = czerov(params.left.dft_size);
+                params.left.sdft.time_history =
+                    Fixed::from(vec![Complex::new(0.0, 0.0); params.left.dft_size]);
+            }
+            if let Some(g) = ch.output_gain {
+                params.left.output_gain = g;
+            }
+            if let Some(g) = ch.noise_gain {
+                params.left.noise_gain = g;
+            }
+            if let Some(g) = ch.pre_smooth_gain {
+                params.left.pre_smooth_gain = g;
+            }
+            if let Some(g) = ch.post_smooth_gain {
+                params.left.post_smooth_gain = g;
+            }
         }
-        if let Some(bp) = self.bp2 {
-            params.filter_bank.bp2.update_coeffs(bp);
-            params.noise_spectrum = params.filter_bank.parallel_transfer(params.dft_size);
-        }
-        if let Some(bp) = self.bp3 {
-            params.filter_bank.bp3.update_coeffs(bp);
-            params.noise_spectrum = params.filter_bank.parallel_transfer(params.dft_size);
-        }
-        if let Some(bp) = self.bp4 {
-            params.filter_bank.bp5.update_coeffs(bp);
-            params.noise_spectrum = params.filter_bank.parallel_transfer(params.dft_size);
-        }
-        if let Some(bp) = self.bp5 {
-            params.filter_bank.bp5.update_coeffs(bp);
-            params.noise_spectrum = params.filter_bank.parallel_transfer(params.dft_size);
-        }
-        if let Some(t) = self.time {
-            params.time = (params.num_file_samples as f32 * t) as usize;
-            params.sdft.freq_history = czerov(params.dft_size);
-            params.sdft.time_history = Fixed::from(vec![Complex::new(0.0, 0.0); params.dft_size]);
-        }
-        if let Some(c) = self.clean {
-            params.clean = c;
-            params.sdft.freq_history = czerov(params.dft_size);
-            params.sdft.time_history = Fixed::from(vec![Complex::new(0.0, 0.0); params.dft_size]);
-        }
-        if let Some(g) = self.output_gain {
-            params.output_gain = g;
-        }
-        if let Some(g) = self.noise_gain {
-            params.noise_gain = g;
-        }
-        if let Some(g) = self.pre_smooth_gain {
-            params.pre_smooth_gain = g;
-        }
-        if let Some(g) = self.post_smooth_gain {
-            params.post_smooth_gain = g;
+        if let Some(ch) = self.right_channel {
+            self.recv_channel(ch, params);
         }
     }
+    pub fn recv_channel(&self, channel: ChannelMessage, params: &mut StereoAudioParams) {}
 }
 
-/// same as message but not options, these are storing in the thread after receiving message
-// ... or it isn't the same? dft_size isn't there but it could be added later, was planning on that
 #[derive(Clone)]
 pub struct AudioParams {
-    pub dft_size: usize,
-    pub num_file_samples: usize,
     pub time: usize,
     pub clean: bool,
     pub bp1: IIR2,
@@ -281,7 +314,7 @@ pub struct AudioParams {
     pub noise_gain: f32,
     pub pre_smooth_gain: f32,
     pub post_smooth_gain: f32,
-    pub file_path: String,
+    pub dft_size: usize,
     pub output_spectrum: Vec<f32>,
     pub noise_spectrum: Vec<f32>,
     pub sdft: SDFT,
@@ -294,7 +327,6 @@ impl AudioParams {
         let fb = FilterBank::new();
         Self {
             dft_size: 256,
-            num_file_samples: 0,
             time: 0,
             clean: false,
             bp1: fb.bp1,
@@ -307,11 +339,37 @@ impl AudioParams {
             noise_gain: 0.0,
             pre_smooth_gain: 0.5,
             post_smooth_gain: 0.5,
-            file_path: "".to_string(),
             output_spectrum: vec![],
             noise_spectrum: vec![],
             filter_bank: fb,
             sdft: SDFT::new(256),
+        }
+    }
+    // pub fn filter_bank(&self) -> [IIR2; 5] {
+    //     [self.bp1, self.bp2, self.bp3, self.bp4, self.bp5]
+    // }
+}
+
+pub struct StereoAudioParams {
+    pub left: AudioParams,
+    pub right: AudioParams,
+    pub stereo_control: StereoControl,
+    pub clean: bool,
+    pub num_file_samples: usize,
+    pub file_path: String,
+    pub is_stereo: bool,
+}
+
+impl StereoAudioParams {
+    pub fn new() -> Self {
+        Self {
+            left: AudioParams::new(),
+            right: AudioParams::new(),
+            stereo_control: StereoControl::Both,
+            clean: false,
+            num_file_samples: 0,
+            file_path: "".to_string(),
+            is_stereo: false,
         }
     }
 }

@@ -240,6 +240,12 @@
     <div class="button-bar">
       <button
         on:click={async () => {
+        }}
+      >
+        stereo
+      </button>
+      <button
+        on:click={async () => {
           if (!is_playing) {
             await invoke("play_stream");
             is_playing = true;
