@@ -237,7 +237,6 @@
 
 		for (const key in b) {
 			// console.log("what", b[key as keyof FilterCoeffs2]);
-
 			// if (isNaN(b[key as keyof FilterCoeffs2])) return;
 		}
 		// console.log("here");
@@ -336,6 +335,25 @@
 					stereoControl: stereo_control,
 				});
 			}
+		}
+	}
+
+	export function update_filter_bank(
+		gains: number[],
+		freqs: number[],
+		Qs: number[],
+		update_server: boolean,
+		stereo_control: StereoControl
+	) {
+		for (let i = 0; i < gains.length; i++) {
+			update_filters(
+				i + 1,
+				gains[i],
+				freqs[i],
+				Qs[i],
+				update_server,
+				stereo_control
+			);
 		}
 	}
 

@@ -12,6 +12,9 @@
 	export let index: number;
 	export let stereo_control: StereoControl;
 
+	// $: gain, update_filters(index, gain, freq, Q, true, stereo_control);
+	// $: freq, update_filters(index, gain, freq, Q, true, stereo_control);
+	// $: Q, update_filters(index, gain, freq, Q, true, stereo_control);
 </script>
 
 <div class="wrapper">
@@ -56,6 +59,11 @@
 		title="reset to 0 dB"
 		on:click={() => {
 			gain = 0;
+			invoke("save_bpf_gain", {
+				gain: 0,
+				index: index,
+				stereoControl: stereo_control,
+			});
 		}}
 		>rst gain
 	</button>

@@ -65,6 +65,7 @@ fn main() {
             update_mute,
             get_mute,
             save_mute,
+            init_audio_params_from_server,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();

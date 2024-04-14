@@ -3,6 +3,7 @@ use std::sync::Mutex;
 use crate::{
     audio::setup_stream,
     constants::czerov,
+    server::get_mute,
     types::{
         AudioParams, MSender, MStream, MStreamSend, MUIReceiver, StereoAudioParams, StereoControl,
         IIR2,
@@ -13,6 +14,34 @@ use dasp_ring_buffer::Fixed;
 use rustfft::num_complex::Complex;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
+
+/// this is to load params directly from server, the ones that are setup in the stream, the audio params...want to keep them synced with UI on startup, so this will just be called onMount from frontend
+#[tauri::command]
+pub async fn init_audio_params_from_server(
+    streamsend: State<'_, MStreamSend>,
+) -> Result<(), String> {
+    let left_mute = get_mute(StereoControl::Left).await.unwrap();
+    let right_mute = get_mute(StereoControl::Left).await.unwrap();
+
+    stereo_message(
+        Some(StereoControl::Left),
+        streamsend.clone(),
+        Some(ChannelMessage {
+            mute: Some(left_mute),
+            ..Default::default()
+        }),
+    );
+    stereo_message(
+        Some(StereoControl::Right),
+        streamsend,
+        Some(ChannelMessage {
+            mute: Some(right_mute),
+            ..Default::default()
+        }),
+    );
+
+    Ok(())
+}
 
 #[tauri::command]
 pub fn update_filters(

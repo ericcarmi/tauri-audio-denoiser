@@ -246,26 +246,31 @@ pub async fn get_channel_state(channel: StereoControl) -> Result<UIParams, Strin
     }
 }
 
-async fn redis_get_noise_gain(left: Option<bool>) -> redis::RedisResult<f32> {
+async fn redis_get_noise_gain(stereo_control: Option<StereoControl>) -> redis::RedisResult<f32> {
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_multiplexed_async_connection().await?;
 
     let gain: Result<f32, redis::RedisError>;
-    if left.is_some_and(|x| x == false) || left.is_none() {
-        gain = con.get("left_noise_gain").await;
-    } else {
-        gain = con.get("right_noise_gain").await;
-    }
+    use StereoControl::*;
 
+    if let Some(st) = stereo_control {
+        match st {
+            Left => gain = con.get("left_noise_gain").await,
+            Right => gain = con.get("right_noise_gain").await,
+            Both => gain = con.get("both_noise_gain").await,
+        };
+    } else {
+        gain = con.get("left_noise_gain").await;
+    }
     gain
 }
 
 #[tauri::command]
-pub async fn get_noise_gain(left: Option<bool>) -> Result<f32, String> {
-    if let Ok(gain) = redis_get_noise_gain(left).await {
+pub async fn get_noise_gain(stereo_control: Option<StereoControl>) -> Result<f32, String> {
+    if let Ok(gain) = redis_get_noise_gain(stereo_control).await {
         Ok(gain)
     } else {
-        Err("failed to get noise gain".to_string())
+        Err("error getting noise gain".to_string())
     }
 }
 
@@ -292,72 +297,91 @@ pub async fn get_mute(stereo_control: StereoControl) -> Result<bool, String> {
     }
 }
 
-async fn redis_get_output_gain(left: Option<bool>) -> redis::RedisResult<f32> {
+async fn redis_get_output_gain(stereo_control: Option<StereoControl>) -> redis::RedisResult<f32> {
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_multiplexed_async_connection().await?;
 
     let gain: Result<f32, redis::RedisError>;
-    if left.is_some_and(|x| x == false) || left.is_none() {
+    use StereoControl::*;
+
+    if let Some(st) = stereo_control {
+        match st {
+            Left => gain = con.get("left_output_gain").await,
+            Right => gain = con.get("right_output_gain").await,
+            Both => gain = con.get("both_output_gain").await,
+        };
+    } else {
         gain = con.get("left_output_gain").await;
-    } else {
-        gain = con.get("right_output_gain").await;
     }
-
     gain
 }
 
 #[tauri::command]
-pub async fn get_output_gain(left: Option<bool>) -> Result<f32, String> {
-    if let Ok(gain) = redis_get_output_gain(left).await {
+pub async fn get_output_gain(stereo_control: Option<StereoControl>) -> Result<f32, String> {
+    if let Ok(gain) = redis_get_output_gain(stereo_control).await {
         Ok(gain)
     } else {
-        Err("failed to get output gain".to_string())
+        Err("error getting noise gain".to_string())
     }
 }
 
-async fn redis_get_pre_smooth_gain(left: Option<bool>) -> redis::RedisResult<f32> {
+async fn redis_get_pre_smooth_gain(
+    stereo_control: Option<StereoControl>,
+) -> redis::RedisResult<f32> {
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_multiplexed_async_connection().await?;
 
     let gain: Result<f32, redis::RedisError>;
-    if left.is_some_and(|x| x == false) || left.is_none() {
+    use StereoControl::*;
+
+    if let Some(st) = stereo_control {
+        match st {
+            Left => gain = con.get("left_pre_smooth_gain").await,
+            Right => gain = con.get("right_pre_smooth_gain").await,
+            Both => gain = con.get("both_pre_smooth_gain").await,
+        };
+    } else {
         gain = con.get("left_pre_smooth_gain").await;
-    } else {
-        gain = con.get("right_pre_smooth_gain").await;
     }
-
     gain
 }
 
 #[tauri::command]
-pub async fn get_pre_smooth_gain(left: Option<bool>) -> Result<f32, String> {
-    if let Ok(gain) = redis_get_pre_smooth_gain(left).await {
+pub async fn get_pre_smooth_gain(stereo_control: Option<StereoControl>) -> Result<f32, String> {
+    if let Ok(gain) = redis_get_pre_smooth_gain(stereo_control).await {
         Ok(gain)
     } else {
-        Err("failed to get pre_smooth gain".to_string())
+        Err("error getting noise gain".to_string())
     }
 }
 
-async fn redis_get_post_smooth_gain(left: Option<bool>) -> redis::RedisResult<f32> {
+async fn redis_get_post_smooth_gain(
+    stereo_control: Option<StereoControl>,
+) -> redis::RedisResult<f32> {
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_multiplexed_async_connection().await?;
+
     let gain: Result<f32, redis::RedisError>;
+    use StereoControl::*;
 
-    if left.is_some_and(|x| x == false) || left.is_none() {
-        gain = con.get("left_post_smooth_gain").await;
+    if let Some(st) = stereo_control {
+        match st {
+            Left => gain = con.get("left_post_smooth_gain").await,
+            Right => gain = con.get("right_post_smooth_gain").await,
+            Both => gain = con.get("both_post_smooth_gain").await,
+        };
     } else {
-        gain = con.get("right_post_smooth_gain").await;
+        gain = con.get("left_post_smooth_gain").await;
     }
-
     gain
 }
 
 #[tauri::command]
-pub async fn get_post_smooth_gain(left: Option<bool>) -> Result<f32, String> {
-    if let Ok(gain) = redis_get_post_smooth_gain(left).await {
+pub async fn get_post_smooth_gain(stereo_control: Option<StereoControl>) -> Result<f32, String> {
+    if let Ok(gain) = redis_get_post_smooth_gain(stereo_control).await {
         Ok(gain)
     } else {
-        Err("failed to get post_smooth gain".to_string())
+        Err("error getting noise gain".to_string())
     }
 }
 

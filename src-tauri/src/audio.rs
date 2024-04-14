@@ -1,5 +1,6 @@
 use crate::constants::*;
 use crate::messages::{AudioUIMessage, Message};
+use crate::server::get_mute;
 // use crate::fourier::mfft;
 use crate::types::*;
 use anyhow;
@@ -279,6 +280,7 @@ where
                         stereo_audio_params.time += 2;
                     }
                 }
+
                 // send a chunk of the fft here
                 // let _r = tx_ui.try_send(mfft(spectrum.clone()));
                 // let _r = tx_ui.try_send(freq_filter.clone());
