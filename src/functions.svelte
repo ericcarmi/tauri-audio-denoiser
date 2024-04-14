@@ -41,6 +41,7 @@
 			pre_smooth_gain: pre_smooth_gain,
 			post_smooth_gain: post_smooth_gain,
 			clean: clean,
+			mute: false,
 		};
 
 		return {

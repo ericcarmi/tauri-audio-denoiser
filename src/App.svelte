@@ -12,11 +12,7 @@
     num_sliders,
   } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
-  import type {
-    BPF,
-    StereoControl,
-    StereoParams,
-  } from "./types.svelte";
+  import type { BPF, StereoControl, StereoParams } from "./types.svelte";
   import {
     init_channel_params,
     remove_slashes_ext,
@@ -102,7 +98,7 @@
     }
   }
 
-  $: stereo_params.control, set_params_control(stereo_params.control)
+  $: stereo_params.control, set_params_control(stereo_params.control);
 
   let bpf_hovering = Array(num_sliders).fill(false);
   let num_time_samples = 1;
@@ -158,34 +154,32 @@
     // load from server
     let b: Array<BPF> = await invoke("get_global_state");
     bpfs = b;
-    console.log(bpfs, b)
-
+    console.log(bpfs, b);
 
     noise_gain = await invoke("get_noise_gain");
     output_gain = await invoke("get_output_gain");
     post_smooth_gain = await invoke("get_post_smooth_gain");
     pre_smooth_gain = await invoke("get_pre_smooth_gain");
 
-    stereo_params.left = await invoke("get_channel_state", {channel: "Left"});
-    stereo_params.right = await invoke("get_channel_state", {channel: "Right"});
-    stereo_params.both = await invoke("get_channel_state", {channel: "Both"});
+    stereo_params.left = await invoke("get_channel_state", { channel: "Left" });
+    stereo_params.right = await invoke("get_channel_state", {
+      channel: "Right",
+    });
+    stereo_params.both = await invoke("get_channel_state", { channel: "Both" });
 
     stereo_params.control = await invoke("get_stereo_control");
-  
   });
 
-  $: stereo_params.control, () => {
-    if(stereo_params.control === "Left") {
-      bpfs = stereo_params.left.bpfs;
-    }
-    else if(stereo_params.control === "Right") {
-      bpfs = stereo_params.right.bpfs;
-    }
-    else if(stereo_params.control === "Both") {
-      bpfs = stereo_params.both.bpfs;
-    }
-    
-  }
+  $: stereo_params.control,
+    () => {
+      if (stereo_params.control === "Left") {
+        bpfs = stereo_params.left.bpfs;
+      } else if (stereo_params.control === "Right") {
+        bpfs = stereo_params.right.bpfs;
+      } else if (stereo_params.control === "Both") {
+        bpfs = stereo_params.both.bpfs;
+      }
+    };
 
   function resetInterval() {
     clearInterval(interval);
@@ -209,7 +203,6 @@
       is_playing ? 10 : 1000
     );
   }
-
 </script>
 
 <main class="container" id="app-container">
@@ -294,8 +287,27 @@
         >
         control: {stereo_params.control}
       </div>
-      <button disabled={!stereo_params.is_stereo} on:click={async () => {}}> left </button>
-      <button disabled={!stereo_params.is_stereo} on:click={async () => {}}> right </button>
+      <div class="stereo-mute-buttons">
+        mute
+        <button
+          class="mute-button"
+          data-attribute={stereo_params.left.mute}
+          on:click={async () => {
+            stereo_params.left.mute = !stereo_params.left.mute;
+          }}
+        >
+          left
+        </button>
+        <button
+          class="mute-button"
+          data-attribute={stereo_params.right.mute}
+          on:click={async () => {
+            stereo_params.right.mute = !stereo_params.right.mute;
+          }}
+        >
+          right
+        </button>
+      </div>
       <button
         on:click={async () => {
           if (!is_playing) {
@@ -343,7 +355,7 @@
           bind:freq={bpfs[i].freq}
           bind:Q={bpfs[i].Q}
           bind:stereo_control={stereo_params.control}
-          index={i+ 1}
+          index={i + 1}
         />
       </div>
     {/each}
@@ -359,10 +371,16 @@
       max_val={20}
       min_val={-80}
       update_backend={() => {
-        invoke("update_noise_gain", { gain: noise_gain });
+        invoke("update_noise_gain", {
+          gain: noise_gain,
+          stereoControl: stereo_params.control,
+        });
       }}
       update_server={() => {
-        invoke("save_noise_gain", { gain: noise_gain });
+        invoke("save_noise_gain", {
+          gain: noise_gain,
+          stereoControl: stereo_params.control,
+        });
       }}
     />
     <RotarySlider
@@ -373,10 +391,16 @@
       min_val={0.0}
       resolution={3}
       update_backend={() => {
-        invoke("update_pre_smooth_gain", { gain: pre_smooth_gain });
+        invoke("update_pre_smooth_gain", {
+          gain: pre_smooth_gain,
+          stereoControl: stereo_params.control,
+        });
       }}
       update_server={() => {
-        invoke("save_pre_smooth_gain", { gain: pre_smooth_gain });
+        invoke("save_pre_smooth_gain", {
+          gain: pre_smooth_gain,
+          stereoControl: stereo_params.control,
+        });
       }}
     />
     <RotarySlider
@@ -387,10 +411,16 @@
       min_val={0.0}
       resolution={3}
       update_backend={() => {
-        invoke("update_post_smooth_gain", { gain: post_smooth_gain });
+        invoke("update_post_smooth_gain", {
+          gain: post_smooth_gain,
+          stereoControl: stereo_params.control,
+        });
       }}
       update_server={() => {
-        invoke("save_post_smooth_gain", { gain: post_smooth_gain });
+        invoke("save_post_smooth_gain", {
+          gain: post_smooth_gain,
+          stereoControl: stereo_params.control,
+        });
       }}
     />
     <RotarySlider
@@ -401,10 +431,16 @@
       min_val={-20}
       label="output gain"
       update_backend={() => {
-        invoke("update_output_gain", { gain: output_gain });
+        invoke("update_output_gain", {
+          gain: output_gain,
+          stereoControl: stereo_params.control,
+        });
       }}
       update_server={() => {
-        invoke("save_output_gain", { gain: output_gain });
+        invoke("save_output_gain", {
+          gain: output_gain,
+          stereoControl: stereo_params.control,
+        });
       }}
     />
   </div>
@@ -415,7 +451,14 @@
       on:click={() => {
         bpfs = [
           ...bpfs.map((filt, i) => {
-            update_filters(i + 1, 0.0, filt.freq, filt.Q, true, stereo_params.control);
+            update_filters(
+              i + 1,
+              0.0,
+              filt.freq,
+              filt.Q,
+              true,
+              stereo_params.control
+            );
             return { gain: 0.0, freq: filt.freq, Q: filt.Q };
           }),
         ];
@@ -564,5 +607,14 @@
   .stereo-control-buttons {
     position: absolute;
     left: 2.5%;
+  }
+  .stereo-mute-buttons {
+    position: absolute;
+    right: 2.5%;
+  }
+  .mute-button[data-attribute="true"] {
+    background: var(--purple);
+    text-decoration: line-through;
+    border: 1px solid black;
   }
 </style>

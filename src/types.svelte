@@ -14,6 +14,7 @@
 		pre_smooth_gain: number;
 		post_smooth_gain: number;
 		clean: boolean,
+		mute: boolean,
 	}
 
 	export type StereoParams = {

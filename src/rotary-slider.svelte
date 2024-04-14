@@ -92,10 +92,7 @@
 				// have to call this here...maybe want to change how this is handled later
 				is_mouse_down = false;
 				// needs to be lowercase here...tauri does that
-				if (index !== -1) invoke("save_bpf_Q", { q: value, index: index });
-				else {
-					update_server();
-				}
+				update_server();
 
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);

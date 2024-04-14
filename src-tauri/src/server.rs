@@ -59,7 +59,6 @@ pub async fn set_file_fft(file_name: &str, app_handle: AppHandle) -> Result<(), 
     let filepath = p + "/" + file_name;
 
     let _r = redis_set_file_fft(filepath.as_str()).await;
-    // println!("set fft {:?}", r);
 
     Ok(())
 }
@@ -96,7 +95,6 @@ async fn redis_set_file_fft(file_name: &str) -> redis::RedisResult<()> {
     let data = r.unwrap().1;
 
     // let data: String = vec![1, 0].iter().map(|x| x.to_string() + ",").collect();
-    // println!("{:?}", r);
 
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_multiplexed_async_connection().await?;
@@ -131,7 +129,6 @@ async fn redis_save_global_state(bpfs: Vec<Bpf>) -> redis::RedisResult<()> {
 #[tauri::command]
 pub async fn save_global_state(bpfs: Vec<Bpf>) {
     let _r = redis_save_global_state(bpfs).await;
-    // println!("{:?}", r);
 }
 
 async fn redis_get_global_state() -> redis::RedisResult<Vec<Bpf>> {
@@ -362,7 +359,6 @@ async fn redis_save_bpf_gain(
 #[tauri::command]
 pub async fn save_bpf_gain(gain: f32, index: usize, stereo_control: Option<StereoControl>) {
     let _r = redis_save_bpf_gain(gain, index, stereo_control).await;
-    // println!("{:?}", r);
 }
 
 async fn redis_save_bpf_freq(
@@ -395,7 +391,6 @@ async fn redis_save_bpf_freq(
 #[tauri::command]
 pub async fn save_bpf_freq(freq: f32, index: usize, stereo_control: Option<StereoControl>) {
     let _r = redis_save_bpf_freq(freq, index, stereo_control).await;
-    // println!("{:?}", r);
 }
 
 async fn redis_save_bpf_Q(
@@ -429,7 +424,6 @@ async fn redis_save_bpf_Q(
 #[tauri::command]
 pub async fn save_bpf_Q(Q: f32, index: usize, stereo_control: Option<StereoControl>) {
     let _r = redis_save_bpf_Q(Q, index, stereo_control).await;
-    // println!("{:?}", r);
 }
 
 async fn redis_get_stereo_control() -> redis::RedisResult<String> {
@@ -443,7 +437,6 @@ async fn redis_get_stereo_control() -> redis::RedisResult<String> {
 pub async fn get_stereo_control() -> Result<StereoControl, String> {
     if let Ok(st) = redis_get_stereo_control().await {
         use StereoControl::*;
-        println!("{:?}", st);
 
         let s: StereoControl = match st.as_str() {
             "Left" => Left,
@@ -468,7 +461,6 @@ async fn redis_save_stereo_control(stereo_control: StereoControl) -> redis::Redi
 #[tauri::command]
 pub async fn save_stereo_control(stereo_control: StereoControl) {
     let _r = redis_save_stereo_control(stereo_control).await;
-    // println!("{:?}", r);
 }
 
 async fn redis_save_output_gain(
@@ -501,7 +493,6 @@ async fn redis_save_output_gain(
 #[tauri::command]
 pub async fn save_output_gain(gain: f32, stereo_control: Option<StereoControl>) {
     let _r = redis_save_output_gain(gain, stereo_control).await;
-    // println!("{:?}", r);
 }
 
 async fn redis_save_pre_smooth_gain(
@@ -534,7 +525,6 @@ async fn redis_save_pre_smooth_gain(
 #[tauri::command]
 pub async fn save_pre_smooth_gain(gain: f32, stereo_control: Option<StereoControl>) {
     let _r = redis_save_pre_smooth_gain(gain, stereo_control).await;
-    // println!("{:?}", r);
 }
 
 async fn redis_save_post_smooth_gain(
@@ -567,7 +557,6 @@ async fn redis_save_post_smooth_gain(
 #[tauri::command]
 pub async fn save_post_smooth_gain(gain: f32, stereo_control: Option<StereoControl>) {
     let _r = redis_save_post_smooth_gain(gain, stereo_control).await;
-    // println!("{:?}", r);
 }
 
 async fn redis_save_noise_gain(
@@ -600,7 +589,6 @@ async fn redis_save_noise_gain(
 #[tauri::command]
 pub async fn save_noise_gain(gain: f32, stereo_control: Option<StereoControl>) {
     let _r = redis_save_noise_gain(gain, stereo_control).await;
-    // println!("{:?}", r);
 }
 
 // for creating the default settings in db
@@ -640,7 +628,6 @@ async fn redis_save_settings(settings: Settings) -> redis::RedisResult<()> {
 #[tauri::command]
 pub async fn save_settings(settings: Settings) {
     let _r = redis_save_settings(settings).await;
-    // println!("{:?}", r);
 }
 
 async fn redis_get_settings() -> redis::RedisResult<String> {
@@ -674,7 +661,6 @@ async fn redis_save_theme(theme: Theme) -> redis::RedisResult<()> {
 #[tauri::command]
 pub async fn save_theme(theme: Theme) {
     let _r = redis_save_theme(theme).await;
-    // println!("{:?}", r);
 }
 
 async fn redis_get_theme() -> redis::RedisResult<String> {

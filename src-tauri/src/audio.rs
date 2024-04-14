@@ -41,8 +41,6 @@ pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>, bool) {
             .into_string()
             .unwrap();
 
-        println!("{:?}", p);
-
         let f = File::open(p).unwrap();
         let (head, samples) = wav_io::read_from_file(f).unwrap();
         let is_stereo = if head.channels == 1 { false } else { true };
@@ -143,21 +141,17 @@ where
     });
 
     stereo_audio_params.num_file_samples = file_samples.len();
-    stereo_audio_params.left.noise_spectrum = stereo_audio_params
-        .left
-        .filter_bank
-        .parallel_transfer(stereo_audio_params.left.dft_size);
 
     let stream = device.build_output_stream(
         config,
         move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
             // check for messages sent to receiver...update things
             if let Ok(msg) = rx.try_recv() {
+                // need to check for stereo control here?
                 msg.receive(&mut stereo_audio_params)
             }
 
             if !stereo_audio_params.is_stereo {
-                // vec for fft, will make another for processed spectrum?
                 let mut spectrum: Vec<f32> = vec![];
                 if stereo_audio_params.clean {
                     // ...each frame has 2 samples
@@ -170,7 +164,7 @@ where
                         let v: T = T::from_sample(sample);
                         spectrum.push(sample);
 
-                        // copying to all channels for now
+                        // copy mono input to both output channels
                         for out_sample in frame.iter_mut() {
                             *out_sample = v;
                         }
@@ -213,8 +207,83 @@ where
                     ),
                     ..Default::default()
                 });
+            }
+            // PROCESS STEREO
+            else {
+                let mut left_spectrum: Vec<f32> = vec![];
+                let mut right_spectrum: Vec<f32> = vec![];
+                if stereo_audio_params.clean {
+                    // ...each frame has 2 samples
+                    for frame in output.chunks_mut(num_channels) {
+                        if stereo_audio_params.time >= stereo_audio_params.num_file_samples {
+                            break;
+                        }
+                        let left_sample = file_samples[stereo_audio_params.time]
+                            * stereo_audio_params.left.output_gain;
+                        let left_samp: T = T::from_sample(left_sample);
+                        left_spectrum.push(left_sample);
 
-                // println!("{:?}", r);
+                        let right_sample = file_samples[stereo_audio_params.time + 1]
+                            * stereo_audio_params.right.output_gain;
+                        let right_samp: T = T::from_sample(right_sample);
+                        right_spectrum.push(right_sample);
+
+                        let fr = frame.get_mut(0).unwrap();
+                        *fr = left_samp;
+                        let fr = frame.get_mut(1).unwrap();
+                        *fr = right_samp;
+                        stereo_audio_params.time += 2;
+                    }
+                } else {
+                    for frame in output.chunks_mut(num_channels) {
+                        if stereo_audio_params.time >= stereo_audio_params.num_file_samples {
+                            break;
+                        }
+                        let left_sample = file_samples[stereo_audio_params.time]
+                            * stereo_audio_params.left.output_gain;
+                        let left_filtered = stereo_audio_params.left.sdft.spectral_subtraction(
+                            left_sample,
+                            &stereo_audio_params.left.noise_spectrum,
+                            stereo_audio_params.left.noise_gain,
+                            stereo_audio_params.left.pre_smooth_gain,
+                            stereo_audio_params.left.post_smooth_gain,
+                        );
+
+                        let left_samp: T = T::from_sample(left_filtered);
+                        left_spectrum.push(left_filtered);
+                        let fr = frame.get_mut(0).unwrap();
+                        *fr = left_samp;
+
+                        let right_sample = file_samples[stereo_audio_params.time + 1]
+                            * stereo_audio_params.right.output_gain;
+                        let right_filtered = stereo_audio_params.right.sdft.spectral_subtraction(
+                            right_sample,
+                            &stereo_audio_params.right.noise_spectrum,
+                            stereo_audio_params.right.noise_gain,
+                            stereo_audio_params.right.pre_smooth_gain,
+                            stereo_audio_params.right.post_smooth_gain,
+                        );
+                        let right_samp: T = T::from_sample(right_filtered);
+                        right_spectrum.push(right_filtered);
+                        let fr = frame.get_mut(1).unwrap();
+                        *fr = right_samp;
+                        stereo_audio_params.time += 2;
+                    }
+                }
+                println!("{:?}", stereo_audio_params.left.mute);
+                println!("{:?}", stereo_audio_params.right.mute);
+
+                // send a chunk of the fft here
+                // let _r = tx_ui.try_send(mfft(spectrum.clone()));
+                // let _r = tx_ui.try_send(freq_filter.clone());
+                let _r = tx_ui.try_send(AudioUIMessage {
+                    spectrum: Some(
+                        stereo_audio_params.left.sdft.norm_vec()
+                            [0..stereo_audio_params.left.sdft.size / 2]
+                            .to_vec(),
+                    ),
+                    ..Default::default()
+                });
             }
         },
         err_fn,

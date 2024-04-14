@@ -27,19 +27,19 @@ pub fn update_filters(
     stereo_message(
         stereo,
         streamsend,
-        ChannelMessage {
+        Some(ChannelMessage {
             bp1,
             bp2,
             bp3,
             bp4,
             bp5,
             ..Default::default()
-        },
+        }),
     );
 }
 
 #[tauri::command]
-pub fn update_time(t: f32, streamsend: State<MStreamSend>, stereo: Option<StereoControl>) {
+pub fn update_time(t: f32, streamsend: State<MStreamSend>) {
     let _ = streamsend
         .0
         .lock()
@@ -59,10 +59,21 @@ pub fn update_clean(clean: bool, streamsend: State<MStreamSend>, stereo: Option<
     stereo_message(
         stereo,
         streamsend,
-        ChannelMessage {
+        Some(ChannelMessage {
             clean: Some(clean),
             ..Default::default()
-        },
+        }),
+    );
+}
+#[tauri::command]
+pub fn update_mute(mute: bool, streamsend: State<MStreamSend>, stereo: Option<StereoControl>) {
+    stereo_message(
+        stereo,
+        streamsend,
+        Some(ChannelMessage {
+            mute: Some(mute),
+            ..Default::default()
+        }),
     );
 }
 
@@ -76,10 +87,10 @@ pub fn update_output_gain(
     stereo_message(
         stereo,
         streamsend,
-        ChannelMessage {
+        Some(ChannelMessage {
             output_gain: Some(g),
             ..Default::default()
-        },
+        }),
     );
 }
 
@@ -90,10 +101,10 @@ pub fn update_noise_gain(gain: f32, streamsend: State<MStreamSend>, stereo: Opti
     stereo_message(
         stereo,
         streamsend,
-        ChannelMessage {
+        Some(ChannelMessage {
             noise_gain: Some(g),
             ..Default::default()
-        },
+        }),
     );
 }
 
@@ -106,10 +117,10 @@ pub fn update_pre_smooth_gain(
     stereo_message(
         stereo,
         streamsend,
-        ChannelMessage {
+        Some(ChannelMessage {
             pre_smooth_gain: Some(gain),
             ..Default::default()
-        },
+        }),
     );
 }
 
@@ -122,10 +133,10 @@ pub fn update_post_smooth_gain(
     stereo_message(
         stereo,
         streamsend,
-        ChannelMessage {
+        Some(ChannelMessage {
             post_smooth_gain: Some(gain),
             ..Default::default()
-        },
+        }),
     );
 }
 
@@ -151,8 +162,11 @@ pub fn update_file_path(
 fn stereo_message(
     stereo: Option<StereoControl>,
     streamsend: State<MStreamSend>,
-    channel_message: ChannelMessage,
+    channel_message: Option<ChannelMessage>,
 ) {
+    // println!("{:?}", channel_message);
+    // println!("{:?}", stereo);
+
     if let Some(s) = stereo {
         use StereoControl::*;
         match s {
@@ -166,7 +180,7 @@ fn stereo_message(
                     .lock()
                     .unwrap()
                     .try_send(Message {
-                        left_channel: Some(channel_message),
+                        left_channel: channel_message,
                         ..Default::default()
                     });
             }
@@ -180,7 +194,7 @@ fn stereo_message(
                     .lock()
                     .unwrap()
                     .try_send(Message {
-                        right_channel: Some(channel_message),
+                        right_channel: channel_message,
                         ..Default::default()
                     });
             }
@@ -194,8 +208,8 @@ fn stereo_message(
                     .lock()
                     .unwrap()
                     .try_send(Message {
-                        left_channel: Some(channel_message.clone()),
-                        right_channel: Some(channel_message),
+                        left_channel: channel_message,
+                        right_channel: channel_message,
                         ..Default::default()
                     });
             }
@@ -210,7 +224,8 @@ fn stereo_message(
             .lock()
             .unwrap()
             .try_send(Message {
-                left_channel: Some(channel_message),
+                left_channel: channel_message,
+                right_channel: channel_message,
                 ..Default::default()
             });
     }
@@ -221,6 +236,7 @@ fn stereo_message(
 pub struct ChannelMessage {
     pub time: Option<f32>,
     pub clean: Option<bool>,
+    pub mute: Option<bool>,
     pub bp1: Option<IIR2>,
     pub bp2: Option<IIR2>,
     pub bp3: Option<IIR2>,
@@ -230,7 +246,6 @@ pub struct ChannelMessage {
     pub noise_gain: Option<f32>,
     pub pre_smooth_gain: Option<f32>,
     pub post_smooth_gain: Option<f32>,
-    pub id: &'static str,
 }
 
 impl Default for ChannelMessage {
@@ -238,6 +253,7 @@ impl Default for ChannelMessage {
         Self {
             time: None,
             clean: None,
+            mute: None,
             bp1: None,
             bp2: None,
             bp3: None,
@@ -247,7 +263,6 @@ impl Default for ChannelMessage {
             noise_gain: None,
             pre_smooth_gain: None,
             post_smooth_gain: None,
-            id: "left",
         }
     }
 }
@@ -267,7 +282,8 @@ pub struct Message {
     pub right_channel: Option<ChannelMessage>,
     pub file_path: Option<String>,
     pub time: Option<f32>,
-    pub stereo_control: StereoControl,
+    pub stereo_control: Option<StereoControl>,
+    pub clean: Option<bool>,
 }
 
 // use all None for default message to shorten other functions that send one thing at a time
@@ -276,23 +292,63 @@ impl Default for Message {
         Self {
             time: None,
             file_path: None,
-            stereo_control: StereoControl::Both,
-            left_channel: Some(ChannelMessage::default()),
-            right_channel: Some(ChannelMessage {
-                id: "right",
-                ..Default::default()
-            }),
+            clean: None,
+            stereo_control: None,
+            left_channel: None,
+            right_channel: None,
         }
     }
 }
 
 impl Message {
     pub fn receive(&self, params: &mut StereoAudioParams) {
-        if let Some(ch) = self.left_channel {
-            self.recv_channel(&mut params.left, ch);
-        }
-        if let Some(ch) = self.right_channel {
-            self.recv_channel(&mut params.right, ch);
+        // apply controls to channels
+        use StereoControl::*;
+        // println!("{:?}", params.stereo_control);
+
+        match params.stereo_control {
+            Left => {
+                if let Some(ch) = self.left_channel {
+                    self.recv_channel(&mut params.left, ch);
+                    if let Some(c) = ch.clean {
+                        params.clean = c;
+                        params.left.sdft.freq_history = czerov(params.left.dft_size);
+                        params.left.sdft.time_history =
+                            Fixed::from(vec![Complex::new(0.0, 0.0); params.left.dft_size]);
+                    }
+                }
+            }
+            Right => {
+                if let Some(ch) = self.right_channel {
+                    self.recv_channel(&mut params.right, ch);
+                    if let Some(c) = ch.clean {
+                        params.clean = c;
+                        params.right.sdft.freq_history = czerov(params.right.dft_size);
+                        params.right.sdft.time_history =
+                            Fixed::from(vec![Complex::new(0.0, 0.0); params.right.dft_size]);
+                    }
+                }
+            }
+            Both => {
+                if let Some(ch) = self.left_channel {
+                    self.recv_channel(&mut params.left, ch);
+                    if let Some(c) = ch.clean {
+                        params.clean = c;
+                        params.left.sdft.freq_history = czerov(params.left.dft_size);
+                        params.left.sdft.time_history =
+                            Fixed::from(vec![Complex::new(0.0, 0.0); params.left.dft_size]);
+                    }
+                }
+                if let Some(ch) = self.right_channel {
+                    self.recv_channel(&mut params.right, ch);
+                    if let Some(c) = ch.clean {
+                        params.clean = c;
+                        params.right.sdft.freq_history = czerov(params.right.dft_size);
+                        params.right.sdft.time_history =
+                            Fixed::from(vec![Complex::new(0.0, 0.0); params.right.dft_size]);
+                    }
+                }
+            }
         }
 
         if let Some(t) = self.time {
@@ -342,12 +398,6 @@ impl Message {
             channel_params.noise_spectrum = channel_params
                 .filter_bank
                 .parallel_transfer(channel_params.dft_size);
-        }
-        if let Some(c) = channel_message.clean {
-            channel_params.clean = c;
-            channel_params.sdft.freq_history = czerov(channel_params.dft_size);
-            channel_params.sdft.time_history =
-                Fixed::from(vec![Complex::new(0.0, 0.0); channel_params.dft_size]);
         }
         if let Some(g) = channel_message.output_gain {
             channel_params.output_gain = g;

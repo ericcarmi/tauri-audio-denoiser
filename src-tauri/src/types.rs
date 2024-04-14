@@ -136,15 +136,12 @@ impl FilterBank {
         // loop over all filters first
         for (i, filt) in self.as_slice().iter().enumerate() {
             let h = filt.freq_response(n);
-            // println!("{}\n {:?}", i, h);
 
             H.iter_mut().enumerate().for_each(|(i, x)| *x += h[i] / l);
             // for j in H.clone() {
-            //     println!("{:?}", j);
             // }
         }
         // take norm after summing filters
-        // println!("{:?}", H);
 
         let mut out: Vec<f32> = H.iter().map(|x| x.norm()).collect();
         if out[0].is_nan() {
@@ -170,13 +167,32 @@ impl StereoControl {
             Both => "Both",
         }
     }
+    pub fn is_left(&self) -> bool {
+        if self.as_str() == "Left" {
+            return true;
+        }
+        false
+    }
+    pub fn is_right(&self) -> bool {
+        if self.as_str() == "Right" {
+            return true;
+        }
+        false
+    }
+    pub fn is_both(&self) -> bool {
+        if self.as_str() == "Both" {
+            return true;
+        }
+        false
+    }
 }
 
 /// audio params to be used in the audio thread -- some variables can be set directly from messages, others are computed (spectra, sdft)
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AudioParams {
     pub time: usize,
     pub clean: bool,
+    pub mute: bool,
     pub bp1: IIR2,
     pub bp2: IIR2,
     pub bp3: IIR2,
@@ -197,8 +213,10 @@ pub struct AudioParams {
 impl AudioParams {
     pub fn new() -> Self {
         let fb = FilterBank::new();
+        let n = 256;
         Self {
-            dft_size: 256,
+            dft_size: n,
+            mute: false,
             time: 0,
             clean: false,
             bp1: fb.bp1,
@@ -212,14 +230,14 @@ impl AudioParams {
             pre_smooth_gain: 0.5,
             post_smooth_gain: 0.5,
             output_spectrum: vec![],
-            noise_spectrum: vec![],
+            noise_spectrum: fb.parallel_transfer(n),
             filter_bank: fb,
-            sdft: SDFT::new(256),
+            sdft: SDFT::new(n),
         }
     }
-    pub fn filter_bank(&self) -> [IIR2; 5] {
-        [self.bp1, self.bp2, self.bp3, self.bp4, self.bp5]
-    }
+    // pub fn filter_bank(&self) -> [IIR2; 5] {
+    //     [self.bp1, self.bp2, self.bp3, self.bp4, self.bp5]
+    // }
     // pub fn set_filters(&mut self, filters: Vec<IIR2>) {
     //     let old = self.filter_bank();
     //     for (o, n) in old.iter().zip(filters) {
@@ -229,6 +247,7 @@ impl AudioParams {
 }
 
 /// stereo params includes AudioParams for both channels as well as other params that are independent of the channels
+#[derive(Debug)]
 pub struct StereoAudioParams {
     pub left: AudioParams,
     pub right: AudioParams,
