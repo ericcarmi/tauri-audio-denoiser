@@ -63,6 +63,8 @@ fn main() {
             get_theme_colors,
             update_file_path,
             update_mute,
+            get_mute,
+            save_mute,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();

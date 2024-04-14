@@ -283,6 +283,8 @@ pub struct UIParams {
     pub pre_smooth_gain: f32,
     pub post_smooth_gain: f32,
     pub dft_size: usize,
+    pub left_mute: bool,
+    pub right_mute: bool,
 }
 
 impl UIParams {
@@ -295,6 +297,8 @@ impl UIParams {
             pre_smooth_gain: 0.5,
             post_smooth_gain: 0.5,
             bpfs: vec![],
+            left_mute: false,
+            right_mute: false,
         }
     }
 }

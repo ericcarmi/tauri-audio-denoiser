@@ -154,7 +154,6 @@
     // load from server
     let b: Array<BPF> = await invoke("get_global_state");
     bpfs = b;
-    console.log(bpfs, b);
 
     noise_gain = await invoke("get_noise_gain");
     output_gain = await invoke("get_output_gain");
@@ -166,8 +165,13 @@
       channel: "Right",
     });
     stereo_params.both = await invoke("get_channel_state", { channel: "Both" });
-
     stereo_params.control = await invoke("get_stereo_control");
+    stereo_params.left.mute = await invoke("get_mute", {
+      stereoControl: "Left",
+    });
+    stereo_params.right.mute = await invoke("get_mute", {
+      stereoControl: "Right",
+    });
   });
 
   $: stereo_params.control,
@@ -292,8 +296,16 @@
         <button
           class="mute-button"
           data-attribute={stereo_params.left.mute}
-          on:click={async () => {
+          on:click={() => {
             stereo_params.left.mute = !stereo_params.left.mute;
+            invoke("update_mute", {
+              mute: stereo_params.left.mute,
+              stereoControl: "Left",
+            });
+            invoke("save_mute", {
+              mute: stereo_params.left.mute,
+              stereoControl: "Left",
+            });
           }}
         >
           left
@@ -301,8 +313,16 @@
         <button
           class="mute-button"
           data-attribute={stereo_params.right.mute}
-          on:click={async () => {
+          on:click={() => {
             stereo_params.right.mute = !stereo_params.right.mute;
+            invoke("update_mute", {
+              mute: stereo_params.right.mute,
+              stereoControl: "Right",
+            });
+            invoke("save_mute", {
+              mute: stereo_params.right.mute,
+              stereoControl: "Right",
+            });
           }}
         >
           right
@@ -314,6 +334,15 @@
             await invoke("play_stream");
             is_playing = true;
             time_origin = performance.now();
+            invoke("update_mute", {
+              mute: stereo_params.left.mute,
+              stereoControl: "Left",
+            });
+
+            invoke("update_mute", {
+              mute: stereo_params.right.mute,
+              stereoControl: "Right",
+            });
           } else {
             await invoke("pause_stream");
             is_playing = false;

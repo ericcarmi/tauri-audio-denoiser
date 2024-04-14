@@ -42,7 +42,7 @@
 			post_smooth_gain: post_smooth_gain,
 			clean: clean,
 			mute: false,
-		};
+		} as ChannelParams;
 
 		return {
 			left: c,

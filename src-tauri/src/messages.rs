@@ -66,9 +66,9 @@ pub fn update_clean(clean: bool, streamsend: State<MStreamSend>, stereo: Option<
     );
 }
 #[tauri::command]
-pub fn update_mute(mute: bool, streamsend: State<MStreamSend>, stereo: Option<StereoControl>) {
+pub fn update_mute(mute: bool, streamsend: State<MStreamSend>, stereo_control: StereoControl) {
     stereo_message(
-        stereo,
+        Some(stereo_control),
         streamsend,
         Some(ChannelMessage {
             mute: Some(mute),
@@ -145,7 +145,7 @@ pub fn update_file_path(
     path: String,
     streamsend: State<MStreamSend>,
     app_handle: AppHandle,
-    stereo: Option<StereoControl>,
+    // stereo: Option<StereoControl>,
 ) {
     let (ui_tx, rx) = tauri::async_runtime::channel::<AudioUIMessage>(2);
     let (stream, tx) = setup_stream(ui_tx, app_handle, Some(path)).unwrap();
@@ -164,9 +164,6 @@ fn stereo_message(
     streamsend: State<MStreamSend>,
     channel_message: Option<ChannelMessage>,
 ) {
-    // println!("{:?}", channel_message);
-    // println!("{:?}", stereo);
-
     if let Some(s) = stereo {
         use StereoControl::*;
         match s {
@@ -304,7 +301,6 @@ impl Message {
     pub fn receive(&self, params: &mut StereoAudioParams) {
         // apply controls to channels
         use StereoControl::*;
-        // println!("{:?}", params.stereo_control);
 
         match params.stereo_control {
             Left => {
@@ -398,6 +394,9 @@ impl Message {
             channel_params.noise_spectrum = channel_params
                 .filter_bank
                 .parallel_transfer(channel_params.dft_size);
+        }
+        if let Some(m) = channel_message.mute {
+            channel_params.mute = m;
         }
         if let Some(g) = channel_message.output_gain {
             channel_params.output_gain = g;

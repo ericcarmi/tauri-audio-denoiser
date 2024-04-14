@@ -221,6 +221,16 @@ async fn redis_get_channel_state(channel: StereoControl) -> redis::RedisResult<U
         // return Ok(bpfs);
     }
     params.pre_smooth_gain = pre_smooth_gain.unwrap();
+    let mute: Result<bool, redis::RedisError> = con.get("left_mute").await;
+    if mute.is_err() {
+        // return Ok(bpfs);
+    }
+    params.left_mute = mute.unwrap();
+    let mute: Result<bool, redis::RedisError> = con.get("right_mute").await;
+    if mute.is_err() {
+        // return Ok(bpfs);
+    }
+    params.right_mute = mute.unwrap();
 
     Ok(params)
 }
@@ -256,6 +266,29 @@ pub async fn get_noise_gain(left: Option<bool>) -> Result<f32, String> {
         Ok(gain)
     } else {
         Err("failed to get noise gain".to_string())
+    }
+}
+
+async fn redis_get_mute(stereo_control: StereoControl) -> redis::RedisResult<bool> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+
+    use StereoControl::*;
+    let mute: Result<bool, redis::RedisError> = match stereo_control {
+        Left => con.get("left_mute").await,
+        Right => con.get("right_mute").await,
+        Both => con.get("left_mute").await,
+    };
+
+    mute
+}
+
+#[tauri::command]
+pub async fn get_mute(stereo_control: StereoControl) -> Result<bool, String> {
+    if let Ok(mute) = redis_get_mute(stereo_control).await {
+        Ok(mute)
+    } else {
+        Err("failed to get noise mute".to_string())
     }
 }
 
@@ -566,7 +599,6 @@ async fn redis_save_noise_gain(
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_multiplexed_async_connection().await?;
     let a: Result<(), redis::RedisError>;
-    let b: Result<(), redis::RedisError>;
     if let Some(stereo) = stereo_control {
         use StereoControl::*;
         match stereo {
@@ -591,6 +623,39 @@ pub async fn save_noise_gain(gain: f32, stereo_control: Option<StereoControl>) {
     let _r = redis_save_noise_gain(gain, stereo_control).await;
 }
 
+async fn redis_save_mute(
+    mute: bool,
+    stereo_control: Option<StereoControl>,
+) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_multiplexed_async_connection().await?;
+    let a: Result<(), redis::RedisError>;
+    let b: Result<(), redis::RedisError>;
+    if let Some(stereo) = stereo_control {
+        use StereoControl::*;
+        match stereo {
+            Left => {
+                a = con.set("left_mute", mute).await;
+            }
+            Right => {
+                a = con.set("right_mute", mute).await;
+            }
+            Both => {
+                a = con.set("left_mute", mute).await;
+                b = con.set("right_mute", mute).await;
+            }
+        }
+    } else {
+        a = con.set("left_mute", mute).await;
+    }
+    return a;
+}
+
+#[tauri::command]
+pub async fn save_mute(mute: bool, stereo_control: Option<StereoControl>) {
+    let _r = redis_save_mute(mute, stereo_control).await;
+}
+
 // for creating the default settings in db
 #[tauri::command]
 pub async fn init_settings() {
@@ -602,6 +667,8 @@ pub async fn init_settings() {
     let _r = redis_save_post_smooth_gain(0.0, Some(StereoControl::Both)).await;
     let _r = redis_save_post_smooth_gain(0.0, Some(StereoControl::Both)).await;
     let _r = redis_save_stereo_control(StereoControl::Both).await;
+    let _r = redis_save_mute(false, Some(StereoControl::Left)).await;
+    let _r = redis_save_mute(false, Some(StereoControl::Right)).await;
     for i in 1..=5 {
         let _r = redis_save_bpf_gain(0.0, i, Some(StereoControl::Both)).await;
         let _r = redis_save_bpf_freq(1000.0, i, Some(StereoControl::Both)).await;

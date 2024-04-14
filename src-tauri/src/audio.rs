@@ -218,20 +218,24 @@ where
                         if stereo_audio_params.time >= stereo_audio_params.num_file_samples {
                             break;
                         }
-                        let left_sample = file_samples[stereo_audio_params.time]
-                            * stereo_audio_params.left.output_gain;
-                        let left_samp: T = T::from_sample(left_sample);
-                        left_spectrum.push(left_sample);
+                        if !stereo_audio_params.left.mute {
+                            let left_sample = file_samples[stereo_audio_params.time]
+                                * stereo_audio_params.left.output_gain;
+                            let left_samp: T = T::from_sample(left_sample);
+                            left_spectrum.push(left_sample);
+                            let fr = frame.get_mut(0).unwrap();
+                            *fr = left_samp;
+                        }
 
-                        let right_sample = file_samples[stereo_audio_params.time + 1]
-                            * stereo_audio_params.right.output_gain;
-                        let right_samp: T = T::from_sample(right_sample);
-                        right_spectrum.push(right_sample);
+                        if !stereo_audio_params.right.mute {
+                            let right_sample = file_samples[stereo_audio_params.time + 1]
+                                * stereo_audio_params.right.output_gain;
+                            let right_samp: T = T::from_sample(right_sample);
+                            right_spectrum.push(right_sample);
 
-                        let fr = frame.get_mut(0).unwrap();
-                        *fr = left_samp;
-                        let fr = frame.get_mut(1).unwrap();
-                        *fr = right_samp;
+                            let fr = frame.get_mut(1).unwrap();
+                            *fr = right_samp;
+                        }
                         stereo_audio_params.time += 2;
                     }
                 } else {
@@ -239,40 +243,42 @@ where
                         if stereo_audio_params.time >= stereo_audio_params.num_file_samples {
                             break;
                         }
-                        let left_sample = file_samples[stereo_audio_params.time]
-                            * stereo_audio_params.left.output_gain;
-                        let left_filtered = stereo_audio_params.left.sdft.spectral_subtraction(
-                            left_sample,
-                            &stereo_audio_params.left.noise_spectrum,
-                            stereo_audio_params.left.noise_gain,
-                            stereo_audio_params.left.pre_smooth_gain,
-                            stereo_audio_params.left.post_smooth_gain,
-                        );
+                        if !stereo_audio_params.left.mute {
+                            let left_sample = file_samples[stereo_audio_params.time]
+                                * stereo_audio_params.left.output_gain;
+                            let left_filtered = stereo_audio_params.left.sdft.spectral_subtraction(
+                                left_sample,
+                                &stereo_audio_params.left.noise_spectrum,
+                                stereo_audio_params.left.noise_gain,
+                                stereo_audio_params.left.pre_smooth_gain,
+                                stereo_audio_params.left.post_smooth_gain,
+                            );
 
-                        let left_samp: T = T::from_sample(left_filtered);
-                        left_spectrum.push(left_filtered);
-                        let fr = frame.get_mut(0).unwrap();
-                        *fr = left_samp;
+                            let left_samp: T = T::from_sample(left_filtered);
+                            left_spectrum.push(left_filtered);
+                            let fr = frame.get_mut(0).unwrap();
+                            *fr = left_samp;
+                        }
 
-                        let right_sample = file_samples[stereo_audio_params.time + 1]
-                            * stereo_audio_params.right.output_gain;
-                        let right_filtered = stereo_audio_params.right.sdft.spectral_subtraction(
-                            right_sample,
-                            &stereo_audio_params.right.noise_spectrum,
-                            stereo_audio_params.right.noise_gain,
-                            stereo_audio_params.right.pre_smooth_gain,
-                            stereo_audio_params.right.post_smooth_gain,
-                        );
-                        let right_samp: T = T::from_sample(right_filtered);
-                        right_spectrum.push(right_filtered);
-                        let fr = frame.get_mut(1).unwrap();
-                        *fr = right_samp;
+                        if !stereo_audio_params.right.mute {
+                            let right_sample = file_samples[stereo_audio_params.time + 1]
+                                * stereo_audio_params.right.output_gain;
+                            let right_filtered =
+                                stereo_audio_params.right.sdft.spectral_subtraction(
+                                    right_sample,
+                                    &stereo_audio_params.right.noise_spectrum,
+                                    stereo_audio_params.right.noise_gain,
+                                    stereo_audio_params.right.pre_smooth_gain,
+                                    stereo_audio_params.right.post_smooth_gain,
+                                );
+                            let right_samp: T = T::from_sample(right_filtered);
+                            right_spectrum.push(right_filtered);
+                            let fr = frame.get_mut(1).unwrap();
+                            *fr = right_samp;
+                        }
                         stereo_audio_params.time += 2;
                     }
                 }
-                println!("{:?}", stereo_audio_params.left.mute);
-                println!("{:?}", stereo_audio_params.right.mute);
-
                 // send a chunk of the fft here
                 // let _r = tx_ui.try_send(mfft(spectrum.clone()));
                 // let _r = tx_ui.try_send(freq_filter.clone());
