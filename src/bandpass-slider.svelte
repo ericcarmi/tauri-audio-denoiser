@@ -12,10 +12,6 @@
 	export let index: number;
 	export let stereo_control: StereoControl;
 
-	// one param changes all coefficients, so this goes here instead of inside individual sliders
-	$: gain, update_filters(index, gain, freq, Q, false, stereo_control);
-	$: freq, update_filters(index, gain, freq, Q, false, stereo_control);
-	$: Q, update_filters(index, gain, freq, Q, false, stereo_control);
 </script>
 
 <div class="wrapper">
@@ -50,7 +46,7 @@
 		bind:index
 		update_server={() => {
 			invoke("save_bpf_freq", {
-				gain: freq,
+				freq: freq,
 				index: index,
 				stereoControl: stereo_control,
 			});

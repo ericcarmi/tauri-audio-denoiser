@@ -2,7 +2,6 @@
 	import { onMount } from "svelte";
 	import { linlog, linlog2, loglin } from "./functions.svelte";
 	import { MAX_FREQ, MIN_FREQ, NYQUIST } from "./constants.svelte";
-	import { invoke } from "@tauri-apps/api/tauri";
 
 	export let value: number;
 	export let index: number;
@@ -62,6 +61,7 @@
 			}
 			function reset() {
 				is_dragging = false;
+				update_server();
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}
@@ -91,8 +91,8 @@
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
 				is_dragging = false;
+				update_server();
 
-				invoke("save_bpf_freq", { freq: value, index: index });
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { invoke } from "@tauri-apps/api/tauri";
 	import { onMount } from "svelte";
 
 	export let value: number;
@@ -70,7 +69,7 @@
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
 				is_dragging = false;
-				invoke("save_bpf_gain", { gain: value, index: index });
+				update_server();
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}

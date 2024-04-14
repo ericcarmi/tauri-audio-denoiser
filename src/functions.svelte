@@ -227,45 +227,113 @@
 		freq: number,
 		Q: number,
 		update_server: boolean,
-		stereo_control: StereoControl,
+		stereo_control: StereoControl
 	) {
-		let b = biquad(gain, freq, Q);
+		let b = biquad(gain, freq, Q) as any;
 		b.x = [0, 0];
 		b.y = [0, 0];
+		// console.log('no')
+
+		for (const key in b) {
+			// console.log("what", b[key as keyof FilterCoeffs2]);
+
+			// if (isNaN(b[key as keyof FilterCoeffs2])) return;
+		}
+		// console.log("here");
 		if (index == 1) {
 			invoke("update_filters", { bp1: b, stereoControl: stereo_control });
 			if (update_server) {
-				invoke("save_bpf_gain", { gain: gain, index: index, stereoControl: stereo_control });
-				invoke("save_bpf_freq", { freq: freq, index: index, stereoControl: stereo_control });
-				invoke("save_bpf_Q", { q: Q, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_gain", {
+					gain: gain,
+					index: index,
+					stereoControl: stereo_control,
+				});
+				invoke("save_bpf_freq", {
+					freq: freq,
+					index: index,
+					stereoControl: stereo_control,
+				});
+				invoke("save_bpf_Q", {
+					q: Q,
+					index: index,
+					stereoControl: stereo_control,
+				});
 			}
 		} else if (index == 2) {
 			invoke("update_filters", { bp2: b, stereoControl: stereo_control });
 			if (update_server) {
-				invoke("save_bpf_gain", { gain: gain, index: index, stereoControl: stereo_control });
-				invoke("save_bpf_freq", { freq: freq, index: index, stereoControl: stereo_control });
-				invoke("save_bpf_Q", { q: Q, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_gain", {
+					gain: gain,
+					index: index,
+					stereoControl: stereo_control,
+				});
+				invoke("save_bpf_freq", {
+					freq: freq,
+					index: index,
+					stereoControl: stereo_control,
+				});
+				invoke("save_bpf_Q", {
+					q: Q,
+					index: index,
+					stereoControl: stereo_control,
+				});
 			}
 		} else if (index == 3) {
 			invoke("update_filters", { bp3: b, stereoControl: stereo_control });
 			if (update_server) {
-				invoke("save_bpf_gain", { gain: gain, index: index, stereoControl: stereo_control });
-				invoke("save_bpf_freq", { freq: freq, index: index, stereoControl: stereo_control });
-				invoke("save_bpf_Q", { q: Q, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_gain", {
+					gain: gain,
+					index: index,
+					stereoControl: stereo_control,
+				});
+				invoke("save_bpf_freq", {
+					freq: freq,
+					index: index,
+					stereoControl: stereo_control,
+				});
+				invoke("save_bpf_Q", {
+					q: Q,
+					index: index,
+					stereoControl: stereo_control,
+				});
 			}
 		} else if (index == 4) {
 			invoke("update_filters", { bp4: b, stereoControl: stereo_control });
 			if (update_server) {
-				invoke("save_bpf_gain", { gain: gain, index: index, stereoControl: stereo_control });
-				invoke("save_bpf_freq", { freq: freq, index: index, stereoControl: stereo_control });
-				invoke("save_bpf_Q", { q: Q, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_gain", {
+					gain: gain,
+					index: index,
+					stereoControl: stereo_control,
+				});
+				invoke("save_bpf_freq", {
+					freq: freq,
+					index: index,
+					stereoControl: stereo_control,
+				});
+				invoke("save_bpf_Q", {
+					q: Q,
+					index: index,
+					stereoControl: stereo_control,
+				});
 			}
 		} else if (index == 5) {
 			invoke("update_filters", { bp5: b, stereoControl: stereo_control });
 			if (update_server) {
-				invoke("save_bpf_gain", { gain: gain, index: index, stereoControl: stereo_control });
-				invoke("save_bpf_freq", { freq: freq, index: index, stereoControl: stereo_control });
-				invoke("save_bpf_Q", { q: Q, index: index, stereoControl: stereo_control });
+				invoke("save_bpf_gain", {
+					gain: gain,
+					index: index,
+					stereoControl: stereo_control,
+				});
+				invoke("save_bpf_freq", {
+					freq: freq,
+					index: index,
+					stereoControl: stereo_control,
+				});
+				invoke("save_bpf_Q", {
+					q: Q,
+					index: index,
+					stereoControl: stereo_control,
+				});
 			}
 		}
 	}

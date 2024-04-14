@@ -55,4 +55,6 @@
 		files: Array<any>;
 		showing: boolean;
 	}
+
+	export type PlotScale = "Linear" | "Mel" | "Log" | "Bark";
 </script>

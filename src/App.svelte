@@ -32,8 +32,8 @@
   let show_settings = false;
   // if these values are the same as what is in server, values will not update when loaded, so use values that are way out of range? silly but it works
   var gains = [0, 0, 0, 0, 0];
-  var freqs = [0, 0, 0, 0, 0];
-  var Qs = [0, 0, 0, 0, 0];
+  var freqs = [1000, 1000, 1000, 1000, 1000];
+  var Qs = [1, 1, 1, 1, 1];
 
   const unlisten = listen("tauri://file-drop", async (event: any) => {
     change_file(event.payload[0] as string);
@@ -48,11 +48,8 @@
       }
     });
     invoke("get_stereo_control").then((r: any) => {
-      console.log(r);
       if (r !== undefined) {
         stereo_params.control = r;
-        console.log(r)
-
       }
     });
     get_time_data(from_assets);
@@ -161,6 +158,8 @@
     // load from server
     let b: Array<BPF> = await invoke("get_global_state");
     bpfs = b;
+    console.log(bpfs, b)
+
 
     noise_gain = await invoke("get_noise_gain");
     output_gain = await invoke("get_output_gain");
@@ -171,9 +170,22 @@
     stereo_params.right = await invoke("get_channel_state", {channel: "Right"});
     stereo_params.both = await invoke("get_channel_state", {channel: "Both"});
 
-    // console.log(left_channel_params);
-    // console.log(right_channel_params);
+    stereo_params.control = await invoke("get_stereo_control");
+  
   });
+
+  $: stereo_params.control, () => {
+    if(stereo_params.control === "Left") {
+      bpfs = stereo_params.left.bpfs;
+    }
+    else if(stereo_params.control === "Right") {
+      bpfs = stereo_params.right.bpfs;
+    }
+    else if(stereo_params.control === "Both") {
+      bpfs = stereo_params.both.bpfs;
+    }
+    
+  }
 
   function resetInterval() {
     clearInterval(interval);
@@ -331,7 +343,7 @@
           bind:freq={bpfs[i].freq}
           bind:Q={bpfs[i].Q}
           bind:stereo_control={stereo_params.control}
-          index={i + 1}
+          index={i+ 1}
         />
       </div>
     {/each}

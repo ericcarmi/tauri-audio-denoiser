@@ -3,6 +3,7 @@
   import { onDestroy, onMount } from "svelte";
   import { hexToRgb, rgbToHex } from "./functions.svelte";
   import { shortcut } from "./shortcut.svelte";
+    import type { PlotScale } from "./types.svelte";
 
   let fft_plot_decay = 0.8;
   let fft_plot_size = 256;
@@ -14,7 +15,7 @@
   let server_update_interval = 30;
   let server_update_num_changes = 5;
 
-  let plot_scale: string;
+  let plot_scale: PlotScale;
 
   export let settings: any;
   export let show_settings;
@@ -45,6 +46,8 @@
     plot_single_filter = rgbToHex(settings.colors.plot_single_filter);
     plot_filter_hover = rgbToHex(settings.colors.plot_filter_hover);
     plot_scale = settings.plot_scale;
+    console.log(settings)
+
   }
 
   onMount(async () => {
@@ -62,11 +65,11 @@
     (settings.draw_filter_amp_axis = draw_filter_amp_axis);
   $: draw_freq_axis, (settings.draw_freq_axis = draw_freq_axis);
 
-  $: plot_scale, update_plot_scale();
+  $: plot_scale, update_plot_scale(plot_scale);
 
-  function update_plot_scale() {
-    if (settings && plot_scale) {
-      settings.plot_scale = plot_scale;
+  function update_plot_scale(scale: PlotScale) {
+    if (settings) {
+      settings.plot_scale = scale;
     }
   }
 
