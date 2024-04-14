@@ -26,6 +26,8 @@
 
   let settings: any;
 
+  let is_backend_params_initialized = false;
+
   let show_settings = false;
   // if these values are the same as what is in server, values will not update when loaded, so use values that are way out of range? silly but it works
   var gains = [0, 0, 0, 0, 0];
@@ -219,25 +221,7 @@
       stereoControl: "Right",
     });
 
-    set_params_control(stereo_params.control, false);
-
-    console.log(stereo_params.control);
-    console.log(stereo_params.left.bpfs);
-
-    // noise_gain = await invoke("get_noise_gain", {
-    //   stereoControl: stereo_params.control,
-    // });
-    // output_gain = await invoke("get_output_gain", {
-    //   stereoControl: stereo_params.control,
-    // });
-    // post_smooth_gain = await invoke("get_post_smooth_gain", {
-    //   stereoControl: stereo_params.control,
-    // });
-    // pre_smooth_gain = await invoke("get_pre_smooth_gain", {
-    //   stereoControl: stereo_params.control,
-    // });
-
-    // await invoke("init_audio_params_from_server");
+    await invoke("init_audio_params_from_server");
   });
 
   function resetInterval() {
@@ -386,15 +370,12 @@
             await invoke("play_stream");
             is_playing = true;
             time_origin = performance.now();
-            invoke("update_mute", {
-              mute: stereo_params.left.mute,
-              stereoControl: "Left",
-            });
+            if(!is_backend_params_initialized) {
+              is_backend_params_initialized = true;
+              invoke("init_audio_params_from_server")
+              console.log('do it')
 
-            invoke("update_mute", {
-              mute: stereo_params.right.mute,
-              stereoControl: "Right",
-            });
+            }
           } else {
             await invoke("pause_stream");
             is_playing = false;
@@ -446,7 +427,6 @@
   >
     <RotarySlider
       bind:value={noise_gain}
-      index={-1}
       units="dB"
       label="noise gain"
       max_val={20}
@@ -466,7 +446,6 @@
     />
     <RotarySlider
       bind:value={pre_smooth_gain}
-      index={-1}
       label="pre smooth"
       max_val={0.999}
       min_val={0.0}
@@ -486,7 +465,6 @@
     />
     <RotarySlider
       bind:value={post_smooth_gain}
-      index={-1}
       label="post smooth"
       max_val={0.999}
       min_val={0.0}
@@ -506,7 +484,6 @@
     />
     <RotarySlider
       bind:value={output_gain}
-      index={-1}
       units="dB"
       max_val={20}
       min_val={-20}

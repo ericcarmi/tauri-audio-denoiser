@@ -21,7 +21,7 @@ pub async fn init_audio_params_from_server(
     streamsend: State<'_, MStreamSend>,
 ) -> Result<(), String> {
     let left_mute = get_mute(StereoControl::Left).await.unwrap();
-    let right_mute = get_mute(StereoControl::Left).await.unwrap();
+    let right_mute = get_mute(StereoControl::Right).await.unwrap();
 
     stereo_message(
         Some(StereoControl::Left),
@@ -330,6 +330,7 @@ impl Message {
     pub fn receive(&self, params: &mut StereoAudioParams) {
         // apply controls to channels
         use StereoControl::*;
+        println!("{:?}", self);
 
         match params.stereo_control {
             Left => {
@@ -425,6 +426,8 @@ impl Message {
                 .parallel_transfer(channel_params.dft_size);
         }
         if let Some(m) = channel_message.mute {
+            println!("{:?}", m);
+
             channel_params.mute = m;
         }
         if let Some(g) = channel_message.output_gain {

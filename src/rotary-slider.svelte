@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { invoke } from "@tauri-apps/api/tauri";
 	import { onMount } from "svelte";
 
 	export let value: any;
-	export let index: number;
 	export let label = "";
 	export let units = "";
 	export let update_backend = () => {};
@@ -12,9 +10,9 @@
 
 	export let min_val = 0.1;
 	export let max_val = 10;
-	let vals_inverted = Math.sign(max_val - min_val);
-	$: min_val, (vals_inverted = Math.sign(max_val - min_val));
-	$: max_val, (vals_inverted = Math.sign(max_val - min_val));
+	// let vals_inverted = Math.sign(max_val - min_val);
+	// $: min_val, (vals_inverted = Math.sign(max_val - min_val));
+	// $: max_val, (vals_inverted = Math.sign(max_val - min_val));
 
 	let el: HTMLElement;
 	let indicator_el: HTMLElement;
@@ -23,7 +21,7 @@
 	let radius = 12;
 
 	let angle = 225;
-	$: value, redraw(), update_backend();
+	$: value, redraw();
 
 	function redraw() {
 		if (!is_mouse_down && indicator_el !== undefined) {
@@ -83,6 +81,7 @@
 							return "black";
 						}
 					});
+				update_backend();
 				// if you want to color circle also...but ticks are enough for now
 				// let b = Math.round((a / 40) * 50);
 				// el.style.background = `radial-gradient(var(--gray150) ${b}% ,var(--gray100) 100%)`;

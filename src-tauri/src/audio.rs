@@ -149,6 +149,8 @@ where
             // check for messages sent to receiver...update things
             if let Ok(msg) = rx.try_recv() {
                 // need to check for stereo control here?
+                // println!("{:?}", msg);
+
                 msg.receive(&mut stereo_audio_params)
             }
 
