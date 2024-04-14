@@ -3,7 +3,7 @@
   import { onDestroy, onMount } from "svelte";
   import { hexToRgb, rgbToHex } from "./functions.svelte";
   import { shortcut } from "./shortcut.svelte";
-    import type { PlotScale } from "./types.svelte";
+  import type { PlotScale } from "./types.svelte";
 
   let fft_plot_decay = 0.8;
   let fft_plot_size = 256;
@@ -46,8 +46,7 @@
     plot_single_filter = rgbToHex(settings.colors.plot_single_filter);
     plot_filter_hover = rgbToHex(settings.colors.plot_filter_hover);
     plot_scale = settings.plot_scale;
-    console.log(settings)
-
+    console.log(settings);
   }
 
   onMount(async () => {
@@ -64,14 +63,6 @@
   $: draw_filter_amp_axis,
     (settings.draw_filter_amp_axis = draw_filter_amp_axis);
   $: draw_freq_axis, (settings.draw_freq_axis = draw_freq_axis);
-
-  $: plot_scale, update_plot_scale(plot_scale);
-
-  function update_plot_scale(scale: PlotScale) {
-    if (settings) {
-      settings.plot_scale = scale;
-    }
-  }
 
   // to make this more compact, need types from rust? don't want to just copy/paste...ts-rs is a thing, not sure if that would generate code or what
   $: rotary_tick, update_color(rotary_tick, Object.keys({ rotary_tick })[0]);
@@ -166,6 +157,7 @@
             name="plot_scale"
             on:click={() => {
               plot_scale = "Linear";
+              settings.plot_scale = plot_scale;
             }}
             checked={plot_scale === "Linear"}
           /> linear</span
@@ -176,6 +168,7 @@
             name="plot_scale"
             on:click={() => {
               plot_scale = "Mel";
+              settings.plot_scale = plot_scale;
             }}
             checked={plot_scale === "Mel"}
           /> mel</span
@@ -186,6 +179,7 @@
             name="plot_scale"
             on:click={() => {
               plot_scale = "Log";
+              settings.plot_scale = plot_scale;
             }}
             checked={plot_scale === "Log"}
           /> log</span
@@ -196,6 +190,7 @@
             name="plot_scale"
             on:click={() => {
               plot_scale = "Bark";
+              settings.plot_scale = plot_scale;
             }}
             checked={plot_scale === "Bark"}
           /> bark</span
