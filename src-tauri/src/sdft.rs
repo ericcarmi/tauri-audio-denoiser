@@ -4,11 +4,16 @@ use rand::Rng;
 
 use rustfft::num_complex::{Complex32, ComplexFloat};
 use rustfft::{num_complex::Complex, FftPlanner};
+use serde::ser::SerializeSeq;
+use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 // use std::simd::f32x4;
 use std::time::Instant;
 
 use crate::constants::{czerov, CZERO};
+
+#[derive(Clone, Debug)]
+struct Cvecf32(Vec<Complex<f32>>);
 
 #[derive(Clone, Debug)]
 pub struct SDFT {

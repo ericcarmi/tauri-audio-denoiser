@@ -24,6 +24,7 @@ dsp = "0.11.0"
 redis = { version = "0.25.2", features = ["tokio-comp"] }
 wav_io = "0.1.14"
 rand = "0.8.5"
+log = "0.4.21"
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!

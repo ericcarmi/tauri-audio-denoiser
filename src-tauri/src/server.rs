@@ -1,6 +1,7 @@
 use crate::settings::{Colors, Theme};
 use crate::types::{AudioParams, StereoControl, UIParams};
 use crate::{constants::*, settings::Settings, types::Bpf};
+use redis::aio::MultiplexedConnection;
 use redis::AsyncCommands;
 use redis::Commands;
 use rustfft::{num_complex::Complex, FftPlanner};
@@ -10,41 +11,47 @@ use tauri::AppHandle;
 
 // use serde::{Deserialize, Serialize};
 
-fn fetch_fft(file_name: String) -> redis::RedisResult<String> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_connection()?;
-    let r = con.get(file_name + "-fft");
+// async fn fetch_fft(file_name: String) -> redis::RedisResult<String> {
+//     let mut con = get_client_connection().await.unwrap();
+//     let r = con.get(file_name + "-fft");
 
-    r
+//     r
+// }
+
+async fn get_client_connection() -> redis::RedisResult<MultiplexedConnection> {
+    let client = redis::Client::open(format!("redis://127.0.0.1:{}/", REDIS_PORT))?;
+    let con = client.get_multiplexed_async_connection().await?;
+
+    Ok(con)
 }
 
-#[tauri::command]
-pub async fn get_file_fft(file_name: &str, app_handle: AppHandle) -> Result<Vec<f32>, String> {
-    let p = app_handle
-        .path_resolver()
-        .resolve_resource(ASSETS_PATH)
-        .expect("failed to resolve resource")
-        .into_os_string()
-        .into_string()
-        .unwrap();
+// #[tauri::command]
+// pub async fn get_file_fft(file_name: &str, app_handle: AppHandle) -> Result<Vec<f32>, String> {
+//     let p = app_handle
+//         .path_resolver()
+//         .resolve_resource(ASSETS_PATH)
+//         .expect("failed to resolve resource")
+//         .into_os_string()
+//         .into_string()
+//         .unwrap();
 
-    let filepath = p + "/" + file_name;
-    let handle = tauri::async_runtime::spawn(async move {
-        let r = fetch_fft(filepath);
-        return r;
-    });
+//     let filepath = p + "/" + file_name;
+//     let handle = tauri::async_runtime::spawn(async move {
+//         let r = fetch_fft(filepath);
+//         return r;
+//     });
 
-    let r = handle.await;
+//     let r = handle.await;
 
-    if r.is_ok() {
-        // Ok(r.unwrap().unwrap())
-        let de: Vec<f32> = serde_json::from_str(r.unwrap().unwrap().as_str()).unwrap();
-        Ok(de)
-    } else {
-        let s = r.err().unwrap();
-        Err(s.to_string())
-    }
-}
+//     if r.is_ok() {
+//         // Ok(r.unwrap().unwrap())
+//         let de: Vec<f32> = serde_json::from_str(r.unwrap().unwrap().as_str()).unwrap();
+//         Ok(de)
+//     } else {
+//         let s = r.err().unwrap();
+//         Err(s.to_string())
+//     }
+// }
 
 #[tauri::command]
 pub async fn set_file_fft(file_name: &str, app_handle: AppHandle) -> Result<(), String> {
@@ -96,8 +103,9 @@ async fn redis_set_file_fft(file_name: &str) -> redis::RedisResult<()> {
 
     // let data: String = vec![1, 0].iter().map(|x| x.to_string() + ",").collect();
 
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    // let client = redis::Client::open("redis://127.0.0.1/")?;
+    // let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
 
     // let x = con.set(p, data).await;
     let x = con.set(p, serde_json::to_string(&data).unwrap()).await;
@@ -105,8 +113,7 @@ async fn redis_set_file_fft(file_name: &str) -> redis::RedisResult<()> {
 }
 
 async fn redis_save_global_state(bpfs: Vec<Bpf>) -> redis::RedisResult<()> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
 
     for (i, bpf) in bpfs.iter().enumerate() {
         let a: Result<(), redis::RedisError> = con.set(format!("gain-{}", i + 1), bpf.gain).await;
@@ -132,8 +139,7 @@ pub async fn save_global_state(bpfs: Vec<Bpf>) {
 }
 
 async fn redis_get_global_state() -> redis::RedisResult<Vec<Bpf>> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
 
     let mut bpfs = vec![];
     for i in 0..5 {
@@ -170,8 +176,7 @@ pub async fn get_global_state() -> Result<Vec<Bpf>, String> {
 }
 
 async fn redis_get_channel_state(channel: StereoControl) -> redis::RedisResult<UIParams> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
 
     let ch = channel.as_str().to_lowercase();
 
@@ -247,8 +252,7 @@ pub async fn get_channel_state(channel: StereoControl) -> Result<UIParams, Strin
 }
 
 async fn redis_get_noise_gain(stereo_control: Option<StereoControl>) -> redis::RedisResult<f32> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
 
     let gain: Result<f32, redis::RedisError>;
     use StereoControl::*;
@@ -275,8 +279,7 @@ pub async fn get_noise_gain(stereo_control: Option<StereoControl>) -> Result<f32
 }
 
 async fn redis_get_mute(stereo_control: StereoControl) -> redis::RedisResult<bool> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
 
     use StereoControl::*;
     let mute: Result<bool, redis::RedisError> = match stereo_control {
@@ -298,8 +301,7 @@ pub async fn get_mute(stereo_control: StereoControl) -> Result<bool, String> {
 }
 
 async fn redis_get_output_gain(stereo_control: Option<StereoControl>) -> redis::RedisResult<f32> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
 
     let gain: Result<f32, redis::RedisError>;
     use StereoControl::*;
@@ -328,8 +330,7 @@ pub async fn get_output_gain(stereo_control: Option<StereoControl>) -> Result<f3
 async fn redis_get_pre_smooth_gain(
     stereo_control: Option<StereoControl>,
 ) -> redis::RedisResult<f32> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
 
     let gain: Result<f32, redis::RedisError>;
     use StereoControl::*;
@@ -358,8 +359,7 @@ pub async fn get_pre_smooth_gain(stereo_control: Option<StereoControl>) -> Resul
 async fn redis_get_post_smooth_gain(
     stereo_control: Option<StereoControl>,
 ) -> redis::RedisResult<f32> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
 
     let gain: Result<f32, redis::RedisError>;
     use StereoControl::*;
@@ -390,8 +390,7 @@ async fn redis_save_bpf_gain(
     index: usize,
     stereo_control: Option<StereoControl>,
 ) -> redis::RedisResult<()> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
     let a: Result<(), redis::RedisError>;
 
     if let Some(stereo) = stereo_control {
@@ -423,8 +422,7 @@ async fn redis_save_bpf_freq(
     index: usize,
     stereo_control: Option<StereoControl>,
 ) -> redis::RedisResult<()> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
     let a: Result<(), redis::RedisError>;
     if let Some(stereo) = stereo_control {
         use StereoControl::*;
@@ -455,8 +453,7 @@ async fn redis_save_bpf_Q(
     index: usize,
     stereo_control: Option<StereoControl>,
 ) -> redis::RedisResult<()> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
     let a: Result<(), redis::RedisError>;
     let b: Result<(), redis::RedisError>;
     if let Some(stereo) = stereo_control {
@@ -484,8 +481,7 @@ pub async fn save_bpf_Q(Q: f32, index: usize, stereo_control: Option<StereoContr
 }
 
 async fn redis_get_stereo_control() -> redis::RedisResult<String> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
     let st: Result<String, redis::RedisError> = con.get("stereo_control").await;
     st
 }
@@ -509,8 +505,7 @@ pub async fn get_stereo_control() -> Result<StereoControl, String> {
 }
 
 async fn redis_save_stereo_control(stereo_control: StereoControl) -> redis::RedisResult<()> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
     let a: Result<(), redis::RedisError> = con.set("stereo_control", stereo_control.as_str()).await;
     return a;
 }
@@ -524,8 +519,7 @@ async fn redis_save_output_gain(
     gain: f32,
     stereo_control: Option<StereoControl>,
 ) -> redis::RedisResult<()> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
     let a: Result<(), redis::RedisError>;
     let b: Result<(), redis::RedisError>;
     if let Some(stereo) = stereo_control {
@@ -556,8 +550,7 @@ async fn redis_save_pre_smooth_gain(
     gain: f32,
     stereo_control: Option<StereoControl>,
 ) -> redis::RedisResult<()> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
     let a: Result<(), redis::RedisError>;
     let b: Result<(), redis::RedisError>;
     if let Some(stereo) = stereo_control {
@@ -588,8 +581,7 @@ async fn redis_save_post_smooth_gain(
     gain: f32,
     stereo_control: Option<StereoControl>,
 ) -> redis::RedisResult<()> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
     let a: Result<(), redis::RedisError>;
     let b: Result<(), redis::RedisError>;
     if let Some(stereo) = stereo_control {
@@ -620,8 +612,7 @@ async fn redis_save_noise_gain(
     gain: f32,
     stereo_control: Option<StereoControl>,
 ) -> redis::RedisResult<()> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
     let a: Result<(), redis::RedisError>;
     if let Some(stereo) = stereo_control {
         use StereoControl::*;
@@ -651,8 +642,7 @@ async fn redis_save_mute(
     mute: bool,
     stereo_control: Option<StereoControl>,
 ) -> redis::RedisResult<()> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
     let a: Result<(), redis::RedisError>;
     let b: Result<(), redis::RedisError>;
     if let Some(stereo) = stereo_control {
@@ -709,8 +699,7 @@ pub async fn init_settings() {
 }
 
 async fn redis_save_settings(settings: Settings) -> redis::RedisResult<()> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
     let ser = serde_json::to_string(&settings).unwrap();
     let a: Result<(), redis::RedisError> = con.set("settings", ser).await;
     return a;
@@ -722,8 +711,7 @@ pub async fn save_settings(settings: Settings) {
 }
 
 async fn redis_get_settings() -> redis::RedisResult<String> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
 
     let sett: Result<String, redis::RedisError> = con.get("settings").await;
 
@@ -742,8 +730,7 @@ pub async fn get_settings() -> Result<Settings, String> {
 }
 
 async fn redis_save_theme(theme: Theme) -> redis::RedisResult<()> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
     let ser = serde_json::to_string(&theme).unwrap();
     let a: Result<(), redis::RedisError> = con.set(format!("theme-{}", theme.as_str()), ser).await;
     return a;
@@ -755,8 +742,7 @@ pub async fn save_theme(theme: Theme) {
 }
 
 async fn redis_get_theme() -> redis::RedisResult<String> {
-    let client = redis::Client::open("redis://127.0.0.1/")?;
-    let mut con = client.get_multiplexed_async_connection().await?;
+    let mut con = get_client_connection().await.unwrap();
 
     let sett: Result<String, redis::RedisError> = con.get("theme").await;
 

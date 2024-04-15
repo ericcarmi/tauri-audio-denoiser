@@ -54,6 +54,9 @@
       theme = settings.theme;
       update_local_colors();
     }
+    else {
+      return;
+    }
   });
   onDestroy(async () => {
     await invoke("save_settings", { settings: settings });

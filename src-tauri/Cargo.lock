@@ -3259,6 +3259,7 @@ dependencies = [
  "dasp_ring_buffer",
  "dsp",
  "hound",
+ "log",
  "rand 0.8.5",
  "redis",
  "rustfft",

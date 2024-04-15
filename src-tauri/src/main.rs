@@ -20,6 +20,7 @@ use messages::*;
 mod file_io;
 mod settings;
 use file_io::*;
+use log::{info, warn};
 use tauri::api::process::Command as CMD;
 
 fn main() {
@@ -33,7 +34,6 @@ fn main() {
             get_stft_data,
             get_time_onefft,
             get_time_data,
-            get_file_fft,
             set_file_fft,
             get_fft_plot_data,
             get_is_stereo,
@@ -98,8 +98,10 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
     app.run(|_app_handle, event| match event {
-        tauri::RunEvent::ExitRequested { .. } => {
+        tauri::RunEvent::ExitRequested { api, .. } => {
             // can get api from brackets ^
+            // println!("wtf stop");
+
             stop_server();
         }
         _ => {}
@@ -171,25 +173,30 @@ fn start_server(app_handle: AppHandle) {
         .into_string()
         .unwrap();
 
-    let stop = CMD::new_sidecar("redis-cli")
+    let ping = CMD::new_sidecar("redis-cli")
         .expect("failed to stop redis-server")
-        .args(["ping"])
+        .args(["-p", REDIS_PORT, "ping"])
         .output()
         .expect("Failed to spawn sidecar");
+    // println!("ping ?{:?}", ping);
+    let conf_path = p.clone() + "/redis.conf";
 
-    if !stop.stderr.is_empty() {
-        let _child = CMD::new_sidecar("redis-server")
+    if !ping.stdout.contains("PONG") {
+        let child = CMD::new_sidecar("redis-server")
             .expect("failed to start redis-server")
-            .args([p + "/redis.conf"])
+            .args([conf_path.as_str()])
             .spawn()
             .expect("Failed to spawn sidecar");
+        // println!(" show me this shit{:?}", child);
+        // info!("{:?}", child);
     }
 }
 
 fn stop_server() {
-    let _child = CMD::new_sidecar("redis-cli")
+    let child = CMD::new_sidecar("redis-cli")
         .expect("failed to stop redis-server")
-        .args(["-h", "127.0.0.1", "-p", "6379", "shutdown"])
+        .args(["-h", "127.0.0.1", "-p", REDIS_PORT, "shutdown"])
         .spawn()
         .expect("Failed to spawn sidecar");
+    // println!("stop the server dammit{:?}", child);
 }

@@ -187,6 +187,7 @@
 
   onMount(async () => {
     // await message("Tauri is awesome", "Tauri");
+
     settings = await invoke("get_settings");
 
     update_css_color(rgbToHex(settings.colors.rotary_tick), "rotary-tick");
@@ -589,9 +590,7 @@
       <div
         style="position: absolute; right: 30px; height: 3em; width: 3em; display: flex; align-items: center; justify-content: center; "
       >
-        <span
-          style=" height: 100%; font-size: 12px;position: absolute; top: calc(50% - 1em); "
-          >{processing_percentage.toFixed(0)}</span
+        <span style="font-size: 12px; ">{processing_percentage.toFixed(0)}</span
         >
         <div class="spinner" />
       </div>

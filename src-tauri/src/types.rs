@@ -205,7 +205,7 @@ impl StereoControl {
 }
 
 /// audio params to be used in the audio thread -- some variables can be set directly from messages, others are computed (spectra, sdft)
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AudioParams {
     pub time: usize,
     pub clean: bool,
@@ -222,8 +222,11 @@ pub struct AudioParams {
     pub pre_smooth_gain: f32,
     pub post_smooth_gain: f32,
     pub dft_size: usize,
+    #[serde(skip)]
     pub output_spectrum: Vec<f32>,
+    #[serde(skip)]
     pub noise_spectrum: Vec<f32>,
+    #[serde(skip)]
     pub sdft: SDFT,
 }
 
