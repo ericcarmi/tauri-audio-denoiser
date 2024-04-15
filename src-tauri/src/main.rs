@@ -77,10 +77,9 @@ fn main() {
             let m = mainwindow.available_monitors();
             start_server(app_handle.clone());
             let _ = mainwindow.set_position(*m.unwrap()[0].position());
-            // println!("{:?}", m);
 
             let mss = MStreamSend({
-                let (tx_ui, rx) = tauri::async_runtime::channel::<AudioUIMessage>(2);
+                let (tx_ui, rx_ui) = tauri::async_runtime::channel::<AudioUIMessage>(2);
                 let (stream, tx) = setup_stream(tx_ui.clone(), app_handle, None).unwrap();
                 let _ = stream.pause();
                 let mtx = Mutex::new(tx);
@@ -88,7 +87,7 @@ fn main() {
                 Mutex::new(StreamSend {
                     stream: MStream(Mutex::new(stream)),
                     msender: MSender(mtx),
-                    mreceiver: MUIReceiver(Mutex::new(rx)),
+                    mreceiver: MUIReceiver(Mutex::new(rx_ui)),
                     mtx_ui: MAudioSender(Mutex::new(tx_ui)),
                 })
             });
@@ -99,7 +98,8 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
     app.run(|_app_handle, event| match event {
-        tauri::RunEvent::ExitRequested { api, .. } => {
+        tauri::RunEvent::ExitRequested { .. } => {
+            // can get api from brackets ^
             stop_server();
         }
         _ => {}
@@ -135,6 +135,7 @@ fn get_fft_plot_data(streamsend: State<MStreamSend>) -> Result<AudioUIMessage, S
         .lock()
         .unwrap()
         .try_recv();
+
     if r.is_ok() {
         Ok(r.unwrap())
     } else {
@@ -153,16 +154,12 @@ fn get_audioui_message(streamsend: State<MStreamSend>) -> Result<AudioUIMessage,
         .lock()
         .unwrap()
         .try_recv();
+
     if r.is_ok() {
         Ok(r.unwrap())
     } else {
         r.map_err(|e| e.to_string())
     }
-}
-
-#[derive(Clone, serde::Serialize)]
-struct Payload {
-    message: String,
 }
 
 fn start_server(app_handle: AppHandle) {
@@ -173,14 +170,12 @@ fn start_server(app_handle: AppHandle) {
         .into_os_string()
         .into_string()
         .unwrap();
-    // println!("{:?}", p);
 
     let stop = CMD::new_sidecar("redis-cli")
         .expect("failed to stop redis-server")
         .args(["ping"])
         .output()
         .expect("Failed to spawn sidecar");
-    // println!("{:?}", stop);
 
     if !stop.stderr.is_empty() {
         let _child = CMD::new_sidecar("redis-server")
@@ -188,8 +183,6 @@ fn start_server(app_handle: AppHandle) {
             .args([p + "/redis.conf"])
             .spawn()
             .expect("Failed to spawn sidecar");
-
-        // println!("{:?}", child);
     }
 }
 
@@ -199,6 +192,4 @@ fn stop_server() {
         .args(["-h", "127.0.0.1", "-p", "6379", "shutdown"])
         .spawn()
         .expect("Failed to spawn sidecar");
-
-    // println!("{:?}", child);
 }

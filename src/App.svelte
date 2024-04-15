@@ -41,6 +41,13 @@
     change_file(event.payload[0] as string);
   });
 
+  const unlisten_audioui_message = listen(
+    "update_processing_percentage",
+    async (event: any) => {
+      processing_percentage = event.payload as number;
+    }
+  );
+
   function change_file(path: string, from_assets?: boolean) {
     selectedRecording = path;
     invoke("update_file_path", { path: selectedRecording });
@@ -247,14 +254,12 @@
 
         if (is_processing) {
           let r = invoke("get_audioui_message").then((r: any) => {
-            console.log(r);
-
+            // console.log(r);
             if (r.processing_percentage) {
               processing_percentage = r.processing_percentage;
             }
           });
-          console.log(r)
-
+          // console.log(r)
         }
       },
       // this works for now, just have to call resetInterval after pressing button
@@ -388,7 +393,6 @@
             if (!is_backend_params_initialized) {
               is_backend_params_initialized = true;
               invoke("init_audio_params_from_server");
-              console.log("do it");
             }
           } else {
             await invoke("pause_stream");
@@ -568,21 +572,28 @@
         if (!is_processing) {
           is_processing = true;
           is_playing = false;
-          resetInterval();
+          // resetInterval();
           invoke("process_export").then((r) => {
             console.log(r);
             is_processing = false;
-            resetInterval();
+            // resetInterval();
           });
+          // let r = invoke("get_audioui_message").then((r) => {});
+          // console.log(r);
         }
       }}
     >
       {!is_processing ? "export file" : "exporting.."}
     </button>
     {#if is_processing}
-      <div>
+      <div
+        style="position: absolute; right: 30px; height: 3em; width: 3em; display: flex; align-items: center; justify-content: center; "
+      >
+        <span
+          style=" height: 100%; font-size: 12px;position: absolute; top: calc(50% - 1em); "
+          >{processing_percentage.toFixed(0)}</span
+        >
         <div class="spinner" />
-        {processing_percentage}
       </div>
     {/if}
     <span
@@ -721,7 +732,9 @@
     filter: contrast(70%);
   }
   .spinner {
+    height: 100%;
+    width: 100%;
+    border-radius: 100%;
     position: absolute;
-    right: 20px;
   }
 </style>

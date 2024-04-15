@@ -11,7 +11,7 @@ use cpal::{
     SizedSample,
 };
 use std::fs::File;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, State, Window};
 
 pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>, bool) {
     let p = app_handle
@@ -303,6 +303,7 @@ pub async fn process_export(
     streamsend: State<'_, MStreamSend>,
     app_handle: AppHandle,
     file_path: Option<String>,
+    window: Window,
 ) -> Result<(), String>
 where
 {
@@ -328,20 +329,8 @@ where
     stereo_audio_params.is_stereo = is_stereo;
     stereo_audio_params.num_file_samples = file_samples.len();
 
-    let tx_ui = streamsend
-        .0
-        .lock()
-        .unwrap()
-        .mtx_ui
-        .0
-        .lock()
-        .unwrap()
-        .clone();
-    let _ = tx_ui.try_send(AudioUIMessage {
-        is_processing: Some(true),
-        processing_percentage: Some(20.0),
-        ..Default::default()
-    });
+    let _r = window.emit("update_processing_percentage", 0.0);
+    // println!("{:?}", r);
 
     let num_samples = stereo_audio_params.num_file_samples;
 
@@ -364,11 +353,12 @@ where
         // PROCESS STEREO
         else {
             for time in 0..num_samples / 2 - 1 {
-                let r = tx_ui.try_send(AudioUIMessage {
-                    processing_percentage: Some(time as f32 / num_samples as f32 * 100.0),
-                    ..Default::default()
-                });
-                println!("{:?}", r);
+                if time % 4410 == 0 {
+                    let _r = window.emit(
+                        "update_processing_percentage",
+                        time as f32 / num_samples as f32 * 2.0 * 100.0,
+                    );
+                }
 
                 let left_sample = file_samples[2 * time] * stereo_audio_params.left.output_gain;
                 let left_filtered = stereo_audio_params.left.sdft.spectral_subtraction(

@@ -427,8 +427,6 @@ impl Message {
                 .parallel_transfer(channel_params.dft_size);
         }
         if let Some(m) = channel_message.mute {
-            println!("{:?}", m);
-
             channel_params.mute = m;
         }
         if let Some(g) = channel_message.output_gain {

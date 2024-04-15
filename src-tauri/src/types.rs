@@ -12,11 +12,11 @@ use crate::{
 
 pub struct MStream(pub Mutex<Stream>);
 
-unsafe impl Sync for MStream {}
-unsafe impl Send for MStream {}
-
+// receive message for ui (call from frontend with #[tauri::command])
 pub struct MUIReceiver(pub Mutex<tauri::async_runtime::Receiver<AudioUIMessage>>);
+// send message from audio to ui
 pub struct MAudioSender(pub Mutex<tauri::async_runtime::Sender<AudioUIMessage>>);
+// send message from ui to audio thread
 pub struct MSender(pub Mutex<tauri::async_runtime::Sender<Message>>);
 
 pub struct MStreamSend(pub Mutex<StreamSend>);
@@ -27,6 +27,21 @@ pub struct StreamSend {
     pub mreceiver: MUIReceiver,
     pub mtx_ui: MAudioSender,
 }
+
+unsafe impl Sync for MStream {}
+unsafe impl Send for MStream {}
+unsafe impl Send for MSender {}
+unsafe impl Sync for MSender {}
+unsafe impl Send for MUIReceiver {}
+unsafe impl Sync for MUIReceiver {}
+unsafe impl Send for MAudioSender {}
+unsafe impl Sync for MAudioSender {}
+unsafe impl Send for MStreamSend {}
+unsafe impl Sync for MStreamSend {}
+unsafe impl Send for StreamSend {}
+unsafe impl Sync for StreamSend {}
+unsafe impl Send for AudioUIMessage {}
+unsafe impl Sync for AudioUIMessage {}
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 pub struct Bpf {
