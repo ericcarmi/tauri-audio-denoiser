@@ -287,22 +287,6 @@
       </div>
 
       <div class="item">
-        <span class="group-label">database update</span>
-        <input
-          type="range"
-          name="server_update_interval"
-          value={server_update_interval}
-        />
-        <span style="width:100%;">{server_update_interval}</span>
-        <input
-          type="range"
-          name="server_update_num_changes"
-          value={server_update_num_changes}
-        />
-        <span style="width:100%;">{server_update_num_changes}</span>
-      </div>
-
-      <div class="item">
         <span class="group-label">theme</span>
         <span class="check-label"
           ><input

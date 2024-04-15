@@ -186,9 +186,13 @@
   $: num_time_samples, (time_slider_max = num_time_samples);
 
   onMount(async () => {
-    // await message("Tauri is awesome", "Tauri");
+    settings = await invoke("get_settings").catch(async (r) => {
+      // console.log("recreate");
+      await message("have to init settings", "denoiser");
 
-    settings = await invoke("get_settings");
+      await invoke("init_settings");
+      settings = await invoke("get_settings");
+    });
 
     update_css_color(rgbToHex(settings.colors.rotary_tick), "rotary-tick");
     update_css_color(rgbToHex(settings.colors.rotary_hover), "rotary-hover");

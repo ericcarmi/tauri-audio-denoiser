@@ -168,7 +168,7 @@ impl FilterBank {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, Copy)]
 pub enum StereoControl {
     Left = 0,
     Right = 1,
@@ -183,6 +183,10 @@ impl StereoControl {
             Right => "Right",
             Both => "Both",
         }
+    }
+    pub fn iter() -> [StereoControl; 3] {
+        use StereoControl::*;
+        [Left, Right, Both]
     }
     pub fn is_left(&self) -> bool {
         if self.as_str() == "Left" {

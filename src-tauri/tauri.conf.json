@@ -58,8 +58,9 @@
         "assets/chirp.wav",
         "assets/*.wav",
         "assets/440-whitenoise.wav",
-        "assets/redis.conf",
-        "dump.rdb"
+        "redis.conf",
+        "dump.rdb",
+        "text.log"
       ],
       "icon": [
         "icons/32x32.png",

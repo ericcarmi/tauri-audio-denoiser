@@ -191,12 +191,12 @@ pub const RED: Color = Color::new(170, 0, 0);
 // pub const GREEN: Color = Color::new(0, 180, 0);
 pub const BLUE: Color = Color::new(0, 0, 170);
 
-pub const LIGHTRED: Color = Color::new(230, 0, 0);
+// pub const LIGHTRED: Color = Color::new(230, 0, 0);
 // pub const LIGHTGREEN: Color = Color::new(0, 180, 0);
 pub const LIGHTBLUE: Color = Color::new(0, 0, 230);
 
 pub const PURPLE: Color = Color::new(100, 0, 140);
-pub const ORANGE: Color = Color::new(220, 100, 0);
+// pub const ORANGE: Color = Color::new(220, 100, 0);
 pub const GREEN: Color = Color::new(0, 140, 0);
 
 pub const CYAN: Color = Color::new(0, 200, 240);
@@ -204,11 +204,11 @@ pub const YELLOW: Color = Color::new(220, 220, 0);
 pub const MAGENTA: Color = Color::new(200, 0, 250);
 
 pub const LIGHTPURPLE: Color = Color::new(100, 0, 140);
-pub const LIGHTORANGE: Color = Color::new(220, 100, 0);
-pub const LIGHTGREEN: Color = Color::new(0, 140, 0);
+// pub const LIGHTORANGE: Color = Color::new(220, 100, 0);
+// pub const LIGHTGREEN: Color = Color::new(0, 140, 0);
 
-pub const GRAY50: Color = Color::new(50, 50, 50);
+// pub const GRAY50: Color = Color::new(50, 50, 50);
 pub const GRAY100: Color = Color::new(100, 100, 100);
-pub const GRAY150: Color = Color::new(100, 100, 100);
+// pub const GRAY150: Color = Color::new(100, 100, 100);
 pub const GRAY200: Color = Color::new(200, 200, 200);
-pub const GRAY250: Color = Color::new(250, 250, 250);
+// pub const GRAY250: Color = Color::new(250, 250, 250);

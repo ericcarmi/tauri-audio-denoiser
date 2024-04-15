@@ -2,7 +2,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(non_snake_case)]
 use cpal::traits::StreamTrait;
-use std::sync::Mutex;
+use std::{
+    fs::{File, OpenOptions},
+    io::{Read, Write},
+    sync::Mutex,
+};
 use tauri::{AppHandle, Manager, State};
 mod audio;
 use audio::*;
@@ -20,7 +24,10 @@ use messages::*;
 mod file_io;
 mod settings;
 use file_io::*;
-use log::{info, warn};
+use simplelog::*;
+extern crate simplelog;
+use log::info;
+
 use tauri::api::process::Command as CMD;
 
 fn main() {
@@ -73,6 +80,20 @@ fn main() {
             let mainwindow = app.get_window("main").unwrap();
             let _ = mainwindow.set_always_on_top(true);
             let app_handle = app.app_handle();
+
+            let p = app_handle
+                .path_resolver()
+                .resource_dir()
+                .expect("failed to resolve resource")
+                .into_os_string()
+                .into_string()
+                .unwrap();
+
+            let w = WriteLogger::init(
+                LevelFilter::Info,
+                Config::default(),
+                File::create(p.to_owned() + "/text.log").unwrap(),
+            );
 
             let m = mainwindow.available_monitors();
             start_server(app_handle.clone());
@@ -167,28 +188,50 @@ fn get_audioui_message(streamsend: State<MStreamSend>) -> Result<AudioUIMessage,
 fn start_server(app_handle: AppHandle) {
     let p = app_handle
         .path_resolver()
-        .resolve_resource(ASSETS_PATH)
+        .resource_dir()
         .expect("failed to resolve resource")
         .into_os_string()
         .into_string()
         .unwrap();
+
+    // println!("{:?}", p);
 
     let ping = CMD::new_sidecar("redis-cli")
         .expect("failed to stop redis-server")
         .args(["-p", REDIS_PORT, "ping"])
         .output()
         .expect("Failed to spawn sidecar");
-    // println!("ping ?{:?}", ping);
     let conf_path = p.clone() + "/redis.conf";
+
+    if let Ok(mut conf) = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(conf_path.clone())
+    {
+        let mut contents = String::new();
+        conf.read_to_string(&mut contents).unwrap();
+        if !contents.contains("dir ") {
+            let r = writeln!(&mut conf, "dir {}", p);
+            // info!("{:?}", r);
+            // info!("{:?}", contents);
+        }
+    }
 
     if !ping.stdout.contains("PONG") {
         let child = CMD::new_sidecar("redis-server")
             .expect("failed to start redis-server")
             .args([conf_path.as_str()])
-            .spawn()
+            .output()
             .expect("Failed to spawn sidecar");
-        // println!(" show me this shit{:?}", child);
+        // println!("server {:?}", child);
+        let child = CMD::new_sidecar("redis-cli")
+            .expect("failed to start redis-server")
+            .args(["-p", REDIS_PORT, "config", "get", "dir"])
+            .output()
+            .expect("Failed to spawn sidecar");
+
         // info!("{:?}", child);
+        // info!("{:?}", p);
     }
 }
 
@@ -196,7 +239,7 @@ fn stop_server() {
     let child = CMD::new_sidecar("redis-cli")
         .expect("failed to stop redis-server")
         .args(["-h", "127.0.0.1", "-p", REDIS_PORT, "shutdown"])
-        .spawn()
+        .output()
         .expect("Failed to spawn sidecar");
     // println!("stop the server dammit{:?}", child);
 }

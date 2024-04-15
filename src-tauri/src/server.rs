@@ -675,26 +675,28 @@ pub async fn save_mute(mute: bool, stereo_control: Option<StereoControl>) {
 pub async fn init_settings() {
     let settings = Settings::default();
     let _r = redis_save_settings(settings).await;
-    let _r = redis_save_noise_gain(0.0, Some(StereoControl::Both)).await;
-    let _r = redis_save_output_gain(0.0, Some(StereoControl::Both)).await;
-    let _r = redis_save_pre_smooth_gain(0.0, Some(StereoControl::Both)).await;
-    let _r = redis_save_post_smooth_gain(0.0, Some(StereoControl::Both)).await;
-    let _r = redis_save_post_smooth_gain(0.0, Some(StereoControl::Both)).await;
-    let _r = redis_save_stereo_control(StereoControl::Both).await;
-    let _r = redis_save_mute(false, Some(StereoControl::Left)).await;
-    let _r = redis_save_mute(false, Some(StereoControl::Right)).await;
-    for i in 1..=5 {
-        let _r = redis_save_bpf_gain(0.0, i, Some(StereoControl::Both)).await;
-        let _r = redis_save_bpf_freq(1000.0, i, Some(StereoControl::Both)).await;
-        let _r = redis_save_bpf_Q(1.0, i, Some(StereoControl::Both)).await;
+    for sc in StereoControl::iter() {
+        let _r = redis_save_noise_gain(0.0, Some(sc)).await;
+        let _r = redis_save_output_gain(0.0, Some(sc)).await;
+        let _r = redis_save_pre_smooth_gain(0.0, Some(sc)).await;
+        let _r = redis_save_post_smooth_gain(0.0, Some(sc)).await;
+        let _r = redis_save_post_smooth_gain(0.0, Some(sc)).await;
+        let _r = redis_save_stereo_control(sc).await;
+        let _r = redis_save_mute(false, Some(sc)).await;
+        let _r = redis_save_mute(false, Some(sc)).await;
+        for i in 1..=5 {
+            let _r = redis_save_bpf_gain(0.0, i, Some(sc)).await;
+            let _r = redis_save_bpf_freq(1000.0, i, Some(sc)).await;
+            let _r = redis_save_bpf_Q(1.0, i, Some(sc)).await;
 
-        let _r = redis_save_bpf_gain(0.0, i, Some(StereoControl::Left)).await;
-        let _r = redis_save_bpf_freq(1000.0, i, Some(StereoControl::Left)).await;
-        let _r = redis_save_bpf_Q(1.0, i, Some(StereoControl::Left)).await;
+            let _r = redis_save_bpf_gain(0.0, i, Some(sc)).await;
+            let _r = redis_save_bpf_freq(1000.0, i, Some(sc)).await;
+            let _r = redis_save_bpf_Q(1.0, i, Some(sc)).await;
 
-        let _r = redis_save_bpf_gain(0.0, i, Some(StereoControl::Right)).await;
-        let _r = redis_save_bpf_freq(1000.0, i, Some(StereoControl::Right)).await;
-        let _r = redis_save_bpf_Q(1.0, i, Some(StereoControl::Right)).await;
+            let _r = redis_save_bpf_gain(0.0, i, Some(sc)).await;
+            let _r = redis_save_bpf_freq(1000.0, i, Some(sc)).await;
+            let _r = redis_save_bpf_Q(1.0, i, Some(sc)).await;
+        }
     }
 }
 
