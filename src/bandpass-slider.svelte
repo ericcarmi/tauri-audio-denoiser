@@ -23,7 +23,6 @@
 	>
 		<RotarySlider
 			bind:value={Q}
-			bind:index
 			update_server={() => {
 				invoke("save_bpf_Q", {
 					q: Q,

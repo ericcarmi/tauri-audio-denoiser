@@ -310,6 +310,7 @@ pub struct Message {
     pub time: Option<f32>,
     pub stereo_control: Option<StereoControl>,
     pub clean: Option<bool>,
+    pub export: Option<bool>,
 }
 
 // use all None for default message to shorten other functions that send one thing at a time
@@ -322,6 +323,7 @@ impl Default for Message {
             stereo_control: None,
             left_channel: None,
             right_channel: None,
+            export: None,
         }
     }
 }
@@ -330,7 +332,6 @@ impl Message {
     pub fn receive(&self, params: &mut StereoAudioParams) {
         // apply controls to channels
         use StereoControl::*;
-        println!("{:?}", self);
 
         match params.stereo_control {
             Left => {
@@ -467,6 +468,8 @@ pub fn get_is_stereo(streamsend: State<MStreamSend>) -> Result<AudioUIMessage, S
 pub struct AudioUIMessage {
     pub spectrum: Option<Vec<f32>>,
     pub is_stereo: Option<bool>,
+    pub is_processing: Option<bool>,
+    pub processing_percentage: Option<f32>,
 }
 
 impl Default for AudioUIMessage {
@@ -474,6 +477,8 @@ impl Default for AudioUIMessage {
         Self {
             spectrum: None,
             is_stereo: None,
+            is_processing: None,
+            processing_percentage: None,
         }
     }
 }

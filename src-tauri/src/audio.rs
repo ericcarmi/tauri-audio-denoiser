@@ -1,9 +1,9 @@
 use crate::constants::*;
 use crate::messages::{AudioUIMessage, Message};
-use crate::server::get_mute;
 // use crate::fourier::mfft;
 use crate::types::*;
 use anyhow;
+use cpal::traits::StreamTrait;
 use cpal::FromSample;
 use cpal::{self};
 use cpal::{
@@ -11,7 +11,7 @@ use cpal::{
     SizedSample,
 };
 use std::fs::File;
-use tauri::AppHandle;
+use tauri::{AppHandle, State};
 
 pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>, bool) {
     let p = app_handle
@@ -129,10 +129,10 @@ where
     // file samples are not an audio param, stream is remade when file is changed so this stays
     let file_samples;
     let is_stereo;
-    if let Some(f) = file_path {
-        (file_samples, is_stereo) = get_wav_samples(f.as_str(), app_handle);
+    if let Some(f) = file_path.clone() {
+        (file_samples, is_stereo) = get_wav_samples(f.as_str(), app_handle.clone());
     } else {
-        (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE_PATH, app_handle);
+        (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE_PATH, app_handle.clone());
     }
     let mut stereo_audio_params = StereoAudioParams::new();
     stereo_audio_params.is_stereo = is_stereo;
@@ -146,14 +146,9 @@ where
     let stream = device.build_output_stream(
         config,
         move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
-            // check for messages sent to receiver...update things
             if let Ok(msg) = rx.try_recv() {
-                // need to check for stereo control here?
-                // println!("{:?}", msg);
-
                 msg.receive(&mut stereo_audio_params)
             }
-
             if !stereo_audio_params.is_stereo {
                 let mut spectrum: Vec<f32> = vec![];
                 if stereo_audio_params.clean {
@@ -301,4 +296,125 @@ where
     )?;
 
     Ok((stream, tx))
+}
+
+#[tauri::command]
+pub async fn process_export(
+    streamsend: State<'_, MStreamSend>,
+    app_handle: AppHandle,
+    file_path: Option<String>,
+) -> Result<(), String>
+where
+{
+    let _ = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .stream
+        .0
+        .lock()
+        .unwrap()
+        .pause();
+
+    // file samples are not an audio param, stream is remade when file is changed so this stays
+    let file_samples;
+    let is_stereo;
+    if let Some(f) = file_path {
+        (file_samples, is_stereo) = get_wav_samples(f.as_str(), app_handle.clone());
+    } else {
+        (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE_PATH, app_handle.clone());
+    }
+    let mut stereo_audio_params = StereoAudioParams::new();
+    stereo_audio_params.is_stereo = is_stereo;
+    stereo_audio_params.num_file_samples = file_samples.len();
+
+    let tx_ui = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .mtx_ui
+        .0
+        .lock()
+        .unwrap()
+        .clone();
+    let _ = tx_ui.try_send(AudioUIMessage {
+        is_processing: Some(true),
+        processing_percentage: Some(20.0),
+        ..Default::default()
+    });
+
+    let num_samples = stereo_audio_params.num_file_samples;
+
+    let thread = tauri::async_runtime::spawn(async move {
+        let mut samples = vec![];
+        if !stereo_audio_params.is_stereo {
+            for time in 0..num_samples {
+                let sample = file_samples[time] * stereo_audio_params.left.output_gain;
+                let filtered = stereo_audio_params.left.sdft.spectral_subtraction(
+                    sample,
+                    &stereo_audio_params.left.noise_spectrum,
+                    stereo_audio_params.left.noise_gain,
+                    stereo_audio_params.left.pre_smooth_gain,
+                    stereo_audio_params.left.post_smooth_gain,
+                );
+                samples.push(filtered);
+                samples.push(filtered);
+            }
+        }
+        // PROCESS STEREO
+        else {
+            for time in 0..num_samples / 2 - 1 {
+                let r = tx_ui.try_send(AudioUIMessage {
+                    processing_percentage: Some(time as f32 / num_samples as f32 * 100.0),
+                    ..Default::default()
+                });
+                println!("{:?}", r);
+
+                let left_sample = file_samples[2 * time] * stereo_audio_params.left.output_gain;
+                let left_filtered = stereo_audio_params.left.sdft.spectral_subtraction(
+                    left_sample,
+                    &stereo_audio_params.left.noise_spectrum,
+                    stereo_audio_params.left.noise_gain,
+                    stereo_audio_params.left.pre_smooth_gain,
+                    stereo_audio_params.left.post_smooth_gain,
+                );
+
+                samples.push(left_filtered);
+
+                let right_sample =
+                    file_samples[2 * time + 1] * stereo_audio_params.right.output_gain;
+                let right_filtered = stereo_audio_params.right.sdft.spectral_subtraction(
+                    right_sample,
+                    &stereo_audio_params.right.noise_spectrum,
+                    stereo_audio_params.right.noise_gain,
+                    stereo_audio_params.right.pre_smooth_gain,
+                    stereo_audio_params.right.post_smooth_gain,
+                );
+                samples.push(right_filtered);
+            }
+        };
+        samples
+    });
+
+    if let Ok(r) = thread.await {
+        let samples: Vec<f32> = r;
+        if samples.is_empty() {
+            return Err("empty samples, failed to write to file".to_string());
+        }
+        let p = app_handle
+            .path_resolver()
+            .resolve_resource(ASSETS_PATH)
+            .expect("failed to resolve resource")
+            .into_os_string()
+            .into_string()
+            .unwrap();
+
+        let header = wav_io::new_stereo_header();
+        if let Ok(mut file) = File::create(p + "/" + "output.wav") {
+            let _r = wav_io::write_to_file(&mut file, &header, &samples);
+        };
+        Ok(())
+    } else {
+        Err("failed to write to file".to_string())
+    }
 }

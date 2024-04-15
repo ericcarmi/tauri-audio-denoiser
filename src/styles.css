@@ -101,7 +101,7 @@ button {
   color: var(--gray200);
   background: black;
   cursor: pointer;
-  transition: color 0.33s, background 0.33s;
+  transition: color 0.33s, background 0.33s, filter 0.33s;
 }
 button:hover {
   color: var(--gray150);
@@ -157,6 +157,14 @@ input {
 }
 
 
+.spinner {
+  width: 2em;
+  height: 2em;
+  border: 3px solid var(--gray150);
+  border-top-color: var(--plot-main);
+  border-radius: 20px;
+  animation: 1.47s infinite linear spin;
+}
 
 
 

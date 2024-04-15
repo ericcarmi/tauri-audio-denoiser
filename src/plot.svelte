@@ -503,11 +503,5 @@
     position: absolute;
     top: calc(44.7% - 1em);
     left: calc(50% - 1em);
-    width: 2em;
-    height: 2em;
-    border: 3px solid var(--gray150);
-    border-top-color: var(--plot-main);
-    border-radius: 20px;
-    animation: 1.47s infinite linear spin;
   }
 </style>

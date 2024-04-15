@@ -16,6 +16,7 @@ unsafe impl Sync for MStream {}
 unsafe impl Send for MStream {}
 
 pub struct MUIReceiver(pub Mutex<tauri::async_runtime::Receiver<AudioUIMessage>>);
+pub struct MAudioSender(pub Mutex<tauri::async_runtime::Sender<AudioUIMessage>>);
 pub struct MSender(pub Mutex<tauri::async_runtime::Sender<Message>>);
 
 pub struct MStreamSend(pub Mutex<StreamSend>);
@@ -24,6 +25,7 @@ pub struct StreamSend {
     pub stream: MStream,
     pub msender: MSender,
     pub mreceiver: MUIReceiver,
+    pub mtx_ui: MAudioSender,
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]

@@ -28,6 +28,9 @@
 
   let is_backend_params_initialized = false;
 
+  let is_processing = false;
+  let processing_percentage = 0;
+
   let show_settings = false;
   // if these values are the same as what is in server, values will not update when loaded, so use values that are way out of range? silly but it works
   var gains = [0, 0, 0, 0, 0];
@@ -241,9 +244,21 @@
             }
           });
         }
+
+        if (is_processing) {
+          let r = invoke("get_audioui_message").then((r: any) => {
+            console.log(r);
+
+            if (r.processing_percentage) {
+              processing_percentage = r.processing_percentage;
+            }
+          });
+          console.log(r)
+
+        }
       },
       // this works for now, just have to call resetInterval after pressing button
-      is_playing ? 10 : 1000
+      is_playing || is_processing ? 10 : 1000
     );
   }
 </script>
@@ -370,11 +385,10 @@
             await invoke("play_stream");
             is_playing = true;
             time_origin = performance.now();
-            if(!is_backend_params_initialized) {
+            if (!is_backend_params_initialized) {
               is_backend_params_initialized = true;
-              invoke("init_audio_params_from_server")
-              console.log('do it')
-
+              invoke("init_audio_params_from_server");
+              console.log("do it");
             }
           } else {
             await invoke("pause_stream");
@@ -503,6 +517,15 @@
     />
   </div>
   <div class="menu-bar">
+    <div
+      class="settings"
+      role="button"
+      tabindex="0"
+      on:keypress={() => {}}
+      on:click={() => {
+        show_settings = !show_settings;
+      }}
+    />
     <button
       class="reset-all-gains-switch"
       title="reset all gains to 0 dB"
@@ -540,6 +563,28 @@
     >
       import file
     </button>
+    <button
+      on:click={() => {
+        if (!is_processing) {
+          is_processing = true;
+          is_playing = false;
+          resetInterval();
+          invoke("process_export").then((r) => {
+            console.log(r);
+            is_processing = false;
+            resetInterval();
+          });
+        }
+      }}
+    >
+      {!is_processing ? "export file" : "exporting.."}
+    </button>
+    {#if is_processing}
+      <div>
+        <div class="spinner" />
+        {processing_percentage}
+      </div>
+    {/if}
     <span
       title="full path: {selectedRecording}"
       style="position: absolute; bottom: 0; padding-right: 2em; align-self: center;"
@@ -547,15 +592,6 @@
         selectedRecording
       )}</span
     >
-    <div
-      class="settings"
-      role="button"
-      tabindex="0"
-      on:keypress={() => {}}
-      on:click={() => {
-        show_settings = !show_settings;
-      }}
-    />
   </div>
 </main>
 
@@ -674,9 +710,18 @@
     background: black;
     text-decoration: line-through;
     border: 1px solid black;
+    filter: contrast(70%);
   }
   .stereo-control-button[data-attribute="true"] {
     background: var(--purple);
     border: 1px solid black;
+    filter: contrast(100%);
+  }
+  .stereo-control-button {
+    filter: contrast(70%);
+  }
+  .spinner {
+    position: absolute;
+    right: 20px;
   }
 </style>

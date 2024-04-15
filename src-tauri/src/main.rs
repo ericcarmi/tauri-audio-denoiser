@@ -66,6 +66,8 @@ fn main() {
             get_mute,
             save_mute,
             init_audio_params_from_server,
+            process_export,
+            get_audioui_message,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();
@@ -78,8 +80,8 @@ fn main() {
             // println!("{:?}", m);
 
             let mss = MStreamSend({
-                let (ui_tx, rx) = tauri::async_runtime::channel::<AudioUIMessage>(2);
-                let (stream, tx) = setup_stream(ui_tx, app_handle, None).unwrap();
+                let (tx_ui, rx) = tauri::async_runtime::channel::<AudioUIMessage>(2);
+                let (stream, tx) = setup_stream(tx_ui.clone(), app_handle, None).unwrap();
                 let _ = stream.pause();
                 let mtx = Mutex::new(tx);
 
@@ -87,6 +89,7 @@ fn main() {
                     stream: MStream(Mutex::new(stream)),
                     msender: MSender(mtx),
                     mreceiver: MUIReceiver(Mutex::new(rx)),
+                    mtx_ui: MAudioSender(Mutex::new(tx_ui)),
                 })
             });
 
@@ -123,6 +126,24 @@ fn pause_stream(streamsend: State<MStreamSend>) {
 
 #[tauri::command]
 fn get_fft_plot_data(streamsend: State<MStreamSend>) -> Result<AudioUIMessage, String> {
+    let r = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .mreceiver
+        .0
+        .lock()
+        .unwrap()
+        .try_recv();
+    if r.is_ok() {
+        Ok(r.unwrap())
+    } else {
+        r.map_err(|e| e.to_string())
+    }
+}
+
+#[tauri::command]
+fn get_audioui_message(streamsend: State<MStreamSend>) -> Result<AudioUIMessage, String> {
     let r = streamsend
         .0
         .lock()
