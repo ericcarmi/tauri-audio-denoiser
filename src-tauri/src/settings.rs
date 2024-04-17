@@ -1,3 +1,4 @@
+use rusqlite::{types::FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -39,12 +40,68 @@ pub enum PlotScale {
     Bark,
 }
 
+impl ToSql for PlotScale {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        use PlotScale::*;
+        match self {
+            Linear => "Linear".to_sql(),
+            Mel => "Mel".to_sql(),
+            Log => "Log".to_sql(),
+            Bark => "Bark".to_sql(),
+        }
+    }
+}
+
+impl FromSql for PlotScale {
+    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
+        use PlotScale::*;
+        if let Ok(v) = value.as_str() {
+            return match v {
+                "Linear" => Ok(Linear),
+                "Mel" => Ok(Mel),
+                "Log" => Ok(Log),
+                "Bark" => Ok(Bark),
+                _ => Err(rusqlite::types::FromSqlError::InvalidType),
+            };
+        }
+        Err(rusqlite::types::FromSqlError::InvalidType)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Theme {
     RGB,
     CYM,
     POG,
     CUSTOM,
+}
+
+impl ToSql for Theme {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        use Theme::*;
+        match self {
+            RGB => "RGB".to_sql(),
+            CYM => "CYM".to_sql(),
+            POG => "POG".to_sql(),
+            CUSTOM => "CUSTOM".to_sql(),
+        }
+    }
+}
+
+impl FromSql for Theme {
+    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
+        use Theme::*;
+        if let Ok(v) = value.as_str() {
+            return match v {
+                "RGB" => Ok(RGB),
+                "CYM" => Ok(CYM),
+                "POG" => Ok(POG),
+                "CUSTOM" => Ok(CUSTOM),
+                _ => Err(rusqlite::types::FromSqlError::InvalidType),
+            };
+        }
+        Err(rusqlite::types::FromSqlError::InvalidType)
+    }
 }
 
 impl Theme {

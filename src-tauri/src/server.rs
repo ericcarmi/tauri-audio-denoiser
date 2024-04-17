@@ -731,36 +731,36 @@ pub async fn get_settings() -> Result<Settings, String> {
     }
 }
 
-async fn redis_save_theme(theme: Theme) -> redis::RedisResult<()> {
-    let mut con = get_client_connection().await.unwrap();
-    let ser = serde_json::to_string(&theme).unwrap();
-    let a: Result<(), redis::RedisError> = con.set(format!("theme-{}", theme.as_str()), ser).await;
-    return a;
-}
+// async fn redis_save_theme(theme: Theme) -> redis::RedisResult<()> {
+//     let mut con = get_client_connection().await.unwrap();
+//     let ser = serde_json::to_string(&theme).unwrap();
+//     let a: Result<(), redis::RedisError> = con.set(format!("theme-{}", theme.as_str()), ser).await;
+//     return a;
+// }
 
-#[tauri::command]
-pub async fn save_theme(theme: Theme) {
-    let _r = redis_save_theme(theme).await;
-}
+// #[tauri::command]
+// pub async fn save_theme(theme: Theme) {
+//     let _r = redis_save_theme(theme).await;
+// }
 
-async fn redis_get_theme() -> redis::RedisResult<String> {
-    let mut con = get_client_connection().await.unwrap();
+// async fn redis_get_theme() -> redis::RedisResult<String> {
+//     let mut con = get_client_connection().await.unwrap();
 
-    let sett: Result<String, redis::RedisError> = con.get("theme").await;
+//     let sett: Result<String, redis::RedisError> = con.get("theme").await;
 
-    sett
-}
+//     sett
+// }
 
-#[tauri::command]
-pub async fn get_theme() -> Result<Theme, String> {
-    if let Ok(sett) = redis_get_theme().await {
-        let theme: Theme = serde_json::from_str(sett.as_str()).unwrap();
+// #[tauri::command]
+// pub async fn get_theme() -> Result<Theme, String> {
+//     if let Ok(sett) = redis_get_theme().await {
+//         let theme: Theme = serde_json::from_str(sett.as_str()).unwrap();
 
-        Ok(theme)
-    } else {
-        Err("failed to get theme".to_string())
-    }
-}
+//         Ok(theme)
+//     } else {
+//         Err("failed to get theme".to_string())
+//     }
+// }
 
 #[tauri::command]
 pub fn get_theme_colors(name: &str) -> Result<Colors, String> {

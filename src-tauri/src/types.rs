@@ -1,4 +1,5 @@
 use cpal::Stream;
+use rusqlite::Connection;
 // use dasp_ring_buffer::Fixed;
 use rustfft::num_complex::Complex32;
 use serde::{Deserialize, Serialize};

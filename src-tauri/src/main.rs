@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(non_snake_case)]
 use cpal::traits::StreamTrait;
+use rusqlite::Connection;
 use std::{
     fs::{File, OpenOptions},
     io::{Read, Write},
@@ -24,10 +25,10 @@ use messages::*;
 mod file_io;
 mod settings;
 use file_io::*;
-use simplelog::*;
-extern crate simplelog;
 use log::info;
-
+mod sql;
+use simplelog::*;
+use sql::*;
 use tauri::api::process::Command as CMD;
 
 fn main() {
@@ -75,6 +76,9 @@ fn main() {
             init_audio_params_from_server,
             process_export,
             get_audioui_message,
+            sql_create,
+            sql_query,
+            sql_update,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();
@@ -89,7 +93,12 @@ fn main() {
                 .into_string()
                 .unwrap();
 
-            let w = WriteLogger::init(
+            // let r = sql::create();
+            // println!("{:?}", r);
+            // let r = sql::query(c);
+            // println!("{:?}", r);
+
+            let _w = WriteLogger::init(
                 LevelFilter::Info,
                 Config::default(),
                 File::create(p.to_owned() + "/text.log").unwrap(),

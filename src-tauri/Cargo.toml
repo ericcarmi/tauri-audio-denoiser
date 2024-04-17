@@ -26,6 +26,7 @@ wav_io = "0.1.14"
 rand = "0.8.5"
 simplelog = "0.12.2"
 log = "0.4.21"
+rusqlite = { version = "0.31.0", features = ["serde_json"] }
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
