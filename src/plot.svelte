@@ -35,7 +35,7 @@
   let eq_hover_color: string;
   let plot_total_curve: string;
   let plot_scale: string;
-  let plot_color: any = {r: 140, g: 0, b: 180};
+  let plot_color: any = { r: 140, g: 0, b: 180 };
 
   let draw_fft_amp_axis = true;
   let draw_filter_amp_axis = true;
@@ -118,6 +118,14 @@
   }
 
   onMount(() => {
+  console.log(plot_scale)
+  plot_scale = "Log"
+
+    freq_axis_labels.map((i) => {
+      console.log(i, get_plot_scale(i, plot_scale));
+    });
+    console.log(FREQ_PLOT_WIDTH)
+
     update_settings();
     canvasMain = document.getElementById("time_canvas");
     canvasMain.width = TIME_PLOT_WIDTH;
@@ -251,7 +259,7 @@
             // context.strokeStyle = `rgb(${plot_color.r},${plot_color.g},${plot_color.b})`;
             // last_bar_heights[i] *= 0.85;
           }
-            // console.log(last_bar_heights)
+          // console.log(last_bar_heights)
           context.stroke();
         }
         data && requestAnimationFrame(renderPlot);

@@ -81,7 +81,6 @@
 							return "black";
 						}
 					});
-				update_backend();
 				// if you want to color circle also...but ticks are enough for now
 				// let b = Math.round((a / 40) * 50);
 				// el.style.background = `radial-gradient(var(--gray150) ${b}% ,var(--gray100) 100%)`;
@@ -91,6 +90,7 @@
 				// have to call this here...maybe want to change how this is handled later
 				is_mouse_down = false;
 				// needs to be lowercase here...tauri does that
+				update_backend();
 				update_server();
 
 				window.removeEventListener("mousemove", mouseMoveHandler);

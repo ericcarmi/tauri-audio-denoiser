@@ -129,7 +129,7 @@ impl SDFT {
 
         for freq in 0..self.size {
             // get spectrum of input
-            self.new_freq[freq] = (self.freq_history[freq] + delta) * self.fkernel[freq];
+            self.new_freq[freq] = delta + (self.freq_history[freq]) * self.fkernel[freq];
 
             noise = (noise_spectrum[freq] - 1.0).abs();
             // smooth the noise variance

@@ -645,6 +645,7 @@ async fn redis_save_mute(
     let mut con = get_client_connection().await.unwrap();
     let a: Result<(), redis::RedisError>;
     let b: Result<(), redis::RedisError>;
+    let c: Result<(), redis::RedisError>;
     if let Some(stereo) = stereo_control {
         use StereoControl::*;
         match stereo {
@@ -657,6 +658,7 @@ async fn redis_save_mute(
             Both => {
                 a = con.set("left_mute", mute).await;
                 b = con.set("right_mute", mute).await;
+                c = con.set("both_mute", mute).await;
             }
         }
     } else {

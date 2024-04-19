@@ -90,6 +90,8 @@
   let stereo_params: StereoParams = init_channel_params(gains, freqs, Qs);
 
   function set_params_control(s: StereoControl, update_backend: boolean) {
+    console.log("call", s);
+
     if (s == "Left") {
       bpfs = [...stereo_params.left.bpfs];
       noise_gain = stereo_params.left.noise_gain;
@@ -110,6 +112,8 @@
       pre_smooth_gain = stereo_params.both.pre_smooth_gain;
     }
     if (update_backend) {
+      console.log("backend too");
+
       update_filter_bank(
         [
           ...bpfs.map((i) => {
@@ -164,8 +168,6 @@
     }
   }
 
-  $: stereo_params.control, set_params_control(stereo_params.control, false);
-
   let bpf_hovering = Array(num_sliders).fill(false);
   let num_time_samples = 1;
 
@@ -186,6 +188,8 @@
   $: num_time_samples, (time_slider_max = num_time_samples);
 
   onMount(async () => {
+    set_params_control("Both", false);
+
     settings = await invoke("get_settings").catch(async (r) => {
       // console.log("recreate");
       await message("have to init settings", "denoiser");
@@ -229,12 +233,14 @@
     });
     stereo_params.both = await invoke("get_channel_state", { channel: "Both" });
     stereo_params.control = await invoke("get_stereo_control");
-    stereo_params.left.mute = await invoke("get_mute", {
-      stereoControl: "Left",
-    });
-    stereo_params.right.mute = await invoke("get_mute", {
-      stereoControl: "Right",
-    });
+    // stereo_params.left.mute = await invoke("get_mute", {
+    //   stereoControl: "Left",
+    // });
+    // stereo_params.right.mute = await invoke("get_mute", {
+    //   stereoControl: "Right",
+    // });
+
+    set_params_control(stereo_params.control, false);
 
     await invoke("init_audio_params_from_server");
   });
@@ -268,7 +274,7 @@
         }
       },
       // this works for now, just have to call resetInterval after pressing button
-      is_playing || is_processing ? 10 : 1000
+      is_playing || is_processing ? 0.1 : 1000
     );
   }
 </script>
@@ -278,6 +284,7 @@
     {#if show_settings}
       <Settings bind:settings bind:show_settings />
     {/if}
+    {#if bpfs?.length === 5}
     <Plot
       bind:settings
       bind:bpf_hovering
@@ -286,6 +293,7 @@
       bind:selectedRecording
       {fft_data}
     />
+    {/if}
     <input
       style="width: {FREQ_PLOT_WIDTH}px;"
       class="time-slider"
@@ -356,14 +364,14 @@
           data-attribute={stereo_params.left.mute}
           on:click={() => {
             stereo_params.left.mute = !stereo_params.left.mute;
-            invoke("update_mute", {
-              mute: stereo_params.left.mute,
-              stereoControl: "Left",
-            });
-            invoke("save_mute", {
-              mute: stereo_params.left.mute,
-              stereoControl: "Left",
-            });
+            // invoke("update_mute", {
+            //   mute: stereo_params.left.mute,
+            //   stereoControl: "Left",
+            // });
+            // invoke("save_mute", {
+            //   mute: stereo_params.left.mute,
+            //   stereoControl: "Left",
+            // });
           }}
         >
           L
@@ -373,14 +381,14 @@
           data-attribute={stereo_params.right.mute}
           on:click={() => {
             stereo_params.right.mute = !stereo_params.right.mute;
-            invoke("update_mute", {
-              mute: stereo_params.right.mute,
-              stereoControl: "Right",
-            });
-            invoke("save_mute", {
-              mute: stereo_params.right.mute,
-              stereoControl: "Right",
-            });
+            // invoke("update_mute", {
+            //   mute: stereo_params.right.mute,
+            //   stereoControl: "Right",
+            // });
+            //   invoke("save_mute", {
+            //     mute: stereo_params.right.mute,
+            //     stereoControl: "Right",
+            //   });
           }}
         >
           R
@@ -419,6 +427,7 @@
     </div>
   </div>
 
+    {#if bpfs?.length === 5}
   <div
     class="filter-grid"
     style="grid-template-columns:repeat({num_sliders}, auto)"
@@ -445,6 +454,7 @@
       </div>
     {/each}
   </div>
+  {/if}
   <div
     style="display: flex; flex-direction: row; justify-content: space-evenly;height:6em;"
   >
@@ -480,6 +490,7 @@
         });
       }}
       update_server={() => {
+        console.log("upsate");
         invoke("save_pre_smooth_gain", {
           gain: pre_smooth_gain,
           stereoControl: stereo_params.control,
