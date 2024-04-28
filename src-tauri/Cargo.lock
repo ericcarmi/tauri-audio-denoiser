@@ -741,6 +741,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c87e182de0887fd5361989c677c4e8f5000cd9491d6d563161a8f3a5519fc7f"
 
 [[package]]
+name = "denoiser"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "cpal",
+ "dasp_ring_buffer",
+ "dsp",
+ "hound",
+ "log",
+ "rand 0.8.5",
+ "redis",
+ "rusqlite",
+ "rustfft",
+ "serde",
+ "serde_json",
+ "simplelog",
+ "tauri",
+ "tauri-build",
+ "wav_io",
+]
+
+[[package]]
 name = "deranged"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3335,29 +3358,6 @@ dependencies = [
  "webkit2gtk",
  "webview2-com",
  "windows 0.39.0",
-]
-
-[[package]]
-name = "tauri-audio-eq"
-version = "0.0.1"
-dependencies = [
- "anyhow",
- "chrono",
- "cpal",
- "dasp_ring_buffer",
- "dsp",
- "hound",
- "log",
- "rand 0.8.5",
- "redis",
- "rusqlite",
- "rustfft",
- "serde",
- "serde_json",
- "simplelog",
- "tauri",
- "tauri-build",
- "wav_io",
 ]
 
 [[package]]

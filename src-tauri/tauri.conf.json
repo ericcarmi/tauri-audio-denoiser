@@ -6,7 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "tauri-audio-eq",
+    "productName": "denoiser",
     "version": "0.0.0"
   },
   "tauri": {
@@ -37,7 +37,7 @@
     },
     "windows": [
       {
-        "title": "tauri-audio-eq",
+        "title": "denoiser",
         "width": 1000,
         "height": 800
       }
