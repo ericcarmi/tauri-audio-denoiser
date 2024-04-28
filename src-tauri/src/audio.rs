@@ -126,7 +126,7 @@ where
 
     let (tx, mut rx) = tauri::async_runtime::channel::<Message>(1);
 
-    // file samples are not an audio param, stream is remade when file is changed so this stays
+    // variables that stream will use, including params
     let file_samples;
     let is_stereo;
     if let Some(f) = file_path.clone() {
@@ -140,7 +140,6 @@ where
         is_stereo: Some(is_stereo),
         ..Default::default()
     });
-
     stereo_audio_params.num_file_samples = file_samples.len();
 
     let stream = device.build_output_stream(

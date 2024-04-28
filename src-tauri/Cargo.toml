@@ -32,8 +32,8 @@ rusqlite = { version = "0.31.0", features = ["serde_json"] }
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
 
-[profile.dev]
-opt-level = 3
+# [profile.dev]
+# opt-level = 3
 
 [profile.release]
 opt-level = 3

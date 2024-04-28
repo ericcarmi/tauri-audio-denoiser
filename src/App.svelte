@@ -90,8 +90,7 @@
   let stereo_params: StereoParams = init_channel_params(gains, freqs, Qs);
 
   function set_params_control(s: StereoControl, update_backend: boolean) {
-    console.log("call", s);
-
+    // console.log("call", s);
     if (s == "Left") {
       bpfs = [...stereo_params.left.bpfs];
       noise_gain = stereo_params.left.noise_gain;
@@ -112,7 +111,7 @@
       pre_smooth_gain = stereo_params.both.pre_smooth_gain;
     }
     if (update_backend) {
-      console.log("backend too");
+      // console.log("backend too");
 
       update_filter_bank(
         [
@@ -197,6 +196,9 @@
       await invoke("init_settings");
       settings = await invoke("get_settings");
     });
+
+
+    console.log(settings);
 
     update_css_color(rgbToHex(settings.colors.rotary_tick), "rotary-tick");
     update_css_color(rgbToHex(settings.colors.rotary_hover), "rotary-hover");
@@ -285,14 +287,14 @@
       <Settings bind:settings bind:show_settings />
     {/if}
     {#if bpfs?.length === 5}
-    <Plot
-      bind:settings
-      bind:bpf_hovering
-      bind:is_playing
-      bind:bpfs
-      bind:selectedRecording
-      {fft_data}
-    />
+      <Plot
+        bind:settings
+        bind:bpf_hovering
+        bind:is_playing
+        bind:bpfs
+        bind:selectedRecording
+        {fft_data}
+      />
     {/if}
     <input
       style="width: {FREQ_PLOT_WIDTH}px;"
@@ -325,6 +327,10 @@
           data-attribute={stereo_params.control !== "Right"}
           on:click={() => {
             // also need to update ui to switch between left/right channel params
+            set_params_control(stereo_params.control, true);
+            invoke("save_stereo_control", {
+              stereoControl: stereo_params.control,
+            });
             if (stereo_params.control === "Left") {
               stereo_params.control = "Right";
             } else if (stereo_params.control === "Right") {
@@ -333,15 +339,16 @@
               stereo_params.control = "Right";
             }
             set_params_control(stereo_params.control, true);
-            invoke("save_stereo_control", {
-              stereoControl: stereo_params.control,
-            });
           }}>L</button
         >
         <button
           class="stereo-control-button"
           data-attribute={stereo_params.control !== "Left"}
           on:click={() => {
+            set_params_control(stereo_params.control, true);
+            invoke("save_stereo_control", {
+              stereoControl: stereo_params.control,
+            });
             if (stereo_params.control === "Left") {
               stereo_params.control = "Both";
             } else if (stereo_params.control === "Right") {
@@ -350,9 +357,6 @@
               stereo_params.control = "Left";
             }
             set_params_control(stereo_params.control, true);
-            invoke("save_stereo_control", {
-              stereoControl: stereo_params.control,
-            });
           }}>R</button
         >
         control: {stereo_params.control}
@@ -364,14 +368,14 @@
           data-attribute={stereo_params.left.mute}
           on:click={() => {
             stereo_params.left.mute = !stereo_params.left.mute;
-            // invoke("update_mute", {
-            //   mute: stereo_params.left.mute,
-            //   stereoControl: "Left",
-            // });
-            // invoke("save_mute", {
-            //   mute: stereo_params.left.mute,
-            //   stereoControl: "Left",
-            // });
+            invoke("update_mute", {
+              mute: stereo_params.left.mute,
+              stereoControl: "Left",
+            });
+            invoke("save_mute", {
+              mute: stereo_params.left.mute,
+              stereoControl: "Left",
+            });
           }}
         >
           L
@@ -381,14 +385,14 @@
           data-attribute={stereo_params.right.mute}
           on:click={() => {
             stereo_params.right.mute = !stereo_params.right.mute;
-            // invoke("update_mute", {
-            //   mute: stereo_params.right.mute,
-            //   stereoControl: "Right",
-            // });
-            //   invoke("save_mute", {
-            //     mute: stereo_params.right.mute,
-            //     stereoControl: "Right",
-            //   });
+            invoke("update_mute", {
+              mute: stereo_params.right.mute,
+              stereoControl: "Right",
+            });
+            invoke("save_mute", {
+              mute: stereo_params.right.mute,
+              stereoControl: "Right",
+            });
           }}
         >
           R
@@ -424,36 +428,48 @@
       >
         {clean ? "dry" : "wet"}
       </button>
+
+      <button
+        on:click={() => {
+          // invoke("sql_create");
+          // invoke("sql_update");
+          let s = invoke("sql_query_theme", {theme: "RGB"}).then((r) => {
+            console.log(r);
+          });
+        }}
+      >
+        database
+      </button>
     </div>
   </div>
 
-    {#if bpfs?.length === 5}
-  <div
-    class="filter-grid"
-    style="grid-template-columns:repeat({num_sliders}, auto)"
-  >
-    {#each bpfs as _, i}
-      <div
-        class="bpf-wrap"
-        role="button"
-        tabindex="0"
-        on:mouseenter={() => {
-          bpf_hovering[i] = true;
-        }}
-        on:mouseleave={() => {
-          bpf_hovering[i] = false;
-        }}
-      >
-        <BandpassSlider
-          bind:gain={bpfs[i].gain}
-          bind:freq={bpfs[i].freq}
-          bind:Q={bpfs[i].Q}
-          bind:stereo_control={stereo_params.control}
-          index={i + 1}
-        />
-      </div>
-    {/each}
-  </div>
+  {#if bpfs?.length === 5}
+    <div
+      class="filter-grid"
+      style="grid-template-columns:repeat({num_sliders}, auto)"
+    >
+      {#each bpfs as _, i}
+        <div
+          class="bpf-wrap"
+          role="button"
+          tabindex="0"
+          on:mouseenter={() => {
+            bpf_hovering[i] = true;
+          }}
+          on:mouseleave={() => {
+            bpf_hovering[i] = false;
+          }}
+        >
+          <BandpassSlider
+            bind:gain={bpfs[i].gain}
+            bind:freq={bpfs[i].freq}
+            bind:Q={bpfs[i].Q}
+            bind:stereo_control={stereo_params.control}
+            index={i + 1}
+          />
+        </div>
+      {/each}
+    </div>
   {/if}
   <div
     style="display: flex; flex-direction: row; justify-content: space-evenly;height:6em;"
@@ -490,7 +506,6 @@
         });
       }}
       update_server={() => {
-        console.log("upsate");
         invoke("save_pre_smooth_gain", {
           gain: pre_smooth_gain,
           stereoControl: stereo_params.control,
@@ -590,7 +605,6 @@
           is_playing = false;
           // resetInterval();
           invoke("process_export").then((r) => {
-            console.log(r);
             is_processing = false;
             // resetInterval();
           });

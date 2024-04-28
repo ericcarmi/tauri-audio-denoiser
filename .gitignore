@@ -28,4 +28,4 @@ dump.rdb
 /src-tauri/target/*
 /src-tauri/binaries/*
 /src-tauri/icons/*
-
+*.sqlite

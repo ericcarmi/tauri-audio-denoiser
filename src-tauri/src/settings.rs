@@ -3,31 +3,33 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Settings {
+    pub id: i32,
     pub plot_scale: PlotScale,
+    pub theme: Theme,
     pub draw_freq_axis: bool,
     pub draw_fft_amp_axis: bool,
     pub draw_filter_amp_axis: bool,
-    pub theme: Theme,
-    pub fft_plot_decay: f32,
-    pub fft_plot_size: usize,
-    pub redis_update_time: usize,
-    pub redis_update_amount: usize,
-    pub colors: Colors,
+    // pub fft_plot_decay: f32,
+    // pub fft_plot_size: usize,
+    // pub redis_update_time: usize,
+    // pub redis_update_amount: usize,
+    // pub colors: Colors,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            id: 0,
             plot_scale: PlotScale::Linear,
             draw_freq_axis: true,
             draw_fft_amp_axis: true,
             draw_filter_amp_axis: true,
             theme: Theme::POG,
-            fft_plot_decay: 0.8,
-            fft_plot_size: 256,
-            redis_update_time: 30,
-            redis_update_amount: 5,
-            colors: Colors::default(),
+            // fft_plot_decay: 0.8,
+            // fft_plot_size: 256,
+            // redis_update_time: 30,
+            // redis_update_amount: 5,
+            // colors: Colors::default(),
         }
     }
 }
@@ -123,6 +125,17 @@ impl Theme {
             CUSTOM => "CUSTOM",
         }
     }
+
+    pub fn from_str(s: &str) -> Result<Self, &str> {
+        use Theme::*;
+        match s {
+            "RGB" => Ok(RGB),
+            "CYM" => Ok(CYM),
+            "POG" => Ok(POG),
+            "CUSTOM" => Ok(CUSTOM),
+            _ => Err("invalid theme string"),
+        }
+    }
     pub fn rgb(&self) -> Colors {
         Colors {
             rotary_tick: RED,
@@ -198,6 +211,30 @@ impl Default for Colors {
     }
 }
 
+impl FromSql for Color {
+    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
+        if let Ok(v) = value.as_str() {
+            if let Ok(c) = Color::new_from_hex(v) {
+                return Ok(c);
+            }
+        }
+        Err(rusqlite::types::FromSqlError::InvalidType)
+    }
+}
+
+impl FromSql for Colors {
+    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
+        if let Ok(v) = value.as_str() {
+            // let mut colors = vec![];
+            // for color in v {
+            //     colors.push(color);
+            // }
+            return Ok(Colors::default());
+        }
+        Err(rusqlite::types::FromSqlError::InvalidType)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Color {
     pub r: u8,
@@ -215,6 +252,19 @@ impl Color {
             a: Some(a),
         };
     }
+
+    pub fn new_from_hex(hex_string: &str) -> Result<Self, String> {
+        if hex_string.len() != 7 && &hex_string[0..1] != "#" {
+            return Err("invalid color".to_string());
+        }
+
+        Ok(Self {
+            r: u8::from_str_radix(&hex_string[1..3], 16).unwrap(),
+            g: u8::from_str_radix(&hex_string[3..5], 16).unwrap(),
+            b: u8::from_str_radix(&hex_string[5..7], 16).unwrap(),
+            a: None,
+        })
+    }
     pub const fn new(r: u8, g: u8, b: u8) -> Self {
         return Self { r, g, b, a: None };
     }
@@ -225,11 +275,17 @@ impl Color {
             format!("rgb({},{},{})", self.r, self.g, self.b)
         }
     }
-    // pub fn from_string(s: String) -> Color {
-    //     // Color{}
-    // }
 }
 
+fn hex_to_rgb(hex_string: &str) -> Result<(u8, u8, u8), String> {
+    if hex_string.len() != 7 && &hex_string[0..1] != "#" {
+        return Err("invalid color".to_string());
+    }
+    let r = hex_string[1..3].parse::<u8>().unwrap();
+    let g = hex_string[3..5].parse::<u8>().unwrap();
+    let b = hex_string[5..7].parse::<u8>().unwrap();
+    Ok((r, g, b))
+}
 // fn rgb_to_hex(r: u8, g: u8, b: u8) -> String {
 //     let mut hex = "".to_string();
 //     // Convert the RGB values to a hexadecimal representation

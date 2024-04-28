@@ -77,12 +77,14 @@ fn main() {
             process_export,
             get_audioui_message,
             sql_create,
-            sql_query,
+            sql_query_theme,
+            sql_query_theme_name,
+            sql_query_settings,
             sql_update,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();
-            let _ = mainwindow.set_always_on_top(true);
+            // let _ = mainwindow.set_always_on_top(true);
             let app_handle = app.app_handle();
 
             let p = app_handle
