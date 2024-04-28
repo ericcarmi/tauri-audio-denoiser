@@ -42,6 +42,7 @@
   let draw_freq_axis = true;
 
   export let settings: any;
+  export let theme: any;
 
   let time_data: any;
 
@@ -95,11 +96,11 @@
   $: settings, update_settings();
 
   function update_settings() {
-    if (settings) {
-      plot_total_curve = rgbToHex(settings.colors.plot_total_curve);
-      eq_color = rgbToHex(settings.colors.plot_single_filter);
-      eq_hover_color = rgbToHex(settings.colors.plot_filter_hover);
-      plot_color = settings.colors.plot_main;
+    if (settings && theme) {
+      plot_total_curve = rgbToHex(theme.plot_total_curve);
+      eq_color = rgbToHex(theme.plot_single_filter);
+      eq_hover_color = rgbToHex(theme.plot_filter_hover);
+      plot_color = theme.plot_main;
       plot_scale = settings.plot_scale;
       max_plot_freq = set_plot_scale(NYQUIST);
       draw_fft_amp_axis = settings.draw_fft_amp_axis;
@@ -118,13 +119,13 @@
   }
 
   onMount(() => {
-  console.log(plot_scale)
-  plot_scale = "Log"
+    console.log(plot_scale);
+    plot_scale = "Log";
 
     freq_axis_labels.map((i) => {
       console.log(i, get_plot_scale(i, plot_scale));
     });
-    console.log(FREQ_PLOT_WIDTH)
+    console.log(FREQ_PLOT_WIDTH);
 
     update_settings();
     canvasMain = document.getElementById("time_canvas");

@@ -161,4 +161,5 @@
 	.thumb[data-attribute="true"] {
 		background: var(--slider-active);
 	}
+
 </style>

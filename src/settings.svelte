@@ -20,7 +20,8 @@
   export let settings: any;
   export let show_settings;
 
-  let theme = "POG";
+export let theme: any;
+  let theme_name = "POG";
 
   let on_top = false;
   let rotary_tick: string;
@@ -35,23 +36,23 @@
   let plot_filter_hover: string;
 
   function update_local_colors() {
-    rotary_tick = rgbToHex(settings.colors.rotary_tick);
-    rotary_hover = rgbToHex(settings.colors.rotary_hover);
-    slider_border = rgbToHex(settings.colors.slider_border);
-    slider_indicator = rgbToHex(settings.colors.slider_indicator);
-    slider_hover = rgbToHex(settings.colors.slider_hover);
-    slider_active = rgbToHex(settings.colors.slider_active);
-    plot_main = rgbToHex(settings.colors.plot_main);
-    plot_total_curve = rgbToHex(settings.colors.plot_total_curve);
-    plot_single_filter = rgbToHex(settings.colors.plot_single_filter);
-    plot_filter_hover = rgbToHex(settings.colors.plot_filter_hover);
+    rotary_tick = rgbToHex(theme.rotary_tick);
+    rotary_hover = rgbToHex(theme.rotary_hover);
+    slider_border = rgbToHex(theme.slider_border);
+    slider_indicator = rgbToHex(theme.slider_indicator);
+    slider_hover = rgbToHex(theme.slider_hover);
+    slider_active = rgbToHex(theme.slider_active);
+    plot_main = rgbToHex(theme.plot_main);
+    plot_total_curve = rgbToHex(theme.plot_total_curve);
+    plot_single_filter = rgbToHex(theme.plot_single_filter);
+    plot_filter_hover = rgbToHex(theme.plot_filter_hover);
     plot_scale = settings.plot_scale;
     console.log(settings);
   }
 
   onMount(async () => {
     if (settings) {
-      theme = settings.theme;
+      theme_name = settings.theme;
       update_local_colors();
     }
     else {
@@ -59,7 +60,7 @@
     }
   });
   onDestroy(async () => {
-    await invoke("save_settings", { settings: settings });
+    // await invoke("save_settings", { settings: settings });
   });
 
   $: draw_fft_amp_axis, (settings.draw_fft_amp_axis = draw_fft_amp_axis);
@@ -91,7 +92,7 @@
         `--${color_name.replace("_", "-")}`,
         color
       );
-      settings.colors[color_name] = hexToRgb(color);
+      theme[color_name] = hexToRgb(color);
     }
   }
   let ref: any;
@@ -293,14 +294,14 @@
             type="radio"
             name="theme"
             on:click={async () => {
-              theme = "RGB";
-              settings.theme = theme;
-              settings.colors = await invoke("get_theme_colors", {
-                name: theme,
+              theme_name = "RGB";
+              settings.theme = theme_name;
+              theme = await invoke("sql_theme", {
+                theme: theme_name,
               });
               update_local_colors();
             }}
-            checked={theme === "RGB"}
+            checked={theme_name === "RGB"}
           /> rgb</span
         >
         <span class="check-label"
@@ -308,14 +309,14 @@
             type="radio"
             name="theme"
             on:click={async () => {
-              theme = "CYM";
-              settings.theme = theme;
-              settings.colors = await invoke("get_theme_colors", {
-                name: theme,
+              theme_name = "CYM";
+              settings.theme = theme_name;
+              theme = await invoke("sql_theme", {
+                theme: theme_name,
               });
               update_local_colors();
             }}
-            checked={theme === "CYM"}
+            checked={theme_name === "CYM"}
           /> cym</span
         >
         <span class="check-label"
@@ -323,14 +324,14 @@
             type="radio"
             name="theme"
             on:click={async () => {
-              theme = "POG";
-              settings.theme = theme;
-              settings.colors = await invoke("get_theme_colors", {
-                name: theme,
+              theme_name = "POG";
+              settings.theme = theme_name;
+              theme = await invoke("sql_theme", {
+                theme: theme_name,
               });
               update_local_colors();
             }}
-            checked={theme === "POG"}
+            checked={theme_name === "POG"}
           /> pog</span
         >
         <span class="check-label"
@@ -338,14 +339,14 @@
             type="radio"
             name="theme"
             on:click={async () => {
-              theme = "CUSTOM";
-              settings.theme = theme;
-              settings.colors = await invoke("get_theme_colors", {
-                name: theme,
+              theme_name = "CUSTOM";
+              settings.theme = theme_name;
+              theme = await invoke("sql_theme", {
+                theme: theme_name,
               });
               update_local_colors();
             }}
-            checked={theme === "CUSTOM"}
+            checked={theme_name === "CUSTOM"}
           /> custom</span
         >
         <button
@@ -353,7 +354,7 @@
           title="this will not erase the custom theme"
           on:click={async () => {
             await invoke("init_settings");
-            settings = await invoke("get_settings");
+            // settings = await invoke("get_settings");
             update_local_colors();
           }}>reset to defaults</button
         >

@@ -3,7 +3,6 @@ use std::sync::Mutex;
 use crate::{
     audio::setup_stream,
     constants::czerov,
-    server::get_mute,
     types::{
         AudioParams, MSender, MStream, MStreamSend, MUIReceiver, StereoAudioParams, StereoControl,
         IIR2,
@@ -20,25 +19,25 @@ use tauri::{AppHandle, State};
 pub async fn init_audio_params_from_server(
     streamsend: State<'_, MStreamSend>,
 ) -> Result<(), String> {
-    let left_mute = get_mute(StereoControl::Left).await.unwrap();
-    let right_mute = get_mute(StereoControl::Right).await.unwrap();
+    // let left_mute = get_mute(StereoControl::Left).await.unwrap();
+    // let right_mute = get_mute(StereoControl::Right).await.unwrap();
 
-    stereo_message(
-        Some(StereoControl::Left),
-        streamsend.clone(),
-        Some(ChannelMessage {
-            mute: Some(left_mute),
-            ..Default::default()
-        }),
-    );
-    stereo_message(
-        Some(StereoControl::Right),
-        streamsend,
-        Some(ChannelMessage {
-            mute: Some(right_mute),
-            ..Default::default()
-        }),
-    );
+    // stereo_message(
+    //     Some(StereoControl::Left),
+    //     streamsend.clone(),
+    //     Some(ChannelMessage {
+    //         mute: Some(left_mute),
+    //         ..Default::default()
+    //     }),
+    // );
+    // stereo_message(
+    //     Some(StereoControl::Right),
+    //     streamsend,
+    //     Some(ChannelMessage {
+    //         mute: Some(right_mute),
+    //         ..Default::default()
+    //     }),
+    // );
 
     Ok(())
 }

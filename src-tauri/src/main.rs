@@ -17,10 +17,8 @@ mod constants;
 use constants::*;
 mod fourier;
 use fourier::*;
-mod sdft;
-mod server;
-use server::*;
 mod messages;
+mod sdft;
 use messages::*;
 mod file_io;
 mod settings;
@@ -42,44 +40,20 @@ fn main() {
             get_stft_data,
             get_time_onefft,
             get_time_data,
-            set_file_fft,
             get_fft_plot_data,
-            get_is_stereo,
-            save_global_state,
-            get_global_state,
-            get_channel_state,
-            save_bpf_gain,
-            save_bpf_freq,
-            save_bpf_Q,
             update_output_gain,
             update_noise_gain,
-            save_output_gain,
-            save_noise_gain,
-            get_noise_gain,
-            get_pre_smooth_gain,
-            get_post_smooth_gain,
-            get_stereo_control,
-            save_stereo_control,
-            save_pre_smooth_gain,
-            save_post_smooth_gain,
-            get_output_gain,
             update_pre_smooth_gain,
             update_post_smooth_gain,
-            get_settings,
-            save_settings,
-            init_settings,
-            get_theme_colors,
             update_file_path,
             update_mute,
-            get_mute,
-            save_mute,
             init_audio_params_from_server,
             process_export,
             get_audioui_message,
             sql_create,
-            sql_query_theme,
-            sql_query_theme_name,
-            sql_query_settings,
+            sql_theme,
+            sql_theme_name,
+            sql_settings,
             sql_update,
         ])
         .setup(|app| {

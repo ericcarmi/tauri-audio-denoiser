@@ -92,7 +92,7 @@ pub fn query_theme_name(s: String) -> Result<Theme, rusqlite::Error> {
 }
 
 #[tauri::command]
-pub fn sql_query_theme_name(app_handle: AppHandle) -> Result<Theme, String> {
+pub fn sql_theme_name(app_handle: AppHandle) -> Result<Theme, String> {
     let p = app_handle
         .path_resolver()
         .resource_dir()
@@ -139,7 +139,7 @@ pub fn query_theme(s: String, theme: Theme) -> Result<Colors, rusqlite::Error> {
 }
 
 #[tauri::command]
-pub fn sql_query_theme(theme: Theme, app_handle: AppHandle) -> Result<Colors, String> {
+pub fn sql_theme(theme: Theme, app_handle: AppHandle) -> Result<Colors, String> {
     let p = app_handle
         .path_resolver()
         .resource_dir()
@@ -180,7 +180,7 @@ pub fn query_settings(s: String) -> Result<Settings, rusqlite::Error> {
 }
 
 #[tauri::command]
-pub fn sql_query_settings(app_handle: AppHandle) -> Result<Settings, String> {
+pub fn sql_settings(app_handle: AppHandle) -> Result<Settings, String> {
     let p = app_handle
         .path_resolver()
         .resource_dir()

@@ -25,6 +25,7 @@
   import Settings from "./settings.svelte";
 
   let settings: any;
+  let theme: any;
 
   let is_backend_params_initialized = false;
 
@@ -50,17 +51,17 @@
 
   function change_file(path: string, from_assets?: boolean) {
     selectedRecording = path;
-    invoke("update_file_path", { path: selectedRecording });
-    invoke("get_is_stereo").then((r: any) => {
-      if (r.is_stereo !== undefined) {
-        stereo_params.is_stereo = r.is_stereo;
-      }
-    });
-    invoke("get_stereo_control").then((r: any) => {
-      if (r !== undefined) {
-        stereo_params.control = r;
-      }
-    });
+    // invoke("update_file_path", { path: selectedRecording });
+    // invoke("get_is_stereo").then((r: any) => {
+    //   if (r.is_stereo !== undefined) {
+    //     stereo_params.is_stereo = r.is_stereo;
+    //   }
+    // });
+    // invoke("get_stereo_control").then((r: any) => {
+    //   if (r !== undefined) {
+    //     stereo_params.control = r;
+    //   }
+    // });
     get_time_data(from_assets);
   }
 
@@ -90,7 +91,7 @@
   let stereo_params: StereoParams = init_channel_params(gains, freqs, Qs);
 
   function set_params_control(s: StereoControl, update_backend: boolean) {
-    // console.log("call", s);
+    console.log("call", s);
     if (s == "Left") {
       bpfs = [...stereo_params.left.bpfs];
       noise_gain = stereo_params.left.noise_gain;
@@ -109,61 +110,6 @@
       output_gain = stereo_params.both.output_gain;
       post_smooth_gain = stereo_params.both.post_smooth_gain;
       pre_smooth_gain = stereo_params.both.pre_smooth_gain;
-    }
-    if (update_backend) {
-      // console.log("backend too");
-
-      update_filter_bank(
-        [
-          ...bpfs.map((i) => {
-            return i.gain;
-          }),
-        ],
-        [
-          ...bpfs.map((i) => {
-            return i.freq;
-          }),
-        ],
-        [
-          ...bpfs.map((i) => {
-            return i.Q;
-          }),
-        ],
-        true,
-        stereo_params.control
-      );
-      invoke("update_noise_gain", {
-        gain: noise_gain,
-        stereoControl: stereo_params.control,
-      });
-      invoke("save_noise_gain", {
-        gain: noise_gain,
-        stereoControl: stereo_params.control,
-      });
-      invoke("update_pre_smooth_gain", {
-        gain: pre_smooth_gain,
-        stereoControl: stereo_params.control,
-      });
-      invoke("save_pre_smooth_gain", {
-        gain: pre_smooth_gain,
-        stereoControl: stereo_params.control,
-      });
-      invoke("update_post_smooth_gain", {
-        gain: post_smooth_gain,
-        stereoControl: stereo_params.control,
-      });
-      invoke("save_post_smooth_gain", {
-        gain: post_smooth_gain,
-        stereoControl: stereo_params.control,
-      });
-      invoke("update_output_gain", {
-        gain: output_gain,
-        stereoControl: stereo_params.control,
-      });
-      invoke("save_output_gain", {
-        gain: output_gain,
-        stereoControl: stereo_params.control,
-      });
     }
   }
 
@@ -189,37 +135,35 @@
   onMount(async () => {
     set_params_control("Both", false);
 
-    settings = await invoke("get_settings").catch(async (r) => {
+    settings = await invoke("sql_settings").catch(async (r) => {
       // console.log("recreate");
-      await message("have to init settings", "denoiser");
-
-      await invoke("init_settings");
-      settings = await invoke("get_settings");
+      // await message("have to init settings", "denoiser");
+      // await invoke("init_settings");
+      // settings = await invoke("get_settings");
     });
+    theme = await invoke("sql_theme", { theme: settings.theme });
+    console.log(settings, theme);
 
-
-    console.log(settings);
-
-    update_css_color(rgbToHex(settings.colors.rotary_tick), "rotary-tick");
-    update_css_color(rgbToHex(settings.colors.rotary_hover), "rotary-hover");
-    update_css_color(rgbToHex(settings.colors.slider_border), "slider-border");
+    update_css_color(rgbToHex(theme.rotary_tick), "rotary-tick");
+    update_css_color(rgbToHex(theme.rotary_hover), "rotary-hover");
+    update_css_color(rgbToHex(theme.slider_border), "slider-border");
     update_css_color(
-      rgbToHex(settings.colors.slider_indicator),
+      rgbToHex(theme.slider_indicator),
       "slider-indicator"
     );
-    update_css_color(rgbToHex(settings.colors.slider_hover), "slider-hover");
-    update_css_color(rgbToHex(settings.colors.slider_active), "slider-active");
-    update_css_color(rgbToHex(settings.colors.plot_main), "plot-main");
+    update_css_color(rgbToHex(theme.slider_hover), "slider-hover");
+    update_css_color(rgbToHex(theme.slider_active), "slider-active");
+    update_css_color(rgbToHex(theme.plot_main), "plot-main");
     update_css_color(
-      rgbToHex(settings.colors.plot_single_filter),
+      rgbToHex(theme.plot_single_filter),
       "plot-single-filter"
     );
     update_css_color(
-      rgbToHex(settings.colors.plot_total_curve),
+      rgbToHex(theme.plot_total_curve),
       "plot-total-curve"
     );
     update_css_color(
-      rgbToHex(settings.colors.plot_filter_hover),
+      rgbToHex(theme.plot_filter_hover),
       "plot-filter-hover"
     );
 
@@ -228,23 +172,9 @@
     change_file(selectedRecording, true);
     resetInterval();
 
-    // load from server
-    stereo_params.left = await invoke("get_channel_state", { channel: "Left" });
-    stereo_params.right = await invoke("get_channel_state", {
-      channel: "Right",
-    });
-    stereo_params.both = await invoke("get_channel_state", { channel: "Both" });
-    stereo_params.control = await invoke("get_stereo_control");
-    // stereo_params.left.mute = await invoke("get_mute", {
-    //   stereoControl: "Left",
-    // });
-    // stereo_params.right.mute = await invoke("get_mute", {
-    //   stereoControl: "Right",
-    // });
-
     set_params_control(stereo_params.control, false);
 
-    await invoke("init_audio_params_from_server");
+    // await invoke("init_audio_params_from_server");
   });
 
   function resetInterval() {
@@ -284,11 +214,12 @@
 <main class="container" id="app-container">
   <div class="header">
     {#if show_settings}
-      <Settings bind:settings bind:show_settings />
+      <Settings bind:settings bind:show_settings bind:theme/>
     {/if}
     {#if bpfs?.length === 5}
       <Plot
         bind:settings
+        bind:theme
         bind:bpf_hovering
         bind:is_playing
         bind:bpfs
@@ -327,10 +258,7 @@
           data-attribute={stereo_params.control !== "Right"}
           on:click={() => {
             // also need to update ui to switch between left/right channel params
-            set_params_control(stereo_params.control, true);
-            invoke("save_stereo_control", {
-              stereoControl: stereo_params.control,
-            });
+            // set_params_control(stereo_params.control, true);
             if (stereo_params.control === "Left") {
               stereo_params.control = "Right";
             } else if (stereo_params.control === "Right") {
@@ -345,10 +273,7 @@
           class="stereo-control-button"
           data-attribute={stereo_params.control !== "Left"}
           on:click={() => {
-            set_params_control(stereo_params.control, true);
-            invoke("save_stereo_control", {
-              stereoControl: stereo_params.control,
-            });
+            // set_params_control(stereo_params.control, true);
             if (stereo_params.control === "Left") {
               stereo_params.control = "Both";
             } else if (stereo_params.control === "Right") {
@@ -368,14 +293,6 @@
           data-attribute={stereo_params.left.mute}
           on:click={() => {
             stereo_params.left.mute = !stereo_params.left.mute;
-            invoke("update_mute", {
-              mute: stereo_params.left.mute,
-              stereoControl: "Left",
-            });
-            invoke("save_mute", {
-              mute: stereo_params.left.mute,
-              stereoControl: "Left",
-            });
           }}
         >
           L
@@ -385,14 +302,6 @@
           data-attribute={stereo_params.right.mute}
           on:click={() => {
             stereo_params.right.mute = !stereo_params.right.mute;
-            invoke("update_mute", {
-              mute: stereo_params.right.mute,
-              stereoControl: "Right",
-            });
-            invoke("save_mute", {
-              mute: stereo_params.right.mute,
-              stereoControl: "Right",
-            });
           }}
         >
           R
@@ -409,7 +318,7 @@
             time_origin = performance.now();
             if (!is_backend_params_initialized) {
               is_backend_params_initialized = true;
-              invoke("init_audio_params_from_server");
+              // invoke("init_audio_params_from_server");
             }
           } else {
             await invoke("pause_stream");
@@ -423,7 +332,6 @@
       <button
         on:click={async () => {
           clean = !clean;
-          invoke("update_clean", { clean: clean });
         }}
       >
         {clean ? "dry" : "wet"}
@@ -433,8 +341,8 @@
         on:click={() => {
           // invoke("sql_create");
           // invoke("sql_update");
-          let s = invoke("sql_query_theme", {theme: "RGB"}).then((r) => {
-            console.log(r);
+          let s = invoke("sql_theme", { theme: "RGB" }).then((r) => {
+            // console.log(r);
           });
         }}
       >
@@ -481,16 +389,8 @@
       max_val={20}
       min_val={-80}
       update_backend={() => {
-        invoke("update_noise_gain", {
-          gain: noise_gain,
-          stereoControl: stereo_params.control,
-        });
       }}
       update_server={() => {
-        invoke("save_noise_gain", {
-          gain: noise_gain,
-          stereoControl: stereo_params.control,
-        });
       }}
     />
     <RotarySlider
@@ -500,16 +400,8 @@
       min_val={0.0}
       resolution={3}
       update_backend={() => {
-        invoke("update_pre_smooth_gain", {
-          gain: pre_smooth_gain,
-          stereoControl: stereo_params.control,
-        });
       }}
       update_server={() => {
-        invoke("save_pre_smooth_gain", {
-          gain: pre_smooth_gain,
-          stereoControl: stereo_params.control,
-        });
       }}
     />
     <RotarySlider
@@ -519,16 +411,8 @@
       min_val={0.0}
       resolution={3}
       update_backend={() => {
-        invoke("update_post_smooth_gain", {
-          gain: post_smooth_gain,
-          stereoControl: stereo_params.control,
-        });
       }}
       update_server={() => {
-        invoke("save_post_smooth_gain", {
-          gain: post_smooth_gain,
-          stereoControl: stereo_params.control,
-        });
       }}
     />
     <RotarySlider
@@ -538,16 +422,8 @@
       min_val={-20}
       label="output gain"
       update_backend={() => {
-        invoke("update_output_gain", {
-          gain: output_gain,
-          stereoControl: stereo_params.control,
-        });
       }}
       update_server={() => {
-        invoke("save_output_gain", {
-          gain: output_gain,
-          stereoControl: stereo_params.control,
-        });
       }}
     />
   </div>
@@ -608,8 +484,6 @@
             is_processing = false;
             // resetInterval();
           });
-          // let r = invoke("get_audioui_message").then((r) => {});
-          // console.log(r);
         }
       }}
     >
