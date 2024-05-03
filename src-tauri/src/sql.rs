@@ -1,52 +1,10 @@
-use crate::settings::{
-    Colors, PlotScale, Settings, Theme, GRAY100, GRAY200, GREEN, LIGHTPURPLE, PURPLE,
+use crate::{
+    settings::{Colors, PlotScale, Settings, Theme, GRAY100, GRAY200, GREEN, LIGHTPURPLE, PURPLE},
+    types::{AudioParams, StereoAudioParams, StereoControl},
 };
 use rusqlite::{Connection, Result};
 use tauri::AppHandle;
 pub const DB_FILE_NAME: &'static str = "/db.sqlite";
-
-// to avoid requiring sqlite3 being installed on computer, don't run script...which is also a bash script, just another thing to copy tho...
-pub fn create(s: String) -> Result<()> {
-    let conn = Connection::open(s + DB_FILE_NAME)?;
-    conn.execute(
-        "CREATE TABLE SETTINGS (
-            id    INTEGER PRIMARY KEY,
-            plot_scale  TEXT NOT NULL,
-            theme  TEXT NOT NULL,
-            draw_freq_axis BOOLEAN,
-            draw_fft_amp_axis BOOLEAN,
-            draw_filter_amp_axis BOOLEAN,
-        )",
-        (), // empty list of parameters.
-    )?;
-
-    conn.execute("insert into settings (plot_scale, theme, draw_freq_axis, draw_fft_amp_axis, draw_filter_amp_axis) values ('Log', 'RGB', true, true, true)", ())?;
-
-    conn.execute(
-        "CREATE TABLE THEMES(id INTEGER PRIMARY KEY, name TEXT NOT NULL, rotary_ticks TEXT NOT NULL, slider_border TEXT NOT NULL, slider_hover TEXT NOT NULL, plot_main TEXT NOT NULL, plot_total_curve TEXT NOT NULL, rotary_hover TEXT NOT NULL, slider_indicator TEXT NOT NULL, slider_active TEXT NOT NULL, plot_single_filter TEXT NOT NULL, plot_filter_hover TEXT NOT NULL)",
-        (), // empty list of parameters.
-    )?;
-
-    conn.execute("insert into themes(name, rotary_ticks, rotary_hover, slider_border, slider_indicator, slider_hover, slider_active, plot_main, plot_single_filter, plot_total_curve, plot_filter_hover) values ('RGB', '#ff0000', '#0000ff', '#0000ff', '#000000', '#00ff00', '#00ff00', '#888888', '#ffffff', '#00ff00', '#ff0000')", ())?;
-
-        Ok(())
-}
-
-#[tauri::command]
-pub fn sql_create(app_handle: AppHandle) -> Result<(), String> {
-    let p = app_handle
-        .path_resolver()
-        .resource_dir()
-        .expect("failed to resolve resource")
-        .into_os_string()
-        .into_string()
-        .unwrap();
-
-    if let Err(e) = create(p) {
-        return Err(e.to_string());
-    }
-    Ok(())
-}
 
 pub fn update(s: String) -> Result<()> {
     let conn = Connection::open(s + DB_FILE_NAME)?;
@@ -159,7 +117,7 @@ pub fn sql_theme(theme: Theme, app_handle: AppHandle) -> Result<Colors, String> 
 
 pub fn query_settings(s: String) -> Result<Settings, rusqlite::Error> {
     let conn = Connection::open(s + DB_FILE_NAME)?;
-    let mut stmt = conn.prepare("SELECT * FROM settings")?;
+    let mut stmt = conn.prepare("SELECT * FROM SETTINGS")?;
     let settings_iter = stmt.query_map([], |row| {
         Ok(Settings {
             id: row.get(0)?,
@@ -190,6 +148,51 @@ pub fn sql_settings(app_handle: AppHandle) -> Result<Settings, String> {
         .unwrap();
 
     let q = query_settings(p);
+
+    if q.is_ok() {
+        return Ok(q.unwrap());
+    } else {
+        return q.map_err(|e| e.to_string());
+    }
+}
+
+pub fn query_channel_params(
+    channel: StereoControl,
+    s: String,
+) -> Result<AudioParams, rusqlite::Error> {
+    let conn = Connection::open(s + DB_FILE_NAME)?;
+    let chan = channel.as_str().to_lowercase();
+    let mut stmt =
+        conn.prepare(format!("SELECT * FROM CHANNEL_PARAMS WHERE name='{}'", chan).as_str())?;
+    let control_iter = stmt.query_map([], |row| {
+        Ok(AudioParams {
+            // id: row.get(0)?,
+            ..Default::default()
+        })
+    })?;
+
+    for control in control_iter {
+        if let Ok(sett) = control {
+            return Ok(sett);
+        }
+    }
+    return Err(rusqlite::Error::InvalidQuery);
+}
+
+#[tauri::command]
+pub fn sql_channel_params(
+    channel: StereoControl,
+    app_handle: AppHandle,
+) -> Result<AudioParams, String> {
+    let p = app_handle
+        .path_resolver()
+        .resource_dir()
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    let q = query_channel_params(channel, p);
 
     if q.is_ok() {
         return Ok(q.unwrap());

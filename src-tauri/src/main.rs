@@ -2,19 +2,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(non_snake_case)]
 use cpal::traits::StreamTrait;
-use rusqlite::Connection;
-use std::{
-    fs::{File, OpenOptions},
-    io::{Read, Write},
-    sync::Mutex,
-};
-use tauri::{AppHandle, Manager, State};
+use std::{fs::File, sync::Mutex};
+use tauri::{Manager, State};
 mod audio;
 use audio::*;
 mod types;
 use types::*;
 mod constants;
-use constants::*;
 mod fourier;
 use fourier::*;
 mod messages;
@@ -23,11 +17,10 @@ use messages::*;
 mod file_io;
 mod settings;
 use file_io::*;
-use log::info;
+// use log::info;
 mod sql;
 use simplelog::*;
 use sql::*;
-use tauri::api::process::Command as CMD;
 
 fn main() {
     let app = tauri::Builder::default()
@@ -50,11 +43,11 @@ fn main() {
             init_audio_params_from_server,
             process_export,
             get_audioui_message,
-            sql_create,
             sql_theme,
             sql_theme_name,
             sql_settings,
             sql_update,
+            sql_channel_params,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();
@@ -69,11 +62,6 @@ fn main() {
                 .into_string()
                 .unwrap();
 
-            // let r = sql::create();
-            // println!("{:?}", r);
-            // let r = sql::query(c);
-            // println!("{:?}", r);
-
             let _w = WriteLogger::init(
                 LevelFilter::Info,
                 Config::default(),
@@ -81,7 +69,6 @@ fn main() {
             );
 
             let m = mainwindow.available_monitors();
-            start_server(app_handle.clone());
             let _ = mainwindow.set_position(*m.unwrap()[0].position());
 
             let mss = MStreamSend({
@@ -106,9 +93,6 @@ fn main() {
     app.run(|_app_handle, event| match event {
         tauri::RunEvent::ExitRequested { api, .. } => {
             // can get api from brackets ^
-            // println!("wtf stop");
-
-            stop_server();
         }
         _ => {}
     });
@@ -168,63 +152,4 @@ fn get_audioui_message(streamsend: State<MStreamSend>) -> Result<AudioUIMessage,
     } else {
         r.map_err(|e| e.to_string())
     }
-}
-
-fn start_server(app_handle: AppHandle) {
-    let p = app_handle
-        .path_resolver()
-        .resource_dir()
-        .expect("failed to resolve resource")
-        .into_os_string()
-        .into_string()
-        .unwrap();
-
-    // println!("{:?}", p);
-
-    let ping = CMD::new_sidecar("redis-cli")
-        .expect("failed to stop redis-server")
-        .args(["-p", REDIS_PORT, "ping"])
-        .output()
-        .expect("Failed to spawn sidecar");
-    let conf_path = p.clone() + "/redis.conf";
-
-    if let Ok(mut conf) = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(conf_path.clone())
-    {
-        let mut contents = String::new();
-        conf.read_to_string(&mut contents).unwrap();
-        if !contents.contains("dir ") {
-            let r = writeln!(&mut conf, "dir {}", p);
-            // info!("{:?}", r);
-            // info!("{:?}", contents);
-        }
-    }
-
-    if !ping.stdout.contains("PONG") {
-        let child = CMD::new_sidecar("redis-server")
-            .expect("failed to start redis-server")
-            .args([conf_path.as_str()])
-            .output()
-            .expect("Failed to spawn sidecar");
-        // println!("server {:?}", child);
-        let child = CMD::new_sidecar("redis-cli")
-            .expect("failed to start redis-server")
-            .args(["-p", REDIS_PORT, "config", "get", "dir"])
-            .output()
-            .expect("Failed to spawn sidecar");
-
-        // info!("{:?}", child);
-        // info!("{:?}", p);
-    }
-}
-
-fn stop_server() {
-    let child = CMD::new_sidecar("redis-cli")
-        .expect("failed to stop redis-server")
-        .args(["-h", "127.0.0.1", "-p", REDIS_PORT, "shutdown"])
-        .output()
-        .expect("Failed to spawn sidecar");
-    // println!("stop the server dammit{:?}", child);
 }

@@ -11,4 +11,4 @@ pub fn czerov(n: usize) -> Vec<Complex<f32>> {
     vec![Complex { re: 0.0, im: 0.0 }; n]
 }
 
-pub const REDIS_PORT: &str = "6380";
+pub const SAMPLING_RATE: f32 = 44100.0;
