@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { MAX_FREQ, MIN_FREQ, NYQUIST } from "./constants.svelte";
+	import { NYQUIST } from "./constants.svelte";
 	let control_max_freq = NYQUIST;
 	let control_min_freq = 20;
 
 	export let value: number = control_max_freq / 2;
-	export let index: number = -1;
+	export let index: number;
 	export let update_server = () => {};
 
 	let height = "1em";
@@ -15,16 +15,13 @@
 	let indicator: HTMLElement;
 	let is_dragging = false;
 	let width = 180;
-	let indicator_width = 10;
+	let indicator_width = 5;
 
-	let high_res = 0.1;
-	let low_res = 0.5;
-	let resolution = 1;
+	$: value, el && indicator && update_position();
 
 	function update_value() {
 		let x =
-			((position + indicator_width) / width) *
-				(control_max_freq - control_min_freq) +
+			(position / width) * (control_max_freq - control_min_freq) +
 			control_min_freq;
 		value = x;
 	}
@@ -134,15 +131,11 @@
 			data-attribute={is_dragging}
 			role="button"
 			tabindex={-1}
-			on:mousedown={(e) => {
-				if (e.shiftKey) {
-					resolution = high_res;
-				}
+			on:mousedown={() => {
 				is_dragging = true;
 			}}
 			on:mouseup={() => {
 				is_dragging = false;
-				resolution = low_res;
 			}}
 		/>
 		<span class="value-text">{value.toFixed(1)}</span>

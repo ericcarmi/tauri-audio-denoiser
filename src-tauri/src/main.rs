@@ -46,8 +46,8 @@ fn main() {
             sql_theme,
             sql_theme_name,
             sql_settings,
-            sql_update,
             sql_ui_params,
+            sql_update_ui_params,
             sql_filter_bank,
         ])
         .setup(|app| {

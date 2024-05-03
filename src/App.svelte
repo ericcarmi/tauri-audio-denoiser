@@ -13,11 +13,11 @@
   } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
   import type {
-    BPF,
     UIParams,
     StereoChoice,
     StereoParams,
     FilterBank,
+    UIFilterBank,
   } from "./types.svelte";
   import {
     init_channel_params,
@@ -90,20 +90,45 @@
   let clean = false;
 
   let stereo_params: StereoParams = init_channel_params(gains, freqs, Qs);
+  let ui_params: UIParams;
 
-  function get_params_control(s: StereoChoice) {
+  function get_ui_params(s: StereoChoice) {
     // get from backend
     invoke("sql_ui_params", { stereoChoice: s }).then((r) => {
-      let params: UIParams = r as UIParams;
+      ui_params = r as UIParams;
       invoke("sql_filter_bank", { stereoChoice: s }).then((res) => {
         const fb = res as FilterBank;
-        bpfs = [fb.bp1,fb.bp2,fb.bp3,fb.bp4,fb.bp5]
+        bpfs = [fb.bp1, fb.bp2, fb.bp3, fb.bp4, fb.bp5];
       });
 
-      noise_gain = params.noise_gain;
-      output_gain = params.output_gain;
-      post_smooth_gain = params.post_smooth_gain;
-      pre_smooth_gain = params.pre_smooth_gain;
+      noise_gain = ui_params.noise_gain;
+      output_gain = ui_params.output_gain;
+      post_smooth_gain = ui_params.post_smooth_gain;
+      pre_smooth_gain = ui_params.pre_smooth_gain;
+    });
+  }
+
+  function set_ui_params(s: StereoChoice, ui: UIParams) {
+    let params: UIParams = {
+      left_mute: false,
+      right_mute: false,
+      noise_gain: noise_gain,
+      output_gain: output_gain,
+      post_smooth_gain: post_smooth_gain,
+      pre_smooth_gain: pre_smooth_gain,
+      clean: clean,
+      stereo_choice: "Both",
+      filter_bank: {
+        bp1: bpfs[0],
+        bp2: bpfs[1],
+        bp3: bpfs[2],
+        bp4: bpfs[3],
+        bp5: bpfs[4],
+      } as UIFilterBank,
+    };
+    invoke("sql_update_ui_params", {
+      stereoChoice: s,
+      uiParams: params,
     });
   }
 
@@ -150,7 +175,7 @@
     change_file(selectedRecording, true);
     resetInterval();
 
-    get_params_control(stereo_params.stereo_choice);
+    get_ui_params(stereo_params.stereo_choice);
 
     // await invoke("init_audio_params_from_server");
   });
@@ -234,6 +259,7 @@
           data-attribute={stereo_params.stereo_choice !== "Right"}
           on:click={() => {
             // also need to update ui to switch between left/right channel params
+            set_ui_params(stereo_params.stereo_choice, ui_params);
             if (stereo_params.stereo_choice === "Left") {
               stereo_params.stereo_choice = "Right";
             } else if (stereo_params.stereo_choice === "Right") {
@@ -241,13 +267,14 @@
             } else if (stereo_params.stereo_choice === "Both") {
               stereo_params.stereo_choice = "Right";
             }
-            get_params_control(stereo_params.stereo_choice);
+            get_ui_params(stereo_params.stereo_choice);
           }}>L</button
         >
         <button
           class="stereo-control-button"
           data-attribute={stereo_params.stereo_choice !== "Left"}
           on:click={() => {
+            set_ui_params(stereo_params.stereo_choice, ui_params);
             if (stereo_params.stereo_choice === "Left") {
               stereo_params.stereo_choice = "Both";
             } else if (stereo_params.stereo_choice === "Right") {
@@ -255,7 +282,7 @@
             } else if (stereo_params.stereo_choice === "Both") {
               stereo_params.stereo_choice = "Left";
             }
-            get_params_control(stereo_params.stereo_choice);
+            get_ui_params(stereo_params.stereo_choice);
           }}>R</button
         >
         control: {stereo_params.stereo_choice}

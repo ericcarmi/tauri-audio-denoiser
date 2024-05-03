@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 
-	export let value: number;
+	export let value: number = 28.8;
 	export let index: number;
 	export let update_server = () => {};
 
@@ -13,13 +13,11 @@
 	let is_dragging = false;
 	let range = 60;
 
-	$: value, redraw();
+	$: value, indicator && el && redraw();
 
 	function redraw() {
-		if (!is_dragging && indicator !== undefined) {
-			position = height / 2 - (value / range) * height;
-			indicator.style.top = position + "px";
-		}
+		position = height / 2 - (value / range) * height;
+		indicator.style.top = position + "px";
 	}
 
 	function draggable() {
@@ -161,5 +159,4 @@
 	.thumb[data-attribute="true"] {
 		background: var(--slider-active);
 	}
-
 </style>

@@ -21,30 +21,28 @@
 	let radius = 12;
 
 	let angle = 225;
-	$: value, redraw();
+	$: value, indicator_el && el && redraw();
 
 	function redraw() {
-		if (!is_mouse_down && indicator_el !== undefined) {
-			angle = (-(value - max_val) / Math.abs(max_val - min_val)) * 270 - 45;
-			const x = radius * Math.cos((angle * Math.PI) / 180);
-			const y = -radius * Math.sin((angle * Math.PI) / 180);
+		angle = (-(value - max_val) / Math.abs(max_val - min_val)) * 270 - 45;
+		const x = radius * Math.cos((angle * Math.PI) / 180);
+		const y = -radius * Math.sin((angle * Math.PI) / 180);
 
-			indicator_el.style.transform = `scale(0.1) translate(${x}em, ${y}em)`;
-			indicator_el.style.background = `linear-gradient(${
-				90 - angle
-			}deg, var(--gray50) 0%,  var(--purple) 100%)`;
-			let a = (1 - (angle + 45) / 270) * 40;
-			let highlight = Math.round(a);
-			colors = Array(num_indicators)
-				.fill(0)
-				.map((_, idx) => {
-					if (highlight > idx) {
-						return "var(--rotary-tick)";
-					} else {
-						return "black";
-					}
-				});
-		}
+		indicator_el.style.transform = `scale(0.1) translate(${x}em, ${y}em)`;
+		indicator_el.style.background = `linear-gradient(${
+			90 - angle
+		}deg, var(--gray50) 0%,  var(--purple) 100%)`;
+		let a = (1 - (angle + 45) / 270) * 40;
+		let highlight = Math.round(a);
+		colors = Array(num_indicators)
+			.fill(0)
+			.map((_, idx) => {
+				if (highlight > idx) {
+					return "var(--rotary-tick)";
+				} else {
+					return "black";
+				}
+			});
 	}
 
 	function draggable() {
