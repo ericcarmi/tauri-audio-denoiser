@@ -11,19 +11,19 @@
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 
-  --green: rgb(0,140,0);
-  --purple: rgb(100,0,140);
-  --orange: rgb(220,100,0);
+  --green: rgb(0, 140, 0);
+  --purple: rgb(100, 0, 140);
+  --orange: rgb(220, 100, 0);
 
 
-  --lightgreen: rgb(0,180,0);
-  --lightpurple: rgb(140,0,180);
-  --lightorange: rgb(240,130,0);
+  --lightgreen: rgb(0, 180, 0);
+  --lightpurple: rgb(140, 0, 180);
+  --lightorange: rgb(240, 130, 0);
 
-  --gray50: rgb(50,50,50);
-  --gray100: rgb(100,100,100);
-  --gray150: rgb(150,150,150);
-  --gray200: rgb(200,200,200);
+  --gray50: rgb(50, 50, 50);
+  --gray100: rgb(100, 100, 100);
+  --gray150: rgb(150, 150, 150);
+  --gray200: rgb(200, 200, 200);
 
   --gray1: oklch(0.1 0 0);
   --gray2: oklch(0.2 0 0);
@@ -55,7 +55,8 @@
 
 }
 
-body, html {
+body,
+html {
   overflow-y: hidden;
   height: 100%;
   padding: 0;
@@ -73,7 +74,8 @@ body, html {
 
 
 
-input[type="checkbox"], input[type="radio"] {
+input[type="checkbox"],
+input[type="radio"] {
   appearance: none;
   background: var(--gray1);
   width: 1em;
@@ -81,7 +83,9 @@ input[type="checkbox"], input[type="radio"] {
   border: 1px solid var(--gray9);
   cursor: pointer;
 }
-input[type="checkbox"]:checked, input[type="radio"]:checked {
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
   background: var(--orange);
 }
 
@@ -103,9 +107,11 @@ button {
   cursor: pointer;
   transition: color 0.33s, background 0.33s, filter 0.33s;
 }
+
 button:hover {
   color: var(--gray150);
 }
+
 button:active {
   color: var(--gray100);
 }
@@ -116,44 +122,47 @@ input {
 
 
 .switch {
-	display: flex;
-	width: 1em;
-	height: 1em;
-	padding: 0;
-	border-radius: 50%;
-	background: var(--purple);
+  display: flex;
+  width: 1em;
+  height: 1em;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--purple);
   color: var(--gray150);
-	align-self: center;
-	transition: background 0.33s, border-color 0.33s;
-	border-color: var(--gray100);
+  align-self: center;
+  transition: background 0.33s, border-color 0.33s;
+  border-color: var(--gray100);
   align-items: center;
 }
+
 .switch[data-attribute="true"]:hover {
-	border-color: var(--lightpurple);
+  border-color: var(--lightpurple);
 }
+
 .switch:hover {
-	border-color: var(--gray150);
+  border-color: var(--gray150);
 }
 
 .switch[data-attribute="true"] {
-	background: var(--gray150);
-	border-color: var(--purple);
+  background: var(--gray150);
+  border-color: var(--purple);
 }
 
 .reset-gain-switch {
-	display: flex;
-	width: 1em;
-	height: 1em;
-	padding: 0;
-	background: var(--orange);
+  display: flex;
+  width: 1em;
+  height: 1em;
+  padding: 0;
+  background: var(--orange);
   color: var(--gray50);
-	align-self: center;
-	transition: background 0.33s, border-color 0.33s;
-	border-color: var(--gray100);
+  align-self: center;
+  transition: background 0.33s, border-color 0.33s;
+  border-color: var(--gray100);
   align-items: center;
 }
+
 .reset-gain-switch:hover {
-	border-color: var(--gray150);
+  border-color: var(--gray150);
 }
 
 
@@ -168,16 +177,16 @@ input {
 
 
 
-@media (prefers-color-scheme: dark) {
-}
+@media (prefers-color-scheme: dark) {}
 
 @keyframes spin {
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
-    
+
   }
 }
 
@@ -186,9 +195,38 @@ input {
   0% {
     border: 1px solid var(--purple);
   }
+
   100% {
     border: 1px solid var(--lightpurple);
-    
+
   }
 }
 
+
+@keyframes sine-height {
+  0% {
+    height: 50px;
+    border-top: 3px solid red;
+    border-bottom: none;
+  }
+
+
+  49% {
+    height: 0px;
+    border-top: 3px solid red;
+    border-bottom: none;
+  }
+
+  50% {
+    height: 0px;
+    border-top: none;
+    border-bottom: 3px solid red;
+  }
+
+
+  100% {
+    height: 50px;
+    border-top: none;
+    border-bottom: 3px solid red;
+  }
+}

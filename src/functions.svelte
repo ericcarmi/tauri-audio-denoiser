@@ -3,10 +3,11 @@
 	import { FREQ_PLOT_WIDTH, SAMPLING_RATE } from "./constants.svelte";
 	import type {
 		BPF,
-		ChannelParams,
+		UIParams,
+		AudioParams,
 		Complex,
-		FilterCoeffs2,
-		StereoControl,
+		IIR2,
+		StereoChoice,
 		StereoParams,
 	} from "./types.svelte";
 
@@ -34,23 +35,41 @@
 				return { gain: gains[i], freq: freqs[i], Q: Qs[i] };
 			});
 
-		let c = {
-			bpfs: bpf_filters,
+		let fb = {
+			bp1: bpf_filters[0],
+			bp2: bpf_filters[1],
+			bp3: bpf_filters[2],
+			bp4: bpf_filters[3],
+			bp5: bpf_filters[4],
+		};
+
+		let ui = {
+			clean: clean,
+			left_mute: false,
+			right_mute: false,
 			output_gain: output_gain,
 			noise_gain: noise_gain,
 			pre_smooth_gain: pre_smooth_gain,
 			post_smooth_gain: post_smooth_gain,
-			clean: clean,
-			mute: false,
-		} as ChannelParams;
+			stereo_choice: "Both",
+			filter_bank: fb,
+		} as UIParams;
+
+		let c = {
+			ui_params: ui,
+			time: 0,
+			dft_size: 256,
+		} as AudioParams;
 
 		return {
 			left: c,
 			right: c,
-			both: c,
-			control: "Both",
+			stereo_choice: "Both",
 			is_stereo: true,
 			clean: false,
+			num_file_samples: 0,
+			file_path: "",
+			time: 0,
 		};
 	}
 
@@ -86,10 +105,10 @@
 			a0: 1 + alpha / A,
 			a1: -2 * Math.cos(w0),
 			a2: 1 - alpha / A,
-		} as FilterCoeffs2;
+		} as IIR2;
 	}
 
-	export function freq_response(coeffs: FilterCoeffs2, len: number) {
+	export function freq_response(coeffs: IIR2, len: number) {
 		let H: Array<number> = [];
 		for (let i = 0; i < len; i++) {
 			let w = (Math.PI * i) / len;
@@ -168,25 +187,6 @@
 			(_, i) => start + i * step
 		);
 
-	// this is probably not good
-	export function setRectangle(
-		gl: any,
-		x: any,
-		y: any,
-		width: any,
-		height: any
-	) {
-		var x1 = x;
-		var x2 = x + width;
-		var y1 = y;
-		var y2 = y - height;
-		gl.bufferData(
-			gl.ARRAY_BUFFER,
-			new Float32Array([x1, y1, x2, y1, x1, y2, x2, y2]),
-			gl.STATIC_DRAW
-		);
-	}
-
 	export function frequencyToXAxis(frequency: number) {
 		const minF = Math.log(20) / Math.log(10);
 		const maxF = Math.log(20000) / Math.log(10);
@@ -196,6 +196,7 @@
 			((Math.log(frequency) / Math.log(10) - minF) / range) * FREQ_PLOT_WIDTH;
 		return xAxis;
 	}
+
 	export function componentToHex(c: number) {
 		var hex = c.toString(16);
 		return hex.length == 1 ? "0" + hex : hex;
@@ -219,142 +220,6 @@
 					b: parseInt(result[3], 16),
 			  }
 			: null;
-	}
-
-	// for now just using this for the reset all gain switch, so the filters on backend are updated, and server at same time, which usually doesn't happen when moving gain slider (only sends to server on mouse up)
-	export function update_filters(
-		index: number,
-		gain: number,
-		freq: number,
-		Q: number,
-		update_server: boolean,
-		stereo_control: StereoControl
-	) {
-		let b = biquad(gain, freq, Q) as any;
-		b.x = [0, 0];
-		b.y = [0, 0];
-		// console.log('no')
-
-		for (const key in b) {
-			// console.log("what", b[key as keyof FilterCoeffs2]);
-			// if (isNaN(b[key as keyof FilterCoeffs2])) return;
-		}
-		// console.log("here");
-		if (index == 1) {
-			invoke("update_filters", { bp1: b, stereoControl: stereo_control });
-			if (update_server) {
-				invoke("save_bpf_gain", {
-					gain: gain,
-					index: index,
-					stereoControl: stereo_control,
-				});
-				invoke("save_bpf_freq", {
-					freq: freq,
-					index: index,
-					stereoControl: stereo_control,
-				});
-				invoke("save_bpf_Q", {
-					q: Q,
-					index: index,
-					stereoControl: stereo_control,
-				});
-			}
-		} else if (index == 2) {
-			invoke("update_filters", { bp2: b, stereoControl: stereo_control });
-			if (update_server) {
-				invoke("save_bpf_gain", {
-					gain: gain,
-					index: index,
-					stereoControl: stereo_control,
-				});
-				invoke("save_bpf_freq", {
-					freq: freq,
-					index: index,
-					stereoControl: stereo_control,
-				});
-				invoke("save_bpf_Q", {
-					q: Q,
-					index: index,
-					stereoControl: stereo_control,
-				});
-			}
-		} else if (index == 3) {
-			invoke("update_filters", { bp3: b, stereoControl: stereo_control });
-			if (update_server) {
-				invoke("save_bpf_gain", {
-					gain: gain,
-					index: index,
-					stereoControl: stereo_control,
-				});
-				invoke("save_bpf_freq", {
-					freq: freq,
-					index: index,
-					stereoControl: stereo_control,
-				});
-				invoke("save_bpf_Q", {
-					q: Q,
-					index: index,
-					stereoControl: stereo_control,
-				});
-			}
-		} else if (index == 4) {
-			invoke("update_filters", { bp4: b, stereoControl: stereo_control });
-			if (update_server) {
-				invoke("save_bpf_gain", {
-					gain: gain,
-					index: index,
-					stereoControl: stereo_control,
-				});
-				invoke("save_bpf_freq", {
-					freq: freq,
-					index: index,
-					stereoControl: stereo_control,
-				});
-				invoke("save_bpf_Q", {
-					q: Q,
-					index: index,
-					stereoControl: stereo_control,
-				});
-			}
-		} else if (index == 5) {
-			invoke("update_filters", { bp5: b, stereoControl: stereo_control });
-			if (update_server) {
-				invoke("save_bpf_gain", {
-					gain: gain,
-					index: index,
-					stereoControl: stereo_control,
-				});
-				invoke("save_bpf_freq", {
-					freq: freq,
-					index: index,
-					stereoControl: stereo_control,
-				});
-				invoke("save_bpf_Q", {
-					q: Q,
-					index: index,
-					stereoControl: stereo_control,
-				});
-			}
-		}
-	}
-
-	export function update_filter_bank(
-		gains: number[],
-		freqs: number[],
-		Qs: number[],
-		update_server: boolean,
-		stereo_control: StereoControl
-	) {
-		for (let i = 0; i < gains.length; i++) {
-			update_filters(
-				i + 1,
-				gains[i],
-				freqs[i],
-				Qs[i],
-				update_server,
-				stereo_control
-			);
-		}
 	}
 
 	export function remove_slashes_ext(s: string) {

@@ -12,26 +12,27 @@
     num_sliders,
   } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
-  import type { BPF, StereoControl, StereoParams } from "./types.svelte";
+  import type {
+    BPF,
+    UIParams,
+    StereoChoice,
+    StereoParams,
+    FilterBank,
+  } from "./types.svelte";
   import {
     init_channel_params,
     remove_slashes_ext,
     rgbToHex,
     update_css_color,
-    update_filter_bank,
-    update_filters,
   } from "./functions.svelte";
   import RotarySlider from "./rotary-slider.svelte";
   import Settings from "./settings.svelte";
 
   let settings: any;
   let theme: any;
-
   let is_backend_params_initialized = false;
-
   let is_processing = false;
   let processing_percentage = 0;
-
   let show_settings = false;
   // if these values are the same as what is in server, values will not update when loaded, so use values that are way out of range? silly but it works
   var gains = [0, 0, 0, 0, 0];
@@ -43,7 +44,7 @@
   });
 
   const unlisten_audioui_message = listen(
-    "update_processing_percentage",
+    "message_processing_percentage",
     async (event: any) => {
       processing_percentage = event.payload as number;
     }
@@ -51,15 +52,15 @@
 
   function change_file(path: string, from_assets?: boolean) {
     selectedRecording = path;
-    // invoke("update_file_path", { path: selectedRecording });
+    invoke("message_file_path", { path: selectedRecording });
     // invoke("get_is_stereo").then((r: any) => {
     //   if (r.is_stereo !== undefined) {
     //     stereo_params.is_stereo = r.is_stereo;
     //   }
     // });
-    // invoke("get_stereo_control").then((r: any) => {
+    // invoke("get_stereo_choice").then((r: any) => {
     //   if (r !== undefined) {
-    //     stereo_params.control = r;
+    //     stereo_params.stereo_choice = r;
     //   }
     // });
     get_time_data(from_assets);
@@ -80,37 +81,30 @@
 
   // these values are retrieved onMount from server...want to also get the types over eventually to not copy-paste
   // but also the audio params aren't an exact copy of the rust type?
-  // keep this values to be connected to single sliders, then depending on stereo_control, will get sent to left/right/both
+  // keep this values to be connected to single sliders, then depending on stereo_choice, will get sent to left/right/both
   let output_gain = 0.0;
   let noise_gain = 0.0;
   let pre_smooth_gain = 0.5;
   let post_smooth_gain = 0.5;
-  let bpfs: Array<BPF>;
+  let bpfs: any;
   let clean = false;
 
   let stereo_params: StereoParams = init_channel_params(gains, freqs, Qs);
 
-  function set_params_control(s: StereoControl, update_backend: boolean) {
-    console.log("call", s);
-    if (s == "Left") {
-      bpfs = [...stereo_params.left.bpfs];
-      noise_gain = stereo_params.left.noise_gain;
-      output_gain = stereo_params.left.output_gain;
-      post_smooth_gain = stereo_params.left.post_smooth_gain;
-      pre_smooth_gain = stereo_params.left.pre_smooth_gain;
-    } else if (s === "Right") {
-      bpfs = [...stereo_params.right.bpfs];
-      noise_gain = stereo_params.right.noise_gain;
-      output_gain = stereo_params.right.output_gain;
-      post_smooth_gain = stereo_params.right.post_smooth_gain;
-      pre_smooth_gain = stereo_params.right.pre_smooth_gain;
-    } else if (s === "Both") {
-      bpfs = [...stereo_params.both.bpfs];
-      noise_gain = stereo_params.both.noise_gain;
-      output_gain = stereo_params.both.output_gain;
-      post_smooth_gain = stereo_params.both.post_smooth_gain;
-      pre_smooth_gain = stereo_params.both.pre_smooth_gain;
-    }
+  function get_params_control(s: StereoChoice) {
+    // get from backend
+    invoke("sql_ui_params", { stereoChoice: s }).then((r) => {
+      let params: UIParams = r as UIParams;
+      invoke("sql_filter_bank", { stereoChoice: s }).then((res) => {
+        const fb = res as FilterBank;
+        bpfs = [fb.bp1,fb.bp2,fb.bp3,fb.bp4,fb.bp5]
+      });
+
+      noise_gain = params.noise_gain;
+      output_gain = params.output_gain;
+      post_smooth_gain = params.post_smooth_gain;
+      pre_smooth_gain = params.pre_smooth_gain;
+    });
   }
 
   let bpf_hovering = Array(num_sliders).fill(false);
@@ -133,46 +127,30 @@
   $: num_time_samples, (time_slider_max = num_time_samples);
 
   onMount(async () => {
-    set_params_control("Both", false);
-
     settings = await invoke("sql_settings").catch(async (r) => {
-      // console.log("recreate");
       // await message("have to init settings", "denoiser");
       // await invoke("init_settings");
       // settings = await invoke("get_settings");
     });
     theme = await invoke("sql_theme", { theme: settings.theme });
-    console.log(settings, theme);
 
     update_css_color(rgbToHex(theme.rotary_tick), "rotary-tick");
     update_css_color(rgbToHex(theme.rotary_hover), "rotary-hover");
     update_css_color(rgbToHex(theme.slider_border), "slider-border");
-    update_css_color(
-      rgbToHex(theme.slider_indicator),
-      "slider-indicator"
-    );
+    update_css_color(rgbToHex(theme.slider_indicator), "slider-indicator");
     update_css_color(rgbToHex(theme.slider_hover), "slider-hover");
     update_css_color(rgbToHex(theme.slider_active), "slider-active");
     update_css_color(rgbToHex(theme.plot_main), "plot-main");
-    update_css_color(
-      rgbToHex(theme.plot_single_filter),
-      "plot-single-filter"
-    );
-    update_css_color(
-      rgbToHex(theme.plot_total_curve),
-      "plot-total-curve"
-    );
-    update_css_color(
-      rgbToHex(theme.plot_filter_hover),
-      "plot-filter-hover"
-    );
+    update_css_color(rgbToHex(theme.plot_single_filter), "plot-single-filter");
+    update_css_color(rgbToHex(theme.plot_total_curve), "plot-total-curve");
+    update_css_color(rgbToHex(theme.plot_filter_hover), "plot-filter-hover");
 
     selectedRecording = "reisman.wav";
     // selected recording also needs to be in sync with backend file...should be resolved once files are imported correctly instead of one by default, tho should still have that for loading saved state?
     change_file(selectedRecording, true);
     resetInterval();
 
-    set_params_control(stereo_params.control, false);
+    get_params_control(stereo_params.stereo_choice);
 
     // await invoke("init_audio_params_from_server");
   });
@@ -197,12 +175,10 @@
 
         if (is_processing) {
           let r = invoke("get_audioui_message").then((r: any) => {
-            // console.log(r);
             if (r.processing_percentage) {
               processing_percentage = r.processing_percentage;
             }
           });
-          // console.log(r)
         }
       },
       // this works for now, just have to call resetInterval after pressing button
@@ -214,7 +190,7 @@
 <main class="container" id="app-container">
   <div class="header">
     {#if show_settings}
-      <Settings bind:settings bind:show_settings bind:theme/>
+      <Settings bind:settings bind:show_settings bind:theme />
     {/if}
     {#if bpfs?.length === 5}
       <Plot
@@ -246,7 +222,7 @@
         // time_position = (time / DOWN_RATE) * SAMPLING_RATE;
         // time_origin = time_position*DOWN_RATE/SAMPLING_RATE
         time = (time_position * DOWN_RATE) / SAMPLING_RATE;
-        await invoke("update_time", {
+        await invoke("message_time", {
           t: (time * SAMPLING_RATE) / num_time_samples / DOWN_RATE,
         });
       }}
@@ -255,53 +231,51 @@
       <div class="stereo-control-buttons">
         <button
           class="stereo-control-button"
-          data-attribute={stereo_params.control !== "Right"}
+          data-attribute={stereo_params.stereo_choice !== "Right"}
           on:click={() => {
             // also need to update ui to switch between left/right channel params
-            // set_params_control(stereo_params.control, true);
-            if (stereo_params.control === "Left") {
-              stereo_params.control = "Right";
-            } else if (stereo_params.control === "Right") {
-              stereo_params.control = "Both";
-            } else if (stereo_params.control === "Both") {
-              stereo_params.control = "Right";
+            if (stereo_params.stereo_choice === "Left") {
+              stereo_params.stereo_choice = "Right";
+            } else if (stereo_params.stereo_choice === "Right") {
+              stereo_params.stereo_choice = "Both";
+            } else if (stereo_params.stereo_choice === "Both") {
+              stereo_params.stereo_choice = "Right";
             }
-            set_params_control(stereo_params.control, true);
+            get_params_control(stereo_params.stereo_choice);
           }}>L</button
         >
         <button
           class="stereo-control-button"
-          data-attribute={stereo_params.control !== "Left"}
+          data-attribute={stereo_params.stereo_choice !== "Left"}
           on:click={() => {
-            // set_params_control(stereo_params.control, true);
-            if (stereo_params.control === "Left") {
-              stereo_params.control = "Both";
-            } else if (stereo_params.control === "Right") {
-              stereo_params.control = "Left";
-            } else if (stereo_params.control === "Both") {
-              stereo_params.control = "Left";
+            if (stereo_params.stereo_choice === "Left") {
+              stereo_params.stereo_choice = "Both";
+            } else if (stereo_params.stereo_choice === "Right") {
+              stereo_params.stereo_choice = "Left";
+            } else if (stereo_params.stereo_choice === "Both") {
+              stereo_params.stereo_choice = "Left";
             }
-            set_params_control(stereo_params.control, true);
+            get_params_control(stereo_params.stereo_choice);
           }}>R</button
         >
-        control: {stereo_params.control}
+        control: {stereo_params.stereo_choice}
       </div>
       <div class="stereo-mute-buttons">
         mute
         <button
           class="mute-button"
-          data-attribute={stereo_params.left.mute}
+          data-attribute={stereo_params.left.ui_params?.left_mute}
           on:click={() => {
-            stereo_params.left.mute = !stereo_params.left.mute;
+            // stereo_params.left.ui_params.left_mute = !stereo_params.left.ui_params.left_mute;
           }}
         >
           L
         </button>
         <button
           class="mute-button"
-          data-attribute={stereo_params.right.mute}
+          data-attribute={stereo_params.right.ui_params?.right_mute}
           on:click={() => {
-            stereo_params.right.mute = !stereo_params.right.mute;
+            // stereo_params.right.ui_params.right_mute = !stereo_params.right.ui_params.right_mute;
           }}
         >
           R
@@ -341,9 +315,7 @@
         on:click={() => {
           // invoke("sql_create");
           // invoke("sql_update");
-          let s = invoke("sql_theme", { theme: "RGB" }).then((r) => {
-            // console.log(r);
-          });
+          let s = invoke("sql_theme", { theme: "RGB" }).then((r) => {});
         }}
       >
         database
@@ -372,7 +344,7 @@
             bind:gain={bpfs[i].gain}
             bind:freq={bpfs[i].freq}
             bind:Q={bpfs[i].Q}
-            bind:stereo_control={stereo_params.control}
+            bind:stereo_choice={stereo_params.stereo_choice}
             index={i + 1}
           />
         </div>
@@ -388,10 +360,8 @@
       label="noise gain"
       max_val={20}
       min_val={-80}
-      update_backend={() => {
-      }}
-      update_server={() => {
-      }}
+      update_backend={() => {}}
+      update_server={() => {}}
     />
     <RotarySlider
       bind:value={pre_smooth_gain}
@@ -399,10 +369,8 @@
       max_val={0.999}
       min_val={0.0}
       resolution={3}
-      update_backend={() => {
-      }}
-      update_server={() => {
-      }}
+      update_backend={() => {}}
+      update_server={() => {}}
     />
     <RotarySlider
       bind:value={post_smooth_gain}
@@ -410,10 +378,8 @@
       max_val={0.999}
       min_val={0.0}
       resolution={3}
-      update_backend={() => {
-      }}
-      update_server={() => {
-      }}
+      update_backend={() => {}}
+      update_server={() => {}}
     />
     <RotarySlider
       bind:value={output_gain}
@@ -421,10 +387,8 @@
       max_val={20}
       min_val={-20}
       label="output gain"
-      update_backend={() => {
-      }}
-      update_server={() => {
-      }}
+      update_backend={() => {}}
+      update_server={() => {}}
     />
   </div>
   <div class="menu-bar">
@@ -441,19 +405,19 @@
       class="reset-all-gains-switch"
       title="reset all gains to 0 dB"
       on:click={() => {
-        bpfs = [
-          ...bpfs.map((filt, i) => {
-            update_filters(
-              i + 1,
-              0.0,
-              filt.freq,
-              filt.Q,
-              true,
-              stereo_params.control
-            );
-            return { gain: 0.0, freq: filt.freq, Q: filt.Q };
-          }),
-        ];
+        // bpfs = [
+        //   ...bpfs.map((filt, i) => {
+        //     message_filters(
+        //       i + 1,
+        //       0.0,
+        //       filt.freq,
+        //       filt.Q,
+        //       true,
+        //       stereo_params.control
+        //     );
+        //     return { gain: 0.0, freq: filt.freq, Q: filt.Q };
+        //   }),
+        // ];
       }}>reset gains</button
     >
     <button

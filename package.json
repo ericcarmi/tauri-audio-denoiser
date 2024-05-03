@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^1",
+    "prettier": "^3.2.5",
+    "prettier-plugin-svelte": "^3.2.3",
     "webgl-plot": "^0.7.1"
   },
   "devDependencies": {

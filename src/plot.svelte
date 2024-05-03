@@ -119,13 +119,10 @@
   }
 
   onMount(() => {
-    console.log(plot_scale);
     plot_scale = "Log";
-
     freq_axis_labels.map((i) => {
-      console.log(i, get_plot_scale(i, plot_scale));
+      // console.log(i, get_plot_scale(i, plot_scale));
     });
-    console.log(FREQ_PLOT_WIDTH);
 
     update_settings();
     canvasMain = document.getElementById("time_canvas");
@@ -166,6 +163,7 @@
   }
 
   async function get_time_data(file_path: string) {
+
     if (file_path === "" || plot_color === undefined) return;
     // check cache...maybe
     // if (time_data !== undefined) {
@@ -260,7 +258,6 @@
             // context.strokeStyle = `rgb(${plot_color.r},${plot_color.g},${plot_color.b})`;
             // last_bar_heights[i] *= 0.85;
           }
-          // console.log(last_bar_heights)
           context.stroke();
         }
         data && requestAnimationFrame(renderPlot);

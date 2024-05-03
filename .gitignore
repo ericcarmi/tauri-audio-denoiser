@@ -24,8 +24,9 @@ dist-ssr
 *.sw?
 
 notes.md
-dump.rdb
 /src-tauri/target/*
 /src-tauri/binaries/*
 /src-tauri/icons/*
+/src-tauri/bindings/*
 *.sqlite
+

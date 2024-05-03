@@ -18,6 +18,8 @@
 	let fine_is_dragging = false;
 	let fine_value = 0;
 
+	let manual_entry = false;
+
 	let width = 180;
 	let indicator_width = 5;
 
@@ -34,7 +36,7 @@
 			control_min_freq;
 		// let logfreq = linlog(x, control_min_freq, control_max_freq)
 		coarse_value = x;
-		value = coarse_value + fine_value;
+		value = Math.max(Math.min(coarse_value + fine_value, MAX_FREQ), MIN_FREQ);
 		// might want to reset fine back to 0...or do that after letting go of fine? it snaps back...
 		// fine_value = 0;
 		// fine_position = width/2
@@ -43,7 +45,7 @@
 	function update_fine_value() {
 		let x = (fine_position / width) * (width + indicator_width - -width) * 0.5;
 		fine_value = x - 100;
-		value = coarse_value + fine_value;
+		value = Math.max(Math.min(coarse_value + fine_value, MAX_FREQ), MIN_FREQ);
 	}
 
 	function coarse_draggable() {
@@ -56,6 +58,8 @@
 				if (coarse_el === null || !coarse_is_dragging) {
 					return;
 				}
+
+				if (manual_entry) return;
 
 				coarse_position = e.clientX - offsetX;
 				coarse_position = Math.max(
@@ -75,6 +79,7 @@
 			window.addEventListener("mouseup", reset);
 		});
 		coarse_el.addEventListener("mousedown", function (e: MouseEvent) {
+			if (manual_entry) return;
 			var offsetX = e.clientX - coarse_position;
 
 			function mouseMoveHandler(e: MouseEvent) {
@@ -134,10 +139,18 @@
 			}
 			function reset() {
 				fine_is_dragging = false;
-				// fine_value = 10;
-				// fine_position = width / 2 + indicator_width;
-				// fine_indicator.style.left = fine_position + "px";
-				// update_fine_value();
+				value = Math.max(
+					Math.min(coarse_value + fine_value, MAX_FREQ),
+					MIN_FREQ
+				);
+				coarse_value = value;
+				fine_value = 0;
+				fine_position = width / 2 - indicator_width / 2;
+				fine_position = Math.max(
+					Math.min(fine_position, width - indicator_width),
+					0
+				);
+				fine_indicator.style.left = fine_position + "px";
 				update_server();
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
@@ -173,10 +186,18 @@
 			}
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
-				// fine_value = 10;
-				// fine_position = width / 2 + indicator_width;
-				// fine_indicator.style.left = fine_position + "px";
-				// update_fine_value();
+				value = Math.max(
+					Math.min(coarse_value + fine_value, MAX_FREQ),
+					MIN_FREQ
+				);
+				coarse_value = value;
+				fine_value = 0;
+				fine_position = width / 2 - indicator_width / 2;
+				fine_position = Math.max(
+					Math.min(fine_position, width - indicator_width),
+					0
+				);
+				fine_indicator.style.left = fine_position + "px";
 				fine_is_dragging = false;
 				update_server();
 
@@ -205,8 +226,9 @@
 		on:mousedown={(e) => {
 			coarse_is_dragging = true;
 			if (e.shiftKey) {
-				resolution = high_res;
+				manual_entry = true;
 			}
+			if (manual_entry) return;
 			let wrap_position = coarse_el.offsetLeft;
 			if (Math.abs(e.clientX - wrap_position) > 5) {
 				coarse_position = e.clientX - wrap_position - 5;
@@ -226,7 +248,7 @@
 		}}
 		on:mouseup={() => {
 			coarse_is_dragging = false;
-			resolution = low_res;
+			manual_entry = false;
 		}}
 	>
 		<div
@@ -292,14 +314,22 @@
 			role="button"
 			tabindex={-1}
 			on:mousedown={(e) => {
-				if (e.shiftKey) {
-					resolution = high_res;
-				}
 				fine_is_dragging = true;
 			}}
 			on:mouseup={() => {
 				fine_is_dragging = false;
-				resolution = low_res;
+				value = Math.max(
+					Math.min(coarse_value + fine_value, MAX_FREQ),
+					MIN_FREQ
+				);
+				coarse_value = value;
+				fine_value = 0;
+				fine_position = width / 2 - indicator_width / 2;
+				fine_position = Math.max(
+					Math.min(fine_position, width - indicator_width),
+					0
+				);
+				fine_indicator.style.left = fine_position + "px";
 			}}
 		/>
 		<span class="value-text">{fine_value.toFixed(1)}</span>
@@ -307,14 +337,6 @@
 </div>
 
 <style>
-	.value-text {
-		position: relative;
-		top: -20%;
-		font-size: 12px;
-		color: var(--gray200);
-		pointer-events: none;
-		font-weight: bold;
-	}
 	.wrapper {
 		background: var(--gray100);
 		height: 1em;
@@ -340,5 +362,13 @@
 	}
 	.thumb[data-attribute="true"] {
 		background: var(--slider-active);
+	}
+	.value-text {
+		position: relative;
+		top: -20%;
+		font-size: 12px;
+		color: var(--gray200);
+		pointer-events: none;
+		font-weight: bold;
 	}
 </style>

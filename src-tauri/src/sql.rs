@@ -1,6 +1,6 @@
 use crate::{
     settings::{Colors, PlotScale, Settings, Theme, GRAY100, GRAY200, GREEN, LIGHTPURPLE, PURPLE},
-    types::{AudioParams, StereoAudioParams, StereoControl},
+    types::{AudioParams, StereoChoice, StereoParams, UIFilterBank, UIParams, BPF},
 };
 use rusqlite::{Connection, Result};
 use tauri::AppHandle;
@@ -137,6 +137,52 @@ pub fn query_settings(s: String) -> Result<Settings, rusqlite::Error> {
     return Err(rusqlite::Error::InvalidQuery);
 }
 
+pub fn query_ui_params(
+    stereo_choice: StereoChoice,
+    s: String,
+) -> Result<UIParams, rusqlite::Error> {
+    let conn = Connection::open(s + DB_FILE_NAME)?;
+    let chan = stereo_choice.as_str().to_lowercase();
+    let mut stmt =
+        conn.prepare(format!("SELECT * FROM UI_PARAMS WHERE stereo_choice='{}'", chan).as_str())?;
+    let control_iter = stmt.query_map([], |row| {
+        Ok(UIParams {
+            // id: row.get(0)?,
+            // output_gain: row.get()
+            ..Default::default()
+        })
+    })?;
+
+    for control in control_iter {
+        if let Ok(sett) = control {
+            return Ok(sett);
+        }
+    }
+    return Err(rusqlite::Error::InvalidQuery);
+}
+
+#[tauri::command]
+pub fn sql_ui_params(
+    stereo_choice: StereoChoice,
+    app_handle: AppHandle,
+) -> Result<UIParams, String> {
+    let p = app_handle
+        .path_resolver()
+        .resource_dir()
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    let q = query_ui_params(stereo_choice, p);
+
+    if q.is_ok() {
+        return Ok(q.unwrap());
+    } else {
+        return q.map_err(|e| e.to_string());
+    }
+}
+
 #[tauri::command]
 pub fn sql_settings(app_handle: AppHandle) -> Result<Settings, String> {
     let p = app_handle
@@ -156,18 +202,43 @@ pub fn sql_settings(app_handle: AppHandle) -> Result<Settings, String> {
     }
 }
 
-pub fn query_channel_params(
-    channel: StereoControl,
+pub fn query_filter_bank(
+    stereo_choice: StereoChoice,
     s: String,
-) -> Result<AudioParams, rusqlite::Error> {
+) -> Result<UIFilterBank, rusqlite::Error> {
     let conn = Connection::open(s + DB_FILE_NAME)?;
-    let chan = channel.as_str().to_lowercase();
+    let chan = stereo_choice.as_str().to_lowercase();
     let mut stmt =
-        conn.prepare(format!("SELECT * FROM CHANNEL_PARAMS WHERE name='{}'", chan).as_str())?;
+        conn.prepare(format!("SELECT * FROM FILTERBANK WHERE stereo_choice='{}'", chan).as_str())?;
     let control_iter = stmt.query_map([], |row| {
-        Ok(AudioParams {
+        let offset = 1;
+        Ok(UIFilterBank {
             // id: row.get(0)?,
-            ..Default::default()
+            bp1: BPF {
+                gain: row.get(offset + 1)?,
+                freq: row.get(offset + 2)?,
+                Q: row.get(offset + 3)?,
+            },
+            bp2: BPF {
+                gain: row.get(offset + 4)?,
+                freq: row.get(offset + 5)?,
+                Q: row.get(offset + 6)?,
+            },
+            bp3: BPF {
+                gain: row.get(offset + 7)?,
+                freq: row.get(offset + 8)?,
+                Q: row.get(offset + 9)?,
+            },
+            bp4: BPF {
+                gain: row.get(offset + 10)?,
+                freq: row.get(offset + 11)?,
+                Q: row.get(offset + 12)?,
+            },
+            bp5: BPF {
+                gain: row.get(offset + 13)?,
+                freq: row.get(offset + 14)?,
+                Q: row.get(offset + 15)?,
+            },
         })
     })?;
 
@@ -180,10 +251,10 @@ pub fn query_channel_params(
 }
 
 #[tauri::command]
-pub fn sql_channel_params(
-    channel: StereoControl,
+pub fn sql_filter_bank(
+    stereo_choice: StereoChoice,
     app_handle: AppHandle,
-) -> Result<AudioParams, String> {
+) -> Result<UIFilterBank, String> {
     let p = app_handle
         .path_resolver()
         .resource_dir()
@@ -192,7 +263,7 @@ pub fn sql_channel_params(
         .into_string()
         .unwrap();
 
-    let q = query_channel_params(channel, p);
+    let q = query_filter_bank(stereo_choice, p);
 
     if q.is_ok() {
         return Ok(q.unwrap());

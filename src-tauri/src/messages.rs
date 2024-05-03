@@ -4,8 +4,8 @@ use crate::{
     audio::setup_stream,
     constants::czerov,
     types::{
-        AudioParams, MSender, MStream, MStreamSend, MUIReceiver, StereoAudioParams, StereoControl,
-        IIR2,
+        AudioParams, FilterBank, MSender, MStream, MStreamSend, MUIReceiver, StereoChoice,
+        StereoParams, BPF, IIR2,
     },
 };
 use cpal::traits::StreamTrait;
@@ -19,11 +19,11 @@ use tauri::{AppHandle, State};
 pub async fn init_audio_params_from_server(
     streamsend: State<'_, MStreamSend>,
 ) -> Result<(), String> {
-    // let left_mute = get_mute(StereoControl::Left).await.unwrap();
-    // let right_mute = get_mute(StereoControl::Right).await.unwrap();
+    // let left_mute = get_mute(StereoChoice::Left).await.unwrap();
+    // let right_mute = get_mute(StereoChoice::Right).await.unwrap();
 
     // stereo_message(
-    //     Some(StereoControl::Left),
+    //     Some(StereoChoice::Left),
     //     streamsend.clone(),
     //     Some(ChannelMessage {
     //         mute: Some(left_mute),
@@ -31,7 +31,7 @@ pub async fn init_audio_params_from_server(
     //     }),
     // );
     // stereo_message(
-    //     Some(StereoControl::Right),
+    //     Some(StereoChoice::Right),
     //     streamsend,
     //     Some(ChannelMessage {
     //         mute: Some(right_mute),
@@ -43,31 +43,23 @@ pub async fn init_audio_params_from_server(
 }
 
 #[tauri::command]
-pub fn update_filters(
-    bp1: Option<IIR2>,
-    bp2: Option<IIR2>,
-    bp3: Option<IIR2>,
-    bp4: Option<IIR2>,
-    bp5: Option<IIR2>,
-    stereo: Option<StereoControl>,
+pub fn message_filters(
+    stereo_choice: StereoChoice,
+    filter_bank_message: FilterBankMessage,
     streamsend: State<MStreamSend>,
 ) {
     stereo_message(
-        stereo,
+        stereo_choice,
         streamsend,
         Some(ChannelMessage {
-            bp1,
-            bp2,
-            bp3,
-            bp4,
-            bp5,
+            filter_bank: Some(filter_bank_message),
             ..Default::default()
         }),
     );
 }
 
 #[tauri::command]
-pub fn update_time(t: f32, streamsend: State<MStreamSend>) {
+pub fn message_time(t: f32, streamsend: State<MStreamSend>) {
     let _ = streamsend
         .0
         .lock()
@@ -76,16 +68,16 @@ pub fn update_time(t: f32, streamsend: State<MStreamSend>) {
         .0
         .lock()
         .unwrap()
-        .try_send(Message {
+        .try_send(UIAudioMessage {
             time: Some(t),
             ..Default::default()
         });
 }
 
 #[tauri::command]
-pub fn update_clean(clean: bool, streamsend: State<MStreamSend>, stereo: Option<StereoControl>) {
+pub fn message_clean(clean: bool, streamsend: State<MStreamSend>, stereo_choice: StereoChoice) {
     stereo_message(
-        stereo,
+        stereo_choice,
         streamsend,
         Some(ChannelMessage {
             clean: Some(clean),
@@ -94,9 +86,9 @@ pub fn update_clean(clean: bool, streamsend: State<MStreamSend>, stereo: Option<
     );
 }
 #[tauri::command]
-pub fn update_mute(mute: bool, streamsend: State<MStreamSend>, stereo_control: StereoControl) {
+pub fn message_mute(mute: bool, streamsend: State<MStreamSend>, stereo_choice: StereoChoice) {
     stereo_message(
-        Some(stereo_control),
+        stereo_choice,
         streamsend,
         Some(ChannelMessage {
             mute: Some(mute),
@@ -106,14 +98,10 @@ pub fn update_mute(mute: bool, streamsend: State<MStreamSend>, stereo_control: S
 }
 
 #[tauri::command]
-pub fn update_output_gain(
-    gain: f32,
-    streamsend: State<MStreamSend>,
-    stereo: Option<StereoControl>,
-) {
+pub fn message_output_gain(gain: f32, streamsend: State<MStreamSend>, stereo_choice: StereoChoice) {
     let g = (10.0_f32).powf(gain / 20.0);
     stereo_message(
-        stereo,
+        stereo_choice,
         streamsend,
         Some(ChannelMessage {
             output_gain: Some(g),
@@ -123,11 +111,11 @@ pub fn update_output_gain(
 }
 
 #[tauri::command]
-pub fn update_noise_gain(gain: f32, streamsend: State<MStreamSend>, stereo: Option<StereoControl>) {
+pub fn message_noise_gain(gain: f32, streamsend: State<MStreamSend>, stereo_choice: StereoChoice) {
     let g = (10.0_f32).powf(gain / 20.0) / 10.0;
 
     stereo_message(
-        stereo,
+        stereo_choice,
         streamsend,
         Some(ChannelMessage {
             noise_gain: Some(g),
@@ -137,13 +125,13 @@ pub fn update_noise_gain(gain: f32, streamsend: State<MStreamSend>, stereo: Opti
 }
 
 #[tauri::command]
-pub fn update_pre_smooth_gain(
+pub fn message_pre_smooth_gain(
     gain: f32,
     streamsend: State<MStreamSend>,
-    stereo: Option<StereoControl>,
+    stereo_choice: StereoChoice,
 ) {
     stereo_message(
-        stereo,
+        stereo_choice,
         streamsend,
         Some(ChannelMessage {
             pre_smooth_gain: Some(gain),
@@ -153,13 +141,13 @@ pub fn update_pre_smooth_gain(
 }
 
 #[tauri::command]
-pub fn update_post_smooth_gain(
+pub fn message_post_smooth_gain(
     gain: f32,
     streamsend: State<MStreamSend>,
-    stereo: Option<StereoControl>,
+    stereo_choice: StereoChoice,
 ) {
     stereo_message(
-        stereo,
+        stereo_choice,
         streamsend,
         Some(ChannelMessage {
             post_smooth_gain: Some(gain),
@@ -169,12 +157,7 @@ pub fn update_post_smooth_gain(
 }
 
 #[tauri::command]
-pub fn update_file_path(
-    path: String,
-    streamsend: State<MStreamSend>,
-    app_handle: AppHandle,
-    // stereo: Option<StereoControl>,
-) {
+pub fn message_file_path(path: String, streamsend: State<MStreamSend>, app_handle: AppHandle) {
     let (ui_tx, rx) = tauri::async_runtime::channel::<AudioUIMessage>(2);
     let (stream, tx) = setup_stream(ui_tx, app_handle, Some(path)).unwrap();
     let _ = stream.pause();
@@ -188,72 +171,66 @@ pub fn update_file_path(
 
 /// the channel message is applied to left, right, or both
 fn stereo_message(
-    stereo: Option<StereoControl>,
+    stereo_choice: StereoChoice,
     streamsend: State<MStreamSend>,
     channel_message: Option<ChannelMessage>,
 ) {
-    if let Some(s) = stereo {
-        use StereoControl::*;
-        match s {
-            Left => {
-                let _ = streamsend
-                    .0
-                    .lock()
-                    .unwrap()
-                    .msender
-                    .0
-                    .lock()
-                    .unwrap()
-                    .try_send(Message {
-                        left_channel: channel_message,
-                        ..Default::default()
-                    });
-            }
-            Right => {
-                let _ = streamsend
-                    .0
-                    .lock()
-                    .unwrap()
-                    .msender
-                    .0
-                    .lock()
-                    .unwrap()
-                    .try_send(Message {
-                        right_channel: channel_message,
-                        ..Default::default()
-                    });
-            }
-            Both => {
-                let _ = streamsend
-                    .0
-                    .lock()
-                    .unwrap()
-                    .msender
-                    .0
-                    .lock()
-                    .unwrap()
-                    .try_send(Message {
-                        left_channel: channel_message,
-                        right_channel: channel_message,
-                        ..Default::default()
-                    });
-            }
-        };
-    } else {
-        let _ = streamsend
-            .0
-            .lock()
-            .unwrap()
-            .msender
-            .0
-            .lock()
-            .unwrap()
-            .try_send(Message {
-                left_channel: channel_message,
-                right_channel: channel_message,
-                ..Default::default()
-            });
-    }
+    use StereoChoice::*;
+    match stereo_choice {
+        Left => {
+            let _ = streamsend
+                .0
+                .lock()
+                .unwrap()
+                .msender
+                .0
+                .lock()
+                .unwrap()
+                .try_send(UIAudioMessage {
+                    left_channel: channel_message,
+                    ..Default::default()
+                });
+        }
+        Right => {
+            let _ = streamsend
+                .0
+                .lock()
+                .unwrap()
+                .msender
+                .0
+                .lock()
+                .unwrap()
+                .try_send(UIAudioMessage {
+                    right_channel: channel_message,
+                    ..Default::default()
+                });
+        }
+        Both => {
+            let _ = streamsend
+                .0
+                .lock()
+                .unwrap()
+                .msender
+                .0
+                .lock()
+                .unwrap()
+                .try_send(UIAudioMessage {
+                    left_channel: channel_message,
+                    right_channel: channel_message,
+                    ..Default::default()
+                });
+        }
+    };
+}
+
+// would prefer to have this derived from FilterBank, but would have to do with macros to get Options for each item splayed out
+#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
+pub struct FilterBankMessage {
+    pub bp1: Option<BPF>,
+    pub bp2: Option<BPF>,
+    pub bp3: Option<BPF>,
+    pub bp4: Option<BPF>,
+    pub bp5: Option<BPF>,
 }
 
 /// a message from a single channel (left or right)
@@ -262,64 +239,50 @@ pub struct ChannelMessage {
     pub time: Option<f32>,
     pub clean: Option<bool>,
     pub mute: Option<bool>,
-    pub bp1: Option<IIR2>,
-    pub bp2: Option<IIR2>,
-    pub bp3: Option<IIR2>,
-    pub bp4: Option<IIR2>,
-    pub bp5: Option<IIR2>,
     pub output_gain: Option<f32>,
     pub noise_gain: Option<f32>,
     pub pre_smooth_gain: Option<f32>,
     pub post_smooth_gain: Option<f32>,
+    pub filter_bank: Option<FilterBankMessage>,
 }
 
 impl Default for ChannelMessage {
     fn default() -> Self {
+        // let filter_bank = FilterBank{bp}
         Self {
             time: None,
             clean: None,
             mute: None,
-            bp1: None,
-            bp2: None,
-            bp3: None,
-            bp4: None,
-            bp5: None,
             output_gain: None,
             noise_gain: None,
             pre_smooth_gain: None,
             post_smooth_gain: None,
+            filter_bank: None,
         }
     }
 }
 
-// not sure if this is needed, maybe it should be in AudioParams?
-// impl ChannelMessage {
-//     pub fn filters_as_slice(&self) -> [IIR2; 5] {
-//         return [self.bp1, self.bp2, self.bp3, self.bp4, self.bp5];
-//     }
-// }
-
 // use options with everything...a little annoying but then use None when passing to ignore most sub-structs
 // this struct is for messages sent from UI to audio thread
 #[derive(Clone, Debug)]
-pub struct Message {
+pub struct UIAudioMessage {
     pub left_channel: Option<ChannelMessage>,
     pub right_channel: Option<ChannelMessage>,
     pub file_path: Option<String>,
     pub time: Option<f32>,
-    pub stereo_control: Option<StereoControl>,
+    pub stereo_choice: Option<StereoChoice>,
     pub clean: Option<bool>,
     pub export: Option<bool>,
 }
 
 // use all None for default message to shorten other functions that send one thing at a time
-impl Default for Message {
+impl Default for UIAudioMessage {
     fn default() -> Self {
         Self {
             time: None,
             file_path: None,
             clean: None,
-            stereo_control: None,
+            stereo_choice: None,
             left_channel: None,
             right_channel: None,
             export: None,
@@ -327,12 +290,11 @@ impl Default for Message {
     }
 }
 
-impl Message {
-    pub fn receive(&self, params: &mut StereoAudioParams) {
+impl UIAudioMessage {
+    pub fn receive(&self, params: &mut StereoParams) {
         // apply controls to channels
-        use StereoControl::*;
-
-        match params.stereo_control {
+        use StereoChoice::*;
+        match params.stereo_choice {
             Left => {
                 if let Some(ch) = self.left_channel {
                     self.recv_channel(&mut params.left, ch);
@@ -395,50 +357,52 @@ impl Message {
     }
 
     pub fn recv_channel(&self, channel_params: &mut AudioParams, channel_message: ChannelMessage) {
-        if let Some(bp) = channel_message.bp1 {
-            channel_params.filter_bank.bp1.update_coeffs(bp);
-            channel_params.noise_spectrum = channel_params
-                .filter_bank
-                .parallel_transfer(channel_params.dft_size);
+        if let Some(fb) = channel_message.filter_bank {
+            if let Some(bp) = fb.bp1 {
+                channel_params.filter_bank.bp1.update_coeffs(bp.into());
+                channel_params.noise_spectrum = channel_params
+                    .filter_bank
+                    .parallel_transfer(channel_params.dft_size);
+            }
+            if let Some(bp) = fb.bp2 {
+                channel_params.filter_bank.bp2.update_coeffs(bp.into());
+                channel_params.noise_spectrum = channel_params
+                    .filter_bank
+                    .parallel_transfer(channel_params.dft_size);
+            }
+            if let Some(bp) = fb.bp3 {
+                channel_params.filter_bank.bp3.update_coeffs(bp.into());
+                channel_params.noise_spectrum = channel_params
+                    .filter_bank
+                    .parallel_transfer(channel_params.dft_size);
+            }
+            if let Some(bp) = fb.bp4 {
+                channel_params.filter_bank.bp5.update_coeffs(bp.into());
+                channel_params.noise_spectrum = channel_params
+                    .filter_bank
+                    .parallel_transfer(channel_params.dft_size);
+            }
+            if let Some(bp) = fb.bp5 {
+                channel_params.filter_bank.bp5.update_coeffs(bp.into());
+                channel_params.noise_spectrum = channel_params
+                    .filter_bank
+                    .parallel_transfer(channel_params.dft_size);
+            }
         }
-        if let Some(bp) = channel_message.bp2 {
-            channel_params.filter_bank.bp2.update_coeffs(bp);
-            channel_params.noise_spectrum = channel_params
-                .filter_bank
-                .parallel_transfer(channel_params.dft_size);
-        }
-        if let Some(bp) = channel_message.bp3 {
-            channel_params.filter_bank.bp3.update_coeffs(bp);
-            channel_params.noise_spectrum = channel_params
-                .filter_bank
-                .parallel_transfer(channel_params.dft_size);
-        }
-        if let Some(bp) = channel_message.bp4 {
-            channel_params.filter_bank.bp5.update_coeffs(bp);
-            channel_params.noise_spectrum = channel_params
-                .filter_bank
-                .parallel_transfer(channel_params.dft_size);
-        }
-        if let Some(bp) = channel_message.bp5 {
-            channel_params.filter_bank.bp5.update_coeffs(bp);
-            channel_params.noise_spectrum = channel_params
-                .filter_bank
-                .parallel_transfer(channel_params.dft_size);
-        }
-        if let Some(m) = channel_message.mute {
-            channel_params.mute = m;
-        }
+        // if let Some(m) = channel_message.mute {
+        //     channel_params.mute = m;
+        // }
         if let Some(g) = channel_message.output_gain {
-            channel_params.output_gain = g;
+            channel_params.ui_params.output_gain = g;
         }
         if let Some(g) = channel_message.noise_gain {
-            channel_params.noise_gain = g;
+            channel_params.ui_params.noise_gain = g;
         }
         if let Some(g) = channel_message.pre_smooth_gain {
-            channel_params.pre_smooth_gain = g;
+            channel_params.ui_params.pre_smooth_gain = g;
         }
         if let Some(g) = channel_message.post_smooth_gain {
-            channel_params.post_smooth_gain = g;
+            channel_params.ui_params.post_smooth_gain = g;
         }
     }
 }
@@ -461,6 +425,7 @@ pub fn get_is_stereo(streamsend: State<MStreamSend>) -> Result<AudioUIMessage, S
     }
 }
 
+/// message sent from audio thread to ui
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AudioUIMessage {
     pub spectrum: Option<Vec<f32>>,
