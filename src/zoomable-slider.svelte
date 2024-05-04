@@ -152,10 +152,15 @@
 			class="scroll-number"
 			style="float: left;"
 			on:wheel={(e) => {
-			// need to add scroll for mouse too
 				e.preventDefault();
-				let v = e.deltaY * 5 + control_min_freq;
-				control_min_freq = Math.max(0, Math.min(v, value));
+				// mouse scroll has different deltaY than trackpad
+				if (e.deltaY > 5) {
+					let v = e.deltaY + control_min_freq;
+					control_min_freq = Math.max(0, Math.min(v, value));
+				} else {
+					let v = e.deltaY * 5 + control_min_freq;
+					control_min_freq = Math.max(0, Math.min(v, value));
+				}
 				update_position();
 			}}
 		>
@@ -166,8 +171,13 @@
 			style="float: right;"
 			on:wheel={(e) => {
 				e.preventDefault();
-				let v = e.deltaY * 10 + control_max_freq;
-				control_max_freq = Math.max(value, Math.min(v, NYQUIST));
+				if (e.deltaY > 5) {
+					let v = e.deltaY + control_max_freq;
+					control_max_freq = Math.max(value, Math.min(v, NYQUIST));
+				} else {
+					let v = e.deltaY * 10 + control_max_freq;
+					control_max_freq = Math.max(value, Math.min(v, NYQUIST));
+				}
 				update_position();
 			}}
 		>
