@@ -20,7 +20,7 @@
   export let settings: any;
   export let show_settings;
 
-export let theme: any;
+  export let theme: any;
   let theme_name = "POG";
 
   let on_top = false;
@@ -47,15 +47,13 @@ export let theme: any;
     plot_single_filter = rgbToHex(theme.plot_single_filter);
     plot_filter_hover = rgbToHex(theme.plot_filter_hover);
     plot_scale = settings.plot_scale;
-    console.log(settings);
   }
 
   onMount(async () => {
     if (settings) {
       theme_name = settings.theme;
       update_local_colors();
-    }
-    else {
+    } else {
       return;
     }
   });
@@ -366,9 +364,7 @@ export let theme: any;
           ><input
             style="--col: {rotary_tick};"
             type="color"
-            on:change={(e) => {
-              // console.log(e.currentTarget.value);
-            }}
+            on:change={() => {}}
             bind:value={rotary_tick}
           />rotary ticks</span
         >

@@ -39,6 +39,32 @@
   var freqs = [1000, 1000, 1000, 1000, 1000];
   var Qs = [1, 1, 1, 1, 1];
 
+  let time = 0;
+  let time_position = 0;
+  let selectedRecording = "";
+  let is_playing = false;
+
+  let perf_time = performance.now();
+  let time_origin = 0;
+  let time_delta = 0;
+  let is_time_slider_dragging = false;
+
+  let interval: any;
+  let fft_data: any;
+
+  // these values are retrieved onMount from server...want to also get the types over eventually to not copy-paste
+  // but also the audio params aren't an exact copy of the rust type?
+  // keep this values to be connected to single sliders, then depending on stereo_choice, will get sent to left/right/both
+  let output_gain = 0.0;
+  let noise_gain = 0.0;
+  let pre_smooth_gain = 0.5;
+  let post_smooth_gain = 0.5;
+  let bpfs: any;
+  let clean = false;
+
+  let stereo_params: StereoParams = init_channel_params(gains, freqs, Qs);
+  let ui_params: UIParams;
+
   const unlisten = listen("tauri://file-drop", async (event: any) => {
     change_file(event.payload[0] as string);
   });
@@ -66,32 +92,6 @@
     get_time_data(from_assets);
   }
 
-  let time = 0;
-  let time_position = 0;
-  let selectedRecording = "";
-  let is_playing = false;
-
-  let perf_time = performance.now();
-  let time_origin = 0;
-  let time_delta = 0;
-  let is_time_slider_dragging = false;
-
-  let interval: any;
-  let fft_data: any;
-
-  // these values are retrieved onMount from server...want to also get the types over eventually to not copy-paste
-  // but also the audio params aren't an exact copy of the rust type?
-  // keep this values to be connected to single sliders, then depending on stereo_choice, will get sent to left/right/both
-  let output_gain = 0.0;
-  let noise_gain = 0.0;
-  let pre_smooth_gain = 0.5;
-  let post_smooth_gain = 0.5;
-  let bpfs: any;
-  let clean = false;
-
-  let stereo_params: StereoParams = init_channel_params(gains, freqs, Qs);
-  let ui_params: UIParams;
-
   function get_ui_params(s: StereoChoice) {
     // get from backend
     invoke("sql_ui_params", { stereoChoice: s }).then((r) => {
@@ -108,7 +108,7 @@
     });
   }
 
-  function set_ui_params(s: StereoChoice, ui: UIParams) {
+  function set_ui_params(s: StereoChoice) {
     let params: UIParams = {
       left_mute: false,
       right_mute: false,
@@ -180,6 +180,8 @@
     // await invoke("init_audio_params_from_server");
   });
 
+  // maybe change this to use listener instead? emit message from backend?
+  // that would remove the recv errors when channel empty (doesn't crash, so ok for now)
   function resetInterval() {
     clearInterval(interval);
     interval = setInterval(
@@ -199,7 +201,7 @@
         }
 
         if (is_processing) {
-          let r = invoke("get_audioui_message").then((r: any) => {
+          invoke("get_audioui_message").then((r: any) => {
             if (r.processing_percentage) {
               processing_percentage = r.processing_percentage;
             }
@@ -207,7 +209,7 @@
         }
       },
       // this works for now, just have to call resetInterval after pressing button
-      is_playing || is_processing ? 0.1 : 1000
+      is_playing || is_processing ? 10 : 1000
     );
   }
 </script>
@@ -259,7 +261,7 @@
           data-attribute={stereo_params.stereo_choice !== "Right"}
           on:click={() => {
             // also need to update ui to switch between left/right channel params
-            set_ui_params(stereo_params.stereo_choice, ui_params);
+            set_ui_params(stereo_params.stereo_choice);
             if (stereo_params.stereo_choice === "Left") {
               stereo_params.stereo_choice = "Right";
             } else if (stereo_params.stereo_choice === "Right") {
@@ -274,7 +276,7 @@
           class="stereo-control-button"
           data-attribute={stereo_params.stereo_choice !== "Left"}
           on:click={() => {
-            set_ui_params(stereo_params.stereo_choice, ui_params);
+            set_ui_params(stereo_params.stereo_choice);
             if (stereo_params.stereo_choice === "Left") {
               stereo_params.stereo_choice = "Both";
             } else if (stereo_params.stereo_choice === "Right") {
@@ -293,7 +295,16 @@
           class="mute-button"
           data-attribute={stereo_params.left.ui_params?.left_mute}
           on:click={() => {
-            // stereo_params.left.ui_params.left_mute = !stereo_params.left.ui_params.left_mute;
+            stereo_params.left.ui_params.left_mute =
+              !stereo_params.left.ui_params.left_mute;
+            invoke("sql_update_left_mute", {
+              stereoChoice: stereo_params.stereo_choice,
+              leftMute: stereo_params.left.ui_params.left_mute,
+            });
+            invoke("message_left_mute", {
+              stereoChoice: stereo_params.stereo_choice,
+              mute: stereo_params.left.ui_params.left_mute,
+            });
           }}
         >
           L
@@ -302,7 +313,16 @@
           class="mute-button"
           data-attribute={stereo_params.right.ui_params?.right_mute}
           on:click={() => {
-            // stereo_params.right.ui_params.right_mute = !stereo_params.right.ui_params.right_mute;
+            stereo_params.right.ui_params.right_mute =
+              !stereo_params.right.ui_params.right_mute;
+            invoke("sql_update_right_mute", {
+              stereoChoice: stereo_params.stereo_choice,
+              rightMute: stereo_params.right.ui_params.right_mute,
+            });
+            invoke("message_right_mute", {
+              stereoChoice: stereo_params.stereo_choice,
+              mute: stereo_params.right.ui_params.right_mute,
+            });
           }}
         >
           R
@@ -332,20 +352,14 @@
       </button>
       <button
         on:click={async () => {
-          clean = !clean;
+          stereo_params.clean = !stereo_params.clean;
+          invoke("message_clean", {
+            stereoChoice: stereo_params.stereo_choice,
+            clean: stereo_params.clean,
+          });
         }}
       >
-        {clean ? "dry" : "wet"}
-      </button>
-
-      <button
-        on:click={() => {
-          // invoke("sql_create");
-          // invoke("sql_update");
-          let s = invoke("sql_theme", { theme: "RGB" }).then((r) => {});
-        }}
-      >
-        database
+        {stereo_params.clean ? "dry" : "wet"}
       </button>
     </div>
   </div>
@@ -387,8 +401,18 @@
       label="noise gain"
       max_val={20}
       min_val={-80}
-      update_backend={() => {}}
-      update_server={() => {}}
+      update_database={() => {
+        invoke("sql_update_noise_gain", {
+          stereoChoice: stereo_params.stereo_choice,
+          noiseGain: noise_gain,
+        });
+      }}
+      update_backend={() => {
+        invoke("message_noise_gain", {
+          stereoChoice: stereo_params.stereo_choice,
+          gain: noise_gain,
+        });
+      }}
     />
     <RotarySlider
       bind:value={pre_smooth_gain}
@@ -396,8 +420,18 @@
       max_val={0.999}
       min_val={0.0}
       resolution={3}
-      update_backend={() => {}}
-      update_server={() => {}}
+      update_database={() => {
+        invoke("sql_update_pre_smooth_gain", {
+          stereoChoice: stereo_params.stereo_choice,
+          preSmoothGain: pre_smooth_gain,
+        });
+      }}
+      update_backend={() => {
+        invoke("message_pre_smooth_gain", {
+          stereoChoice: stereo_params.stereo_choice,
+          gain: pre_smooth_gain,
+        });
+      }}
     />
     <RotarySlider
       bind:value={post_smooth_gain}
@@ -405,8 +439,18 @@
       max_val={0.999}
       min_val={0.0}
       resolution={3}
-      update_backend={() => {}}
-      update_server={() => {}}
+      update_database={() => {
+        invoke("sql_update_post_smooth_gain", {
+          stereoChoice: stereo_params.stereo_choice,
+          postSmoothGain: post_smooth_gain,
+        });
+      }}
+      update_backend={() => {
+        invoke("message_post_smooth_gain", {
+          stereoChoice: stereo_params.stereo_choice,
+          gain: post_smooth_gain,
+        });
+      }}
     />
     <RotarySlider
       bind:value={output_gain}
@@ -414,8 +458,18 @@
       max_val={20}
       min_val={-20}
       label="output gain"
-      update_backend={() => {}}
-      update_server={() => {}}
+      update_database={() => {
+        invoke("sql_update_output_gain", {
+          stereoChoice: stereo_params.stereo_choice,
+          outputGain: output_gain,
+        });
+      }}
+      update_backend={() => {
+        invoke("message_output_gain", {
+          stereoChoice: stereo_params.stereo_choice,
+          gain: output_gain,
+        });
+      }}
     />
   </div>
   <div class="menu-bar">

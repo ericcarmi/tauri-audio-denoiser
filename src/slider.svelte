@@ -3,7 +3,8 @@
 
 	export let value: number = 28.8;
 	export let index: number;
-	export let update_server = () => {};
+	export let update_backend = () => {};
+	export let update_database = () => {};
 
 	let position = 0;
 	let el: HTMLElement;
@@ -18,6 +19,7 @@
 	function redraw() {
 		position = height / 2 - (value / range) * height;
 		indicator.style.top = position + "px";
+		update_backend()
 	}
 
 	function draggable() {
@@ -38,7 +40,7 @@
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
 				is_dragging = false;
-				update_server();
+				update_database();
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}
@@ -67,7 +69,7 @@
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
 				is_dragging = false;
-				update_server();
+				update_database();
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}

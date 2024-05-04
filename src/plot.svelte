@@ -406,7 +406,7 @@
     requestAnimationFrame(renderPlot);
   }
 
-  $: bpfs, !is_playing && update_filter_bank(true), update_axes();
+  $: bpfs, !is_playing && update_filter_bank(true), !is_playing && update_axes();
   $: bpf_hovering, update_filter_bank(true), update_axes();
   $: selectedRecording, get_time_data(selectedRecording);
   $: fft_data, update_fft();

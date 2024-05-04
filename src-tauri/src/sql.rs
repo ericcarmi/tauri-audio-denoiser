@@ -1,6 +1,6 @@
 use crate::{
-    settings::{Colors, PlotScale, Settings, Theme},
-    types::{AudioParams, StereoChoice, StereoParams, UIFilterBank, UIParams, BPF},
+    settings::{Colors, Settings, Theme},
+    types::{StereoChoice, UIFilterBank, UIParams, BPF},
 };
 use rusqlite::{Connection, Result};
 use tauri::AppHandle;
@@ -247,6 +247,7 @@ pub fn sql_filter_bank(
     }
 }
 
+/// update params AND filter bank, filter bank is part of ui params but treated separately because of how it isn't iterated over and has its own table
 pub fn update_ui_params(
     stereo_choice: StereoChoice,
     ui_params: UIParams,
@@ -265,7 +266,7 @@ pub fn update_ui_params(
         
         ",ui_params.clean, ui_params.left_mute, ui_params.right_mute, ui_params.output_gain, ui_params.noise_gain, ui_params.pre_smooth_gain, ui_params.post_smooth_gain, st, ui_params.filter_bank.bp1.gain, ui_params.filter_bank.bp1.freq, ui_params.filter_bank.bp1.Q,ui_params.filter_bank.bp2.gain, ui_params.filter_bank.bp2.freq, ui_params.filter_bank.bp2.Q, ui_params.filter_bank.bp3.gain, ui_params.filter_bank.bp3.freq, ui_params.filter_bank.bp3.Q,ui_params.filter_bank.bp4.gain, ui_params.filter_bank.bp4.freq, ui_params.filter_bank.bp4.Q,ui_params.filter_bank.bp5.gain, ui_params.filter_bank.bp5.freq, ui_params.filter_bank.bp5.Q, st);
 
-    let stmt = conn.execute_batch(q.as_str())?;
+    conn.execute_batch(q.as_str())?;
 
     Ok(())
 }
@@ -285,6 +286,338 @@ pub fn sql_update_ui_params(
         .unwrap();
 
     let q = update_ui_params(stereo_choice, ui_params, p);
+
+    if q.is_ok() {
+        return Ok(q.unwrap());
+    } else {
+        return q.map_err(|e| e.to_string());
+    }
+}
+
+pub fn update_filter_bank(
+    stereo_choice: StereoChoice,
+    bpf: BPF,
+    index: usize,
+    s: String,
+) -> Result<(), rusqlite::Error> {
+    let conn = Connection::open(s + DB_FILE_NAME)?;
+    let st = stereo_choice.as_str().to_lowercase();
+    let q = format!(
+        "UPDATE FILTERBANK SET 
+        bpf_gain_{} = {}, bpf_freq_{} = {}, bpf_q_{} = {}  
+        WHERE stereo_choice='{}';
+        ",
+        index, bpf.gain, index, bpf.freq, index, bpf.Q, st
+    );
+
+    conn.execute_batch(q.as_str())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sql_update_filter_bank(
+    stereo_choice: StereoChoice,
+    bpf: BPF,
+    index: usize,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    let p = app_handle
+        .path_resolver()
+        .resource_dir()
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    let q = update_filter_bank(stereo_choice, bpf, index, p);
+
+    if q.is_ok() {
+        return Ok(q.unwrap());
+    } else {
+        return q.map_err(|e| e.to_string());
+    }
+}
+
+pub fn update_output_gain(
+    stereo_choice: StereoChoice,
+    output_gain: f32,
+    s: String,
+) -> Result<(), rusqlite::Error> {
+    let conn = Connection::open(s + DB_FILE_NAME)?;
+    let st = stereo_choice.as_str().to_lowercase();
+    let q = format!(
+        "UPDATE UI_PARAMS SET output_gain={} WHERE stereo_choice='{}';
+        ",
+        output_gain, st
+    );
+
+    conn.execute_batch(q.as_str())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sql_update_output_gain(
+    stereo_choice: StereoChoice,
+    output_gain: f32,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    let p = app_handle
+        .path_resolver()
+        .resource_dir()
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    let q = update_output_gain(stereo_choice, output_gain, p);
+
+    if q.is_ok() {
+        return Ok(q.unwrap());
+    } else {
+        return q.map_err(|e| e.to_string());
+    }
+}
+
+pub fn update_noise_gain(
+    stereo_choice: StereoChoice,
+    noise_gain: f32,
+    s: String,
+) -> Result<(), rusqlite::Error> {
+    let conn = Connection::open(s + DB_FILE_NAME)?;
+    let st = stereo_choice.as_str().to_lowercase();
+    let q = format!(
+        "UPDATE UI_PARAMS SET noise_gain={} WHERE stereo_choice='{}';
+        ",
+        noise_gain, st
+    );
+
+    conn.execute_batch(q.as_str())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sql_update_noise_gain(
+    stereo_choice: StereoChoice,
+    noise_gain: f32,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    let p = app_handle
+        .path_resolver()
+        .resource_dir()
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    let q = update_noise_gain(stereo_choice, noise_gain, p);
+
+    if q.is_ok() {
+        return Ok(q.unwrap());
+    } else {
+        return q.map_err(|e| e.to_string());
+    }
+}
+
+pub fn update_pre_smooth_gain(
+    stereo_choice: StereoChoice,
+    pre_smooth_gain: f32,
+    s: String,
+) -> Result<(), rusqlite::Error> {
+    let conn = Connection::open(s + DB_FILE_NAME)?;
+    let st = stereo_choice.as_str().to_lowercase();
+    let q = format!(
+        "UPDATE UI_PARAMS SET pre_smooth_gain={} WHERE stereo_choice='{}';
+        ",
+        pre_smooth_gain, st
+    );
+
+    conn.execute_batch(q.as_str())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sql_update_pre_smooth_gain(
+    stereo_choice: StereoChoice,
+    pre_smooth_gain: f32,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    let p = app_handle
+        .path_resolver()
+        .resource_dir()
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    let q = update_pre_smooth_gain(stereo_choice, pre_smooth_gain, p);
+
+    if q.is_ok() {
+        return Ok(q.unwrap());
+    } else {
+        return q.map_err(|e| e.to_string());
+    }
+}
+
+pub fn update_post_smooth_gain(
+    stereo_choice: StereoChoice,
+    post_smooth_gain: f32,
+    s: String,
+) -> Result<(), rusqlite::Error> {
+    let conn = Connection::open(s + DB_FILE_NAME)?;
+    let st = stereo_choice.as_str().to_lowercase();
+    let q = format!(
+        "UPDATE UI_PARAMS SET post_smooth_gain={} WHERE stereo_choice='{}';
+        ",
+        post_smooth_gain, st
+    );
+
+    conn.execute_batch(q.as_str())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sql_update_post_smooth_gain(
+    stereo_choice: StereoChoice,
+    post_smooth_gain: f32,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    let p = app_handle
+        .path_resolver()
+        .resource_dir()
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    let q = update_post_smooth_gain(stereo_choice, post_smooth_gain, p);
+
+    if q.is_ok() {
+        return Ok(q.unwrap());
+    } else {
+        return q.map_err(|e| e.to_string());
+    }
+}
+
+pub fn update_clean(
+    stereo_choice: StereoChoice,
+    clean: bool,
+    s: String,
+) -> Result<(), rusqlite::Error> {
+    let conn = Connection::open(s + DB_FILE_NAME)?;
+    let st = stereo_choice.as_str().to_lowercase();
+    let q = format!(
+        "UPDATE UI_PARAMS SET clean={} WHERE stereo_choice='{}';
+        ",
+        clean, st
+    );
+
+    conn.execute_batch(q.as_str())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sql_update_clean(
+    stereo_choice: StereoChoice,
+    clean: bool,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    let p = app_handle
+        .path_resolver()
+        .resource_dir()
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    let q = update_clean(stereo_choice, clean, p);
+
+    if q.is_ok() {
+        return Ok(q.unwrap());
+    } else {
+        return q.map_err(|e| e.to_string());
+    }
+}
+
+pub fn update_left_mute(
+    stereo_choice: StereoChoice,
+    left_mute: bool,
+    s: String,
+) -> Result<(), rusqlite::Error> {
+    let conn = Connection::open(s + DB_FILE_NAME)?;
+    let st = stereo_choice.as_str().to_lowercase();
+    let q = format!(
+        "UPDATE UI_PARAMS SET left_mute={} WHERE stereo_choice='{}';
+        ",
+        left_mute, st
+    );
+
+    conn.execute_batch(q.as_str())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sql_update_left_mute(
+    stereo_choice: StereoChoice,
+    left_mute: bool,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    let p = app_handle
+        .path_resolver()
+        .resource_dir()
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    let q = update_left_mute(stereo_choice, left_mute, p);
+
+    if q.is_ok() {
+        return Ok(q.unwrap());
+    } else {
+        return q.map_err(|e| e.to_string());
+    }
+}
+
+pub fn update_right_mute(
+    stereo_choice: StereoChoice,
+    right_mute: bool,
+    s: String,
+) -> Result<(), rusqlite::Error> {
+    let conn = Connection::open(s + DB_FILE_NAME)?;
+    let st = stereo_choice.as_str().to_lowercase();
+    let q = format!(
+        "UPDATE UI_PARAMS SET right_mute={} WHERE stereo_choice='{}';
+        ",
+        right_mute, st
+    );
+
+    conn.execute_batch(q.as_str())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sql_update_right_mute(
+    stereo_choice: StereoChoice,
+    right_mute: bool,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    let p = app_handle
+        .path_resolver()
+        .resource_dir()
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    let q = update_right_mute(stereo_choice, right_mute, p);
 
     if q.is_ok() {
         return Ok(q.unwrap());

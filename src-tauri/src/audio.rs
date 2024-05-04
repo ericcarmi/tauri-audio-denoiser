@@ -148,6 +148,7 @@ where
             if let Ok(msg) = rx.try_recv() {
                 msg.receive(&mut stereo_params)
             }
+
             if !stereo_params.is_stereo {
                 let mut spectrum: Vec<f32> = vec![];
                 if stereo_params.clean {

@@ -5,7 +5,7 @@
 	export let label = "";
 	export let units = "";
 	export let update_backend = () => {};
-	export let update_server = () => {};
+	export let update_database = () => {};
 	export let resolution = 1;
 
 	export let min_val = 0.1;
@@ -43,6 +43,7 @@
 					return "black";
 				}
 			});
+		update_backend();
 	}
 
 	function draggable() {
@@ -88,8 +89,7 @@
 				// have to call this here...maybe want to change how this is handled later
 				is_mouse_down = false;
 				// needs to be lowercase here...tauri does that
-				update_backend();
-				update_server();
+				update_database();
 
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);

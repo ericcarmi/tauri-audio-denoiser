@@ -6,9 +6,10 @@
 
 	export let value: number = control_max_freq / 2;
 	export let index: number;
-	export let update_server = () => {};
+	export let update_backend = () => {};
+	export let update_database = () => {};
 
-	let height = "1em";
+	let height = "1.5em";
 
 	let position = 0;
 	let el: HTMLElement;
@@ -17,6 +18,10 @@
 	let width = 180;
 	let indicator_width = 5;
 
+	let delta = 0;
+	$: control_max_freq, (delta = (control_max_freq - control_min_freq) / width);
+	$: control_min_freq, (delta = (control_max_freq - control_min_freq) / width);
+
 	$: value, el && indicator && update_position();
 
 	function update_value() {
@@ -24,6 +29,8 @@
 			(position / width) * (control_max_freq - control_min_freq) +
 			control_min_freq;
 		value = x;
+		// audio backend must be updated on every change, server only on reset/mouseup
+		update_backend();
 	}
 
 	function update_position() {
@@ -52,7 +59,7 @@
 			}
 			function reset() {
 				is_dragging = false;
-				update_server();
+				update_database();
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
 			}
@@ -82,7 +89,7 @@
 			function reset() {
 				// have to call this here...maybe want to change how this is handled later
 				is_dragging = false;
-				update_server();
+				update_database();
 
 				window.removeEventListener("mousemove", mouseMoveHandler);
 				window.removeEventListener("mouseup", reset);
@@ -138,13 +145,14 @@
 				is_dragging = false;
 			}}
 		/>
-		<span class="value-text">{value.toFixed(1)}</span>
+		<span class="value-text">{value.toFixed(0)}</span>
 	</div>
 	<div>
 		<div
 			class="scroll-number"
 			style="float: left;"
 			on:wheel={(e) => {
+			// need to add scroll for mouse too
 				e.preventDefault();
 				let v = e.deltaY * 5 + control_min_freq;
 				control_min_freq = Math.max(0, Math.min(v, value));
@@ -194,8 +202,6 @@
 		background: var(--slider-active);
 	}
 	.value-text {
-		position: relative;
-		top: -20%;
 		font-size: 12px;
 		color: var(--gray200);
 		pointer-events: none;

@@ -39,7 +39,8 @@ fn main() {
             message_pre_smooth_gain,
             message_post_smooth_gain,
             message_file_path,
-            message_mute,
+            message_left_mute,
+            message_right_mute,
             init_audio_params_from_server,
             process_export,
             get_audioui_message,
@@ -49,6 +50,14 @@ fn main() {
             sql_ui_params,
             sql_update_ui_params,
             sql_filter_bank,
+            sql_update_filter_bank,
+            sql_update_noise_gain,
+            sql_update_output_gain,
+            sql_update_pre_smooth_gain,
+            sql_update_post_smooth_gain,
+            sql_update_clean,
+            sql_update_left_mute,
+            sql_update_right_mute,
         ])
         .setup(|app| {
             let mainwindow = app.get_window("main").unwrap();

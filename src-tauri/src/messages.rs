@@ -45,9 +45,36 @@ pub async fn init_audio_params_from_server(
 #[tauri::command]
 pub fn message_filters(
     stereo_choice: StereoChoice,
-    filter_bank_message: FilterBankMessage,
+    index: usize,
+    gain: f32,
+    freq: f32,
+    Q: f32,
     streamsend: State<MStreamSend>,
 ) {
+    let gain = (10.0_f32).powf(gain / 20.0);
+    let filter_bank_message = match index {
+        1 => FilterBankMessage {
+            bp1: Some(BPF { gain, freq, Q }),
+            ..Default::default()
+        },
+        2 => FilterBankMessage {
+            bp2: Some(BPF { gain, freq, Q }),
+            ..Default::default()
+        },
+        3 => FilterBankMessage {
+            bp3: Some(BPF { gain, freq, Q }),
+            ..Default::default()
+        },
+        4 => FilterBankMessage {
+            bp4: Some(BPF { gain, freq, Q }),
+            ..Default::default()
+        },
+        5 => FilterBankMessage {
+            bp5: Some(BPF { gain, freq, Q }),
+            ..Default::default()
+        },
+        _ => FilterBankMessage::default(),
+    };
     stereo_message(
         stereo_choice,
         streamsend,
@@ -86,12 +113,24 @@ pub fn message_clean(clean: bool, streamsend: State<MStreamSend>, stereo_choice:
     );
 }
 #[tauri::command]
-pub fn message_mute(mute: bool, streamsend: State<MStreamSend>, stereo_choice: StereoChoice) {
+pub fn message_left_mute(mute: bool, streamsend: State<MStreamSend>, stereo_choice: StereoChoice) {
     stereo_message(
         stereo_choice,
         streamsend,
         Some(ChannelMessage {
-            mute: Some(mute),
+            left_mute: Some(mute),
+            ..Default::default()
+        }),
+    );
+}
+
+#[tauri::command]
+pub fn message_right_mute(mute: bool, streamsend: State<MStreamSend>, stereo_choice: StereoChoice) {
+    stereo_message(
+        stereo_choice,
+        streamsend,
+        Some(ChannelMessage {
+            right_mute: Some(mute),
             ..Default::default()
         }),
     );
@@ -233,12 +272,25 @@ pub struct FilterBankMessage {
     pub bp5: Option<BPF>,
 }
 
+impl Default for FilterBankMessage {
+    fn default() -> Self {
+        Self {
+            bp1: None,
+            bp2: None,
+            bp3: None,
+            bp4: None,
+            bp5: None,
+        }
+    }
+}
+
 /// a message from a single channel (left or right)
 #[derive(Clone, Debug, Copy)]
 pub struct ChannelMessage {
     pub time: Option<f32>,
     pub clean: Option<bool>,
-    pub mute: Option<bool>,
+    pub left_mute: Option<bool>,
+    pub right_mute: Option<bool>,
     pub output_gain: Option<f32>,
     pub noise_gain: Option<f32>,
     pub pre_smooth_gain: Option<f32>,
@@ -252,7 +304,8 @@ impl Default for ChannelMessage {
         Self {
             time: None,
             clean: None,
-            mute: None,
+            left_mute: None,
+            right_mute: None,
             output_gain: None,
             noise_gain: None,
             pre_smooth_gain: None,
