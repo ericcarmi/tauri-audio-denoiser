@@ -2,10 +2,10 @@ use std::sync::Mutex;
 
 use crate::{
     audio::setup_stream,
-    constants::czerov,
+    constants::{czerov, from_log},
     types::{
-        AudioParams, FilterBank, MSender, MStream, MStreamSend, MUIReceiver, StereoChoice,
-        StereoParams, BPF, IIR2,
+        AudioParams, MSender, MStream, MStreamSend, MUIReceiver, StereoChoice, StereoParams, BPF,
+        IIR2,
     },
 };
 use cpal::traits::StreamTrait;
@@ -16,28 +16,33 @@ use tauri::{AppHandle, State};
 
 /// this is to load params directly from server, the ones that are setup in the stream, the audio params...want to keep them synced with UI on startup, so this will just be called onMount from frontend
 #[tauri::command]
-pub async fn init_audio_params_from_server(
+pub async fn message_all(
     streamsend: State<'_, MStreamSend>,
+    stereo_choice: StereoChoice,
+    clean: bool,
+    left_mute: bool,
+    right_mute: bool,
+    output_gain: f32,
+    noise_gain: f32,
+    pre_smooth_gain: f32,
+    post_smooth_gain: f32,
+    filter_bank: FilterBankMessage,
 ) -> Result<(), String> {
-    // let left_mute = get_mute(StereoChoice::Left).await.unwrap();
-    // let right_mute = get_mute(StereoChoice::Right).await.unwrap();
-
-    // stereo_message(
-    //     Some(StereoChoice::Left),
-    //     streamsend.clone(),
-    //     Some(ChannelMessage {
-    //         mute: Some(left_mute),
-    //         ..Default::default()
-    //     }),
-    // );
-    // stereo_message(
-    //     Some(StereoChoice::Right),
-    //     streamsend,
-    //     Some(ChannelMessage {
-    //         mute: Some(right_mute),
-    //         ..Default::default()
-    //     }),
-    // );
+    stereo_message(
+        stereo_choice,
+        streamsend,
+        Some(ChannelMessage {
+            clean: Some(clean),
+            left_mute: Some(left_mute),
+            right_mute: Some(right_mute),
+            output_gain: Some(from_log(output_gain)),
+            noise_gain: Some(from_log(noise_gain)),
+            pre_smooth_gain: Some(pre_smooth_gain),
+            post_smooth_gain: Some(post_smooth_gain),
+            filter_bank: Some(filter_bank),
+            ..Default::default()
+        }),
+    );
 
     Ok(())
 }
@@ -442,9 +447,12 @@ impl UIAudioMessage {
                     .parallel_transfer(channel_params.dft_size);
             }
         }
-        // if let Some(m) = channel_message.mute {
-        //     channel_params.mute = m;
-        // }
+        if let Some(m) = channel_message.left_mute {
+            channel_params.ui_params.left_mute = m;
+        }
+        if let Some(m) = channel_message.right_mute {
+            channel_params.ui_params.right_mute = m;
+        }
         if let Some(g) = channel_message.output_gain {
             channel_params.ui_params.output_gain = g;
         }

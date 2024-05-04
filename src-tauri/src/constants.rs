@@ -12,3 +12,7 @@ pub fn czerov(n: usize) -> Vec<Complex<f32>> {
 }
 
 pub const SAMPLING_RATE: f32 = 44100.0;
+
+pub fn from_log(g: f32) -> f32 {
+    (10.0_f32).powf(g / 20.0)
+}

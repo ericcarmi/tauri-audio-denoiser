@@ -51,7 +51,8 @@
       "identifier": "com.audio-eq.dev",
       "resources": [
         "assets/*.wav",
-        "init-db.sh"
+        "init-db.sh",
+        "db.sqlite"
       ],
       "icon": [
         "icons/32x32.png",

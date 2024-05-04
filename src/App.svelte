@@ -18,9 +18,11 @@
     StereoParams,
     FilterBank,
     UIFilterBank,
+    BPF,
   } from "./types.svelte";
   import {
     init_channel_params,
+    init_ui_params,
     remove_slashes_ext,
     rgbToHex,
     update_css_color,
@@ -43,6 +45,7 @@
   let time_position = 0;
   let selectedRecording = "";
   let is_playing = false;
+  let is_stereo = true;
 
   let perf_time = performance.now();
   let time_origin = 0;
@@ -55,15 +58,10 @@
   // these values are retrieved onMount from server...want to also get the types over eventually to not copy-paste
   // but also the audio params aren't an exact copy of the rust type?
   // keep this values to be connected to single sliders, then depending on stereo_choice, will get sent to left/right/both
-  let output_gain = 0.0;
-  let noise_gain = 0.0;
-  let pre_smooth_gain = 0.5;
-  let post_smooth_gain = 0.5;
-  let bpfs: any;
-  let clean = false;
+  let bpfs: Array<any>;
 
-  let stereo_params: StereoParams = init_channel_params(gains, freqs, Qs);
-  let ui_params: UIParams;
+  // let stereo_params: StereoParams = init_channel_params(gains, freqs, Qs);
+  let ui_params: UIParams = init_ui_params(gains, freqs, Qs);
 
   const unlisten = listen("tauri://file-drop", async (event: any) => {
     change_file(event.payload[0] as string);
@@ -92,32 +90,53 @@
     get_time_data(from_assets);
   }
 
-  function get_ui_params(s: StereoChoice) {
-    // get from backend
-    invoke("sql_ui_params", { stereoChoice: s }).then((r) => {
-      ui_params = r as UIParams;
-      invoke("sql_filter_bank", { stereoChoice: s }).then((res) => {
-        const fb = res as FilterBank;
-        bpfs = [fb.bp1, fb.bp2, fb.bp3, fb.bp4, fb.bp5];
-      });
-
-      noise_gain = ui_params.noise_gain;
-      output_gain = ui_params.output_gain;
-      post_smooth_gain = ui_params.post_smooth_gain;
-      pre_smooth_gain = ui_params.pre_smooth_gain;
+  function update_audio_params() {
+    let fb = {
+      bp1: bpfs[0],
+      bp2: bpfs[1],
+      bp3: bpfs[2],
+      bp4: bpfs[3],
+      bp5: bpfs[4],
+    } as UIFilterBank;
+    invoke("message_all", {
+      stereoChoice: ui_params.stereo_choice,
+      clean: ui_params.clean,
+      leftMute: ui_params.right_mute,
+      rightMute: ui_params.right_mute,
+      noiseGain: ui_params.noise_gain,
+      preSmoothGain: ui_params.pre_smooth_gain,
+      postSmoothGain: ui_params.post_smooth_gain,
+      outputGain: ui_params.output_gain,
+      filterBank: {} as FilterBank,
     });
   }
 
-  function set_ui_params(s: StereoChoice) {
+  async function get_ui_params(new_choice: StereoChoice) {
+    // get from backend
+    await invoke("sql_ui_params", { stereoChoice: new_choice }).then(
+      async (r) => {
+        ui_params = r as UIParams;
+        ui_params.stereo_choice = new_choice;
+        await invoke("sql_filter_bank", { stereoChoice: new_choice }).then(
+          (res) => {
+            const fb = res as FilterBank;
+            bpfs = [fb.bp1, fb.bp2, fb.bp3, fb.bp4, fb.bp5];
+          }
+        );
+      }
+    );
+  }
+
+  function set_ui_params() {
     let params: UIParams = {
       left_mute: false,
       right_mute: false,
-      noise_gain: noise_gain,
-      output_gain: output_gain,
-      post_smooth_gain: post_smooth_gain,
-      pre_smooth_gain: pre_smooth_gain,
-      clean: clean,
-      stereo_choice: "Both",
+      noise_gain: ui_params.noise_gain,
+      output_gain: ui_params.output_gain,
+      post_smooth_gain: ui_params.post_smooth_gain,
+      pre_smooth_gain: ui_params.pre_smooth_gain,
+      clean: ui_params.clean,
+      stereo_choice: ui_params.stereo_choice,
       filter_bank: {
         bp1: bpfs[0],
         bp2: bpfs[1],
@@ -127,7 +146,7 @@
       } as UIFilterBank,
     };
     invoke("sql_update_ui_params", {
-      stereoChoice: s,
+      stereoChoice: ui_params.stereo_choice,
       uiParams: params,
     });
   }
@@ -152,6 +171,9 @@
   $: num_time_samples, (time_slider_max = num_time_samples);
 
   onMount(async () => {
+    console.log(ui_params);
+
+    await get_ui_params(ui_params.stereo_choice);
     settings = await invoke("sql_settings").catch(async (r) => {
       // await message("have to init settings", "denoiser");
       // await invoke("init_settings");
@@ -174,8 +196,6 @@
     // selected recording also needs to be in sync with backend file...should be resolved once files are imported correctly instead of one by default, tho should still have that for loading saved state?
     change_file(selectedRecording, true);
     resetInterval();
-
-    get_ui_params(stereo_params.stereo_choice);
 
     // await invoke("init_audio_params_from_server");
   });
@@ -245,11 +265,11 @@
       on:mouseup={() => {
         is_time_slider_dragging = false;
       }}
-      on:input={async () => {
+      on:input={() => {
         // time_position = (time / DOWN_RATE) * SAMPLING_RATE;
         // time_origin = time_position*DOWN_RATE/SAMPLING_RATE
         time = (time_position * DOWN_RATE) / SAMPLING_RATE;
-        await invoke("message_time", {
+        invoke("message_time", {
           t: (time * SAMPLING_RATE) / num_time_samples / DOWN_RATE,
         });
       }}
@@ -258,52 +278,53 @@
       <div class="stereo-control-buttons">
         <button
           class="stereo-control-button"
-          data-attribute={stereo_params.stereo_choice !== "Right"}
+          data-attribute={ui_params.stereo_choice !== "Right"}
           on:click={() => {
             // also need to update ui to switch between left/right channel params
-            set_ui_params(stereo_params.stereo_choice);
-            if (stereo_params.stereo_choice === "Left") {
-              stereo_params.stereo_choice = "Right";
-            } else if (stereo_params.stereo_choice === "Right") {
-              stereo_params.stereo_choice = "Both";
-            } else if (stereo_params.stereo_choice === "Both") {
-              stereo_params.stereo_choice = "Right";
+            set_ui_params();
+            if (ui_params.stereo_choice === "Left") {
+              get_ui_params("Right");
+            } else if (ui_params.stereo_choice === "Right") {
+              get_ui_params("Both");
+            } else if (ui_params.stereo_choice === "Both") {
+              get_ui_params("Right");
             }
-            get_ui_params(stereo_params.stereo_choice);
           }}>L</button
         >
         <button
           class="stereo-control-button"
-          data-attribute={stereo_params.stereo_choice !== "Left"}
+          data-attribute={ui_params.stereo_choice !== "Left"}
           on:click={() => {
-            set_ui_params(stereo_params.stereo_choice);
-            if (stereo_params.stereo_choice === "Left") {
-              stereo_params.stereo_choice = "Both";
-            } else if (stereo_params.stereo_choice === "Right") {
-              stereo_params.stereo_choice = "Left";
-            } else if (stereo_params.stereo_choice === "Both") {
-              stereo_params.stereo_choice = "Left";
+            set_ui_params();
+            console.log(ui_params.stereo_choice);
+            if (ui_params.stereo_choice === "Left") {
+              get_ui_params("Both");
+            } else if (ui_params.stereo_choice === "Right") {
+              get_ui_params("Both");
+            } else if (ui_params.stereo_choice === "Both") {
+              get_ui_params("Left");
             }
-            get_ui_params(stereo_params.stereo_choice);
+            console.log(ui_params.stereo_choice);
+
+            get_ui_params();
           }}>R</button
         >
-        control: {stereo_params.stereo_choice}
+        control: {ui_params.stereo_choice}
       </div>
       <div class="stereo-mute-buttons">
         mute
         <button
           class="mute-button"
-          data-attribute={stereo_params.left.ui_params?.left_mute}
+          data-attribute={ui_params.left_mute}
           on:click={() => {
-            stereo_params.left.ui_params.left_mute =
-              !stereo_params.left.ui_params.left_mute;
+            ui_params.left_mute = !ui_params.left_mute;
             invoke("sql_update_left_mute", {
-              stereoChoice: stereo_params.stereo_choice,
-              leftMute: stereo_params.left.ui_params.left_mute,
+              stereoChoice: ui_params.stereo_choice,
+              leftMute: ui_params.left_mute,
             });
             invoke("message_left_mute", {
-              stereoChoice: stereo_params.stereo_choice,
-              mute: stereo_params.left.ui_params.left_mute,
+              stereoChoice: ui_params.stereo_choice,
+              mute: ui_params.left_mute,
             });
           }}
         >
@@ -311,17 +332,16 @@
         </button>
         <button
           class="mute-button"
-          data-attribute={stereo_params.right.ui_params?.right_mute}
+          data-attribute={ui_params.right_mute}
           on:click={() => {
-            stereo_params.right.ui_params.right_mute =
-              !stereo_params.right.ui_params.right_mute;
+            ui_params.right_mute = !ui_params.right_mute;
             invoke("sql_update_right_mute", {
-              stereoChoice: stereo_params.stereo_choice,
-              rightMute: stereo_params.right.ui_params.right_mute,
+              stereoChoice: ui_params.stereo_choice,
+              rightMute: ui_params.right_mute,
             });
             invoke("message_right_mute", {
-              stereoChoice: stereo_params.stereo_choice,
-              mute: stereo_params.right.ui_params.right_mute,
+              stereoChoice: ui_params.stereo_choice,
+              mute: ui_params.right_mute,
             });
           }}
         >
@@ -334,13 +354,9 @@
           : 'none'}"
         on:click={async () => {
           if (!is_playing) {
-            await invoke("play_stream");
+            invoke("play_stream").then(() => {});
             is_playing = true;
             time_origin = performance.now();
-            if (!is_backend_params_initialized) {
-              is_backend_params_initialized = true;
-              // invoke("init_audio_params_from_server");
-            }
           } else {
             await invoke("pause_stream");
             is_playing = false;
@@ -352,14 +368,14 @@
       </button>
       <button
         on:click={async () => {
-          stereo_params.clean = !stereo_params.clean;
+          ui_params.clean = !ui_params.clean;
           invoke("message_clean", {
-            stereoChoice: stereo_params.stereo_choice,
-            clean: stereo_params.clean,
+            stereoChoice: ui_params.stereo_choice,
+            clean: ui_params.clean,
           });
         }}
       >
-        {stereo_params.clean ? "dry" : "wet"}
+        {ui_params.clean ? "dry" : "wet"}
       </button>
     </div>
   </div>
@@ -385,7 +401,7 @@
             bind:gain={bpfs[i].gain}
             bind:freq={bpfs[i].freq}
             bind:Q={bpfs[i].Q}
-            bind:stereo_choice={stereo_params.stereo_choice}
+            bind:stereo_choice={ui_params.stereo_choice}
             index={i + 1}
           />
         </div>
@@ -396,78 +412,78 @@
     style="display: flex; flex-direction: row; justify-content: space-evenly;height:6em;"
   >
     <RotarySlider
-      bind:value={noise_gain}
+      bind:value={ui_params.noise_gain}
       units="dB"
       label="noise gain"
       max_val={20}
       min_val={-80}
       update_database={() => {
         invoke("sql_update_noise_gain", {
-          stereoChoice: stereo_params.stereo_choice,
-          noiseGain: noise_gain,
+          stereoChoice: ui_params.stereo_choice,
+          noiseGain: ui_params.noise_gain,
         });
       }}
       update_backend={() => {
         invoke("message_noise_gain", {
-          stereoChoice: stereo_params.stereo_choice,
-          gain: noise_gain,
+          stereoChoice: ui_params.stereo_choice,
+          gain: ui_params.noise_gain,
         });
       }}
     />
     <RotarySlider
-      bind:value={pre_smooth_gain}
+      bind:value={ui_params.pre_smooth_gain}
       label="pre smooth"
       max_val={0.999}
       min_val={0.0}
       resolution={3}
       update_database={() => {
         invoke("sql_update_pre_smooth_gain", {
-          stereoChoice: stereo_params.stereo_choice,
-          preSmoothGain: pre_smooth_gain,
+          stereoChoice: ui_params.stereo_choice,
+          preSmoothGain: ui_params.pre_smooth_gain,
         });
       }}
       update_backend={() => {
         invoke("message_pre_smooth_gain", {
-          stereoChoice: stereo_params.stereo_choice,
-          gain: pre_smooth_gain,
+          stereoChoice: ui_params.stereo_choice,
+          gain: ui_params.pre_smooth_gain,
         });
       }}
     />
     <RotarySlider
-      bind:value={post_smooth_gain}
+      bind:value={ui_params.post_smooth_gain}
       label="post smooth"
       max_val={0.999}
       min_val={0.0}
       resolution={3}
       update_database={() => {
         invoke("sql_update_post_smooth_gain", {
-          stereoChoice: stereo_params.stereo_choice,
-          postSmoothGain: post_smooth_gain,
+          stereoChoice: ui_params.stereo_choice,
+          postSmoothGain: ui_params.post_smooth_gain,
         });
       }}
       update_backend={() => {
         invoke("message_post_smooth_gain", {
-          stereoChoice: stereo_params.stereo_choice,
-          gain: post_smooth_gain,
+          stereoChoice: ui_params.stereo_choice,
+          gain: ui_params.post_smooth_gain,
         });
       }}
     />
     <RotarySlider
-      bind:value={output_gain}
+      bind:value={ui_params.output_gain}
       units="dB"
       max_val={20}
       min_val={-20}
       label="output gain"
       update_database={() => {
         invoke("sql_update_output_gain", {
-          stereoChoice: stereo_params.stereo_choice,
-          outputGain: output_gain,
+          stereoChoice: ui_params.stereo_choice,
+          outputGain: ui_params.output_gain,
         });
       }}
       update_backend={() => {
         invoke("message_output_gain", {
-          stereoChoice: stereo_params.stereo_choice,
-          gain: output_gain,
+          stereoChoice: ui_params.stereo_choice,
+          gain: ui_params.output_gain,
         });
       }}
     />
@@ -486,19 +502,18 @@
       class="reset-all-gains-switch"
       title="reset all gains to 0 dB"
       on:click={() => {
-        // bpfs = [
-        //   ...bpfs.map((filt, i) => {
-        //     message_filters(
-        //       i + 1,
-        //       0.0,
-        //       filt.freq,
-        //       filt.Q,
-        //       true,
-        //       stereo_params.control
-        //     );
-        //     return { gain: 0.0, freq: filt.freq, Q: filt.Q };
-        //   }),
-        // ];
+        bpfs = [
+          ...bpfs.map((filt, i) => {
+            invoke("message_filters", {
+              stereoChoice: ui_params.stereo_choice,
+              index: i + 1,
+              gain: 0.0,
+              freq: filt.freq,
+              q: filt.Q,
+            });
+            return { gain: 0.0, freq: filt.freq, Q: filt.Q };
+          }),
+        ];
       }}>reset gains</button
     >
     <button
@@ -546,7 +561,7 @@
     <span
       title="full path: {selectedRecording}"
       style="position: absolute; bottom: 0; padding-right: 2em; align-self: center;"
-      >current file ({stereo_params.is_stereo ? "stereo" : "mono"}): {remove_slashes_ext(
+      >current file ({is_stereo ? "stereo" : "mono"}): {remove_slashes_ext(
         selectedRecording
       )}</span
     >
@@ -662,16 +677,14 @@
   }
   .mute-button {
     background: var(--rotary-tick);
-    border: 1px solid black;
   }
   .mute-button[data-attribute="true"] {
     background: black;
     text-decoration: line-through;
-    border: 1px solid black;
     filter: contrast(70%);
   }
   .stereo-control-button[data-attribute="true"] {
-    background: var(--purple);
+    background: var(--rotary-tick);
     border: 1px solid black;
     filter: contrast(100%);
   }

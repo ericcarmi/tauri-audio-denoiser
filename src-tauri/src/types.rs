@@ -109,6 +109,8 @@ pub fn biquad(gain: f32, freq: f32, Q: f32) -> IIR2 {
 
 impl From<BPF> for IIR2 {
     fn from(bpf: BPF) -> Self {
+        // println!("{:?}", bpf);
+
         let A = (bpf.gain / 40.0).powf(10.0);
         let w0 = (2.0 * PI * bpf.freq) / SAMPLING_RATE;
         let alpha = (w0).sin() / 2.0 / bpf.Q;
@@ -138,20 +140,21 @@ impl IIR2 {
             y: [0.0, 0.0],
         }
     }
-    pub fn process(&mut self, data: f32) -> f32 {
-        let out = (self.b0 * data + self.b1 * self.x[0] + self.b2 * self.x[1]
-            - self.a1 * self.y[0]
-            - self.a2 * self.y[1])
-            / self.a0;
-        self.x[1] = self.x[0];
-        self.x[0] = data;
-        self.y[1] = self.y[0];
-        self.y[0] = out;
-
-        out
-    }
+    // pub fn process(&mut self, data: f32) -> f32 {
+    //     let out = (self.b0 * data + self.b1 * self.x[0] + self.b2 * self.x[1]
+    //         - self.a1 * self.y[0]
+    //         - self.a2 * self.y[1])
+    //         / self.a0;
+    //     self.x[1] = self.x[0];
+    //     self.x[0] = data;
+    //     self.y[1] = self.y[0];
+    //     self.y[0] = out;
+    //     out
+    // }
 
     pub fn update_coeffs(&mut self, iir: IIR2) {
+        // println!("{:?}", iir);
+
         self.b0 = iir.b0;
         self.b1 = iir.b1;
         self.b2 = iir.b2;
@@ -163,6 +166,7 @@ impl IIR2 {
     pub fn freq_response(&self, n: usize) -> Vec<Complex32> {
         let mut H = vec![];
         let L = n as f32;
+        // println!("{:?}", self);
         for i in 0..n {
             let x = (-PI * i as f32 / L).cos();
             let y = (-PI * i as f32 / L).sin();
@@ -173,6 +177,7 @@ impl IIR2 {
 
             H.push(w);
         }
+
         H
     }
 }

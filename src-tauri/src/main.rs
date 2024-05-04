@@ -41,7 +41,7 @@ fn main() {
             message_file_path,
             message_left_mute,
             message_right_mute,
-            init_audio_params_from_server,
+            message_all,
             process_export,
             get_audioui_message,
             sql_theme,

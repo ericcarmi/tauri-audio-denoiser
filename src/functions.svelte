@@ -73,6 +73,47 @@
 		};
 	}
 
+	export function init_ui_params(
+		gains: number[],
+		freqs: number[],
+		Qs: number[]
+	): UIParams {
+		if (gains.length !== freqs.length || gains.length !== Qs.length) {
+			console.error("array length mismatch");
+			// return;
+		}
+		let output_gain = 0.0;
+		let noise_gain = 0.0;
+		let pre_smooth_gain = 0.5;
+		let post_smooth_gain = 0.5;
+		let clean = false;
+		let bpf_filters: Array<BPF> = Array(gains.length)
+			.fill(0)
+			.map((_, i) => {
+				return { gain: gains[i], freq: freqs[i], Q: Qs[i] };
+			});
+
+		let fb = {
+			bp1: bpf_filters[0],
+			bp2: bpf_filters[1],
+			bp3: bpf_filters[2],
+			bp4: bpf_filters[3],
+			bp5: bpf_filters[4],
+		};
+
+		return {
+			clean: clean,
+			left_mute: false,
+			right_mute: false,
+			output_gain: output_gain,
+			noise_gain: noise_gain,
+			pre_smooth_gain: pre_smooth_gain,
+			post_smooth_gain: post_smooth_gain,
+			stereo_choice: "Both",
+			filter_bank: fb,
+		} as UIParams;
+	}
+
 	export function update_css_color(color: string, color_name: string) {
 		if (color !== undefined) {
 			document.body.style.setProperty(

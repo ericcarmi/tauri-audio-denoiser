@@ -94,8 +94,10 @@
   let freqcanvas: any;
 
   $: settings, update_settings();
+  $: theme, update_settings();
 
   function update_settings() {
+
     if (settings && theme) {
       plot_total_curve = rgbToHex(theme.plot_total_curve);
       eq_color = rgbToHex(theme.plot_single_filter);
@@ -345,6 +347,7 @@
   }
 
   function update_filter_bank(should_clear: boolean) {
+
     function renderPlot() {
       const canvas = freqcanvas;
 

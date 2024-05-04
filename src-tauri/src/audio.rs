@@ -1,6 +1,5 @@
 use crate::constants::*;
 use crate::messages::{AudioUIMessage, UIAudioMessage};
-// use crate::fourier::mfft;
 use crate::types::*;
 use anyhow;
 use cpal::traits::StreamTrait;
@@ -195,8 +194,6 @@ where
                 }
 
                 // send a chunk of the fft here
-                // let _r = tx_ui.try_send(mfft(spectrum.clone()));
-                // let _r = tx_ui.try_send(freq_filter.clone());
                 let _r = tx_ui.try_send(AudioUIMessage {
                     spectrum: Some(
                         stereo_params.left.sdft.norm_vec()[0..stereo_params.left.sdft.size / 2]
@@ -277,8 +274,6 @@ where
                 }
 
                 // send a chunk of the fft here
-                // let _r = tx_ui.try_send(mfft(spectrum.clone()));
-                // let _r = tx_ui.try_send(freq_filter.clone());
                 let _r = tx_ui.try_send(AudioUIMessage {
                     spectrum: Some(
                         stereo_params.left.sdft.norm_vec()[0..stereo_params.left.sdft.size / 2]
@@ -301,9 +296,7 @@ pub async fn process_export(
     app_handle: AppHandle,
     file_path: Option<String>,
     window: Window,
-) -> Result<(), String>
-where
-{
+) -> Result<(), String> {
     let _ = streamsend
         .0
         .lock()
