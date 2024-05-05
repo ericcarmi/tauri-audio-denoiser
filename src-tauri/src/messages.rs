@@ -12,7 +12,7 @@ use cpal::traits::StreamTrait;
 use dasp_ring_buffer::Fixed;
 use rustfft::num_complex::Complex;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, State};
+use tauri::{window, AppHandle, State, Window};
 
 /// this is to load params directly from server, the ones that are setup in the stream, the audio params...want to keep them synced with UI on startup, so this will just be called onMount from frontend
 #[tauri::command]
@@ -91,7 +91,7 @@ pub fn message_filters(
 }
 
 #[tauri::command]
-pub fn message_time(t: f32, streamsend: State<MStreamSend>) {
+pub fn message_time(time: f32, streamsend: State<MStreamSend>) {
     let _ = streamsend
         .0
         .lock()
@@ -101,7 +101,7 @@ pub fn message_time(t: f32, streamsend: State<MStreamSend>) {
         .lock()
         .unwrap()
         .try_send(UIAudioMessage {
-            time: Some(t),
+            time: Some(time),
             ..Default::default()
         });
 }
@@ -201,9 +201,14 @@ pub fn message_post_smooth_gain(
 }
 
 #[tauri::command]
-pub fn message_file_path(path: String, streamsend: State<MStreamSend>, app_handle: AppHandle) {
+pub fn message_file_path(
+    path: String,
+    streamsend: State<MStreamSend>,
+    app_handle: AppHandle,
+    window: Window,
+) {
     let (ui_tx, rx) = tauri::async_runtime::channel::<AudioUIMessage>(2);
-    let (stream, tx) = setup_stream(ui_tx, app_handle, Some(path)).unwrap();
+    let (stream, tx) = setup_stream(ui_tx, app_handle, Some(path), window).unwrap();
     let _ = stream.pause();
     let mtx = Mutex::new(tx);
 
@@ -398,7 +403,7 @@ impl UIAudioMessage {
         }
 
         if let Some(t) = self.time {
-            params.time = (params.num_file_samples as f32 * t) as usize;
+            params.time = (t) as usize;
             if params.is_stereo {
                 params.left.sdft.freq_history = czerov(params.left.dft_size);
                 params.left.sdft.time_history =
@@ -407,6 +412,7 @@ impl UIAudioMessage {
                 params.right.sdft.time_history =
                     Fixed::from(vec![Complex::new(0.0, 0.0); params.right.dft_size]);
             } else {
+                // params.left.time
                 params.left.sdft.freq_history = czerov(params.left.dft_size);
                 params.left.sdft.time_history =
                     Fixed::from(vec![Complex::new(0.0, 0.0); params.left.dft_size]);
@@ -493,6 +499,7 @@ pub struct AudioUIMessage {
     pub is_stereo: Option<bool>,
     pub is_processing: Option<bool>,
     pub processing_percentage: Option<f32>,
+    pub time: Option<f32>,
 }
 
 impl Default for AudioUIMessage {
@@ -502,6 +509,12 @@ impl Default for AudioUIMessage {
             is_stereo: None,
             is_processing: None,
             processing_percentage: None,
+            time: None,
         }
+    }
+}
+impl AudioUIMessage {
+    pub fn name() -> &'static str {
+        "audioui_message"
     }
 }

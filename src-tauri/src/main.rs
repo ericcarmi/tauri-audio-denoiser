@@ -80,10 +80,11 @@ fn main() {
 
             let m = mainwindow.available_monitors();
             let _ = mainwindow.set_position(*m.unwrap()[0].position());
+            let window = app_handle.get_window("main").unwrap();
 
             let mss = MStreamSend({
                 let (tx_ui, rx_ui) = tauri::async_runtime::channel::<AudioUIMessage>(2);
-                let (stream, tx) = setup_stream(tx_ui.clone(), app_handle, None).unwrap();
+                let (stream, tx) = setup_stream(tx_ui.clone(), app_handle, None, window).unwrap();
                 let _ = stream.pause();
                 let mtx = Mutex::new(tx);
 
@@ -111,6 +112,7 @@ fn main() {
 #[tauri::command]
 fn play_stream(streamsend: State<MStreamSend>) {
     let _ = streamsend.0.lock().unwrap().stream.0.lock().unwrap().play();
+    println!("play");
 }
 
 #[tauri::command]

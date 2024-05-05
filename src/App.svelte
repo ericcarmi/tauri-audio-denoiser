@@ -2,7 +2,7 @@
   import { invoke } from "@tauri-apps/api/tauri";
   import { listen } from "@tauri-apps/api/event";
   import { message, open, save } from "@tauri-apps/api/dialog";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
 
   import Plot from "./plot.svelte";
   import {
@@ -15,13 +15,10 @@
   import type {
     UIParams,
     StereoChoice,
-    StereoParams,
     FilterBank,
     UIFilterBank,
-    BPF,
   } from "./types.svelte";
   import {
-    init_channel_params,
     init_ui_params,
     remove_slashes_ext,
     rgbToHex,
@@ -32,17 +29,14 @@
 
   let settings: any;
   let theme: any;
-  let is_backend_params_initialized = false;
   let is_processing = false;
   let is_selecting_processing_choice = false;
   let processing_percentage = 0;
-  type ProcessingChoice = "Both" | "Independent";
-  let processing_choice: ProcessingChoice = "Both";
 
   let show_settings = false;
   // if these values are the same as what is in server, values will not update when loaded, so use values that are way out of range? silly but it works
   var gains = [0, 0, 0, 0, 0];
-  var freqs = [1000, 1000, 1000, 1000, 1000];
+  var freqs = [100, 500, 1000, 2000, 5000];
   var Qs = [1, 1, 1, 1, 1];
 
   let time = 0;
@@ -52,68 +46,45 @@
   let is_playing = false;
   let is_stereo = true;
 
-  let perf_time = performance.now();
-  let time_origin = 0;
-  let time_delta = 0;
   let is_time_slider_dragging = false;
 
-  let interval: any;
   let fft_data: any;
 
-  // these values are retrieved onMount from server...want to also get the types over eventually to not copy-paste
-  // but also the audio params aren't an exact copy of the rust type?
-  // keep this values to be connected to single sliders, then depending on stereo_choice, will get sent to left/right/both
   let bpfs: Array<any>;
 
-  // let stereo_params: StereoParams = init_channel_params(gains, freqs, Qs);
   let ui_params: UIParams = init_ui_params(gains, freqs, Qs);
 
   const unlisten = listen("tauri://file-drop", async (event: any) => {
     change_file(event.payload[0] as string);
   });
-
   const unlisten_audioui_message = listen(
     "update_processing_percentage",
     async (event: any) => {
       processing_percentage = event.payload as number;
     }
   );
+  const unlisten_2 = listen("audioui_message", (event: any) => {
+    fft_data = event.payload.spectrum;
+    time = (event.payload.time)/num_time_samples ;
+    time_position = time * FREQ_PLOT_WIDTH;
+    console.log(time, time_position, num_time_samples);
+  });
+  onDestroy(() => {
+    unlisten_2.then((f) => f());
+    unlisten_audioui_message.then((f) => f());
+    unlisten.then((f) => f());
+  });
 
   function change_file(path: string, from_assets?: boolean) {
     selectedRecording = path;
     invoke("message_file_path", { path: selectedRecording });
+    // add this back?
     // invoke("get_is_stereo").then((r: any) => {
-    //   if (r.is_stereo !== undefined) {
-    //     stereo_params.is_stereo = r.is_stereo;
-    //   }
-    // });
-    // invoke("get_stereo_choice").then((r: any) => {
-    //   if (r !== undefined) {
-    //     stereo_params.stereo_choice = r;
-    //   }
+    // if (r.is_stereo !== undefined) {
+    // is_stereo = r.is_stereo;
+    // }
     // });
     get_time_data(from_assets);
-  }
-
-  function update_audio_params() {
-    let fb = {
-      bp1: bpfs[0],
-      bp2: bpfs[1],
-      bp3: bpfs[2],
-      bp4: bpfs[3],
-      bp5: bpfs[4],
-    } as UIFilterBank;
-    invoke("message_all", {
-      stereoChoice: ui_params.stereo_choice,
-      clean: ui_params.clean,
-      leftMute: ui_params.right_mute,
-      rightMute: ui_params.right_mute,
-      noiseGain: ui_params.noise_gain,
-      preSmoothGain: ui_params.pre_smooth_gain,
-      postSmoothGain: ui_params.post_smooth_gain,
-      outputGain: ui_params.output_gain,
-      filterBank: {} as FilterBank,
-    });
   }
 
   async function get_ui_params(new_choice: StereoChoice) {
@@ -167,19 +138,11 @@
     }).then((res) => {
       let data: any = res;
       time_data = data;
-
-      // need to sync this and the downsample rate from the backend
-      // or not...when it reads the correct number of samples
-      num_time_samples = data.length;
+      num_time_samples = data.length * DOWN_RATE;
     });
   }
 
-  let time_slider_max = num_time_samples;
-  $: num_time_samples, (time_slider_max = num_time_samples);
-
   onMount(async () => {
-    console.log(ui_params);
-
     await get_ui_params(ui_params.stereo_choice);
     settings = await invoke("sql_settings").catch(async (r) => {
       // await message("have to init settings", "denoiser");
@@ -187,8 +150,6 @@
       // settings = await invoke("get_settings");
     });
     theme = await invoke("sql_theme", { theme: settings.theme });
-    console.log(theme, settings)
-
 
     update_css_color(rgbToHex(theme.rotary_tick), "rotary-tick");
     update_css_color(rgbToHex(theme.rotary_hover), "rotary-hover");
@@ -204,43 +165,7 @@
     selectedRecording = "reisman.wav";
     // selected recording also needs to be in sync with backend file...should be resolved once files are imported correctly instead of one by default, tho should still have that for loading saved state?
     change_file(selectedRecording, true);
-    resetInterval();
-
-    // await invoke("init_audio_params_from_server");
   });
-
-  // maybe change this to use listener instead? emit message from backend?
-  // that would remove the recv errors when channel empty (doesn't crash, so ok for now)
-  function resetInterval() {
-    clearInterval(interval);
-    interval = setInterval(
-      () => {
-        if (is_playing) {
-          perf_time = performance.now();
-          time_delta = perf_time - time_origin;
-
-          time += 10 / 1000;
-          time_position = (time / DOWN_RATE) * SAMPLING_RATE;
-
-          invoke("get_fft_plot_data").then((r: any) => {
-            if (r.spectrum) {
-              fft_data = r.spectrum;
-            }
-          });
-        }
-
-        if (is_processing) {
-          invoke("get_audioui_message").then((r: any) => {
-            if (r.processing_percentage) {
-              processing_percentage = r.processing_percentage;
-            }
-          });
-        }
-      },
-      // this works for now, just have to call resetInterval after pressing button
-      is_playing || is_processing ? 10 : 1000
-    );
-  }
 </script>
 
 <main class="container" id="app-container">
@@ -266,8 +191,7 @@
       type="range"
       data-attribute={is_time_slider_dragging}
       min={0}
-      step={1}
-      max={time_slider_max}
+      max={FREQ_PLOT_WIDTH}
       bind:value={time_position}
       on:mousedown={() => {
         is_time_slider_dragging = true;
@@ -276,11 +200,17 @@
         is_time_slider_dragging = false;
       }}
       on:input={() => {
+        console.log("input");
+
         // time_position = (time / DOWN_RATE) * SAMPLING_RATE;
         // time_origin = time_position*DOWN_RATE/SAMPLING_RATE
-        time = (time_position * DOWN_RATE) / SAMPLING_RATE;
+        // time = (time_position * DOWN_RATE) / SAMPLING_RATE;
+        time = time_position / FREQ_PLOT_WIDTH;
+
+        console.log("sent to backend", time);
+
         invoke("message_time", {
-          t: (time * SAMPLING_RATE) / num_time_samples / DOWN_RATE,
+          time: time * num_time_samples,
         });
       }}
     />
@@ -306,7 +236,6 @@
           data-attribute={ui_params.stereo_choice !== "Left"}
           on:click={() => {
             set_ui_params();
-            console.log(ui_params.stereo_choice);
             if (ui_params.stereo_choice === "Left") {
               get_ui_params("Both");
             } else if (ui_params.stereo_choice === "Right") {
@@ -361,14 +290,16 @@
           : 'none'}"
         on:click={async () => {
           if (!is_playing) {
-            invoke("play_stream").then(() => {});
+            invoke("play_stream").then(() => {
+              invoke("message_time", {
+                time: time * num_time_samples,
+              });
+            });
             is_playing = true;
-            time_origin = performance.now();
           } else {
             await invoke("pause_stream");
             is_playing = false;
           }
-          resetInterval();
         }}
       >
         {is_playing ? "pause" : "play"}

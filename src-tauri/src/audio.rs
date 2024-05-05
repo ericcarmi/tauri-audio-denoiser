@@ -54,6 +54,7 @@ pub fn setup_stream(
     tx: tauri::async_runtime::Sender<AudioUIMessage>,
     app_handle: AppHandle,
     file_path: Option<String>,
+    window: Window,
 ) -> Result<(cpal::Stream, tauri::async_runtime::Sender<UIAudioMessage>), anyhow::Error>
 where
 {
@@ -61,34 +62,34 @@ where
 
     match config.sample_format() {
         cpal::SampleFormat::I8 => {
-            make_stream::<i8>(&device, &config.into(), tx, app_handle, file_path)
+            make_stream::<i8>(&device, &config.into(), tx, app_handle, file_path, window)
         }
         cpal::SampleFormat::I16 => {
-            make_stream::<i16>(&device, &config.into(), tx, app_handle, file_path)
+            make_stream::<i16>(&device, &config.into(), tx, app_handle, file_path, window)
         }
         cpal::SampleFormat::I32 => {
-            make_stream::<i32>(&device, &config.into(), tx, app_handle, file_path)
+            make_stream::<i32>(&device, &config.into(), tx, app_handle, file_path, window)
         }
         cpal::SampleFormat::I64 => {
-            make_stream::<i64>(&device, &config.into(), tx, app_handle, file_path)
+            make_stream::<i64>(&device, &config.into(), tx, app_handle, file_path, window)
         }
         cpal::SampleFormat::U8 => {
-            make_stream::<u8>(&device, &config.into(), tx, app_handle, file_path)
+            make_stream::<u8>(&device, &config.into(), tx, app_handle, file_path, window)
         }
         cpal::SampleFormat::U16 => {
-            make_stream::<u16>(&device, &config.into(), tx, app_handle, file_path)
+            make_stream::<u16>(&device, &config.into(), tx, app_handle, file_path, window)
         }
         cpal::SampleFormat::U32 => {
-            make_stream::<u32>(&device, &config.into(), tx, app_handle, file_path)
+            make_stream::<u32>(&device, &config.into(), tx, app_handle, file_path, window)
         }
         cpal::SampleFormat::U64 => {
-            make_stream::<u64>(&device, &config.into(), tx, app_handle, file_path)
+            make_stream::<u64>(&device, &config.into(), tx, app_handle, file_path, window)
         }
         cpal::SampleFormat::F32 => {
-            make_stream::<f32>(&device, &config.into(), tx, app_handle, file_path)
+            make_stream::<f32>(&device, &config.into(), tx, app_handle, file_path, window)
         }
         cpal::SampleFormat::F64 => {
-            make_stream::<f64>(&device, &config.into(), tx, app_handle, file_path)
+            make_stream::<f64>(&device, &config.into(), tx, app_handle, file_path, window)
         }
         sample_format => Err(anyhow::Error::msg(format!(
             "Unsupported sample format '{sample_format}'"
@@ -103,10 +104,8 @@ pub fn host_device_setup(
     let device = host
         .default_output_device()
         .ok_or_else(|| anyhow::Error::msg("Default output device is not available"))?;
-    // println!("Output device : {}", device.name()?);
 
     let config = device.default_output_config()?;
-    // println!("Default output config : {:?}", config);
 
     Ok((host, device, config))
 }
@@ -117,6 +116,7 @@ pub fn make_stream<T>(
     tx_ui: tauri::async_runtime::Sender<AudioUIMessage>,
     app_handle: AppHandle,
     file_path: Option<String>,
+    window: Window,
 ) -> Result<(cpal::Stream, tauri::async_runtime::Sender<UIAudioMessage>), anyhow::Error>
 where
     T: SizedSample + FromSample<f32>,
@@ -194,14 +194,17 @@ where
                     }
                 }
 
-                // send a chunk of the fft here
-                let _r = tx_ui.try_send(AudioUIMessage {
-                    spectrum: Some(
-                        stereo_params.left.sdft.norm_vec()[0..stereo_params.left.sdft.size / 2]
-                            .to_vec(),
-                    ),
-                    ..Default::default()
-                });
+                let _ = window.emit(
+                    AudioUIMessage::name(),
+                    AudioUIMessage {
+                        spectrum: Some(
+                            stereo_params.left.sdft.norm_vec()[0..stereo_params.left.sdft.size / 2]
+                                .to_vec(),
+                        ),
+                        time: Some(stereo_params.time as f32),
+                        ..Default::default()
+                    },
+                );
             }
             // PROCESS STEREO
             else {
@@ -210,7 +213,7 @@ where
                 if stereo_params.clean {
                     // ...each frame has 2 samples
                     for frame in output.chunks_mut(num_channels) {
-                        if stereo_params.time >= stereo_params.num_file_samples {
+                        if stereo_params.time + 2 >= stereo_params.num_file_samples {
                             break;
                         }
                         if !stereo_params.left.ui_params.left_mute {
@@ -235,7 +238,7 @@ where
                     }
                 } else {
                     for frame in output.chunks_mut(num_channels) {
-                        if stereo_params.time >= stereo_params.num_file_samples {
+                        if stereo_params.time + 2 >= stereo_params.num_file_samples {
                             break;
                         }
                         if !stereo_params.left.ui_params.left_mute {
@@ -275,13 +278,25 @@ where
                 }
 
                 // send a chunk of the fft here
-                let _r = tx_ui.try_send(AudioUIMessage {
-                    spectrum: Some(
-                        stereo_params.left.sdft.norm_vec()[0..stereo_params.left.sdft.size / 2]
-                            .to_vec(),
-                    ),
-                    ..Default::default()
-                });
+                // let _r = tx_ui.try_send(AudioUIMessage {
+                //     spectrum: Some(
+                //         stereo_params.left.sdft.norm_vec()[0..stereo_params.left.sdft.size / 2]
+                //             .to_vec(),
+                //     ),
+                //     ..Default::default()
+                // });
+
+                let _ = window.emit(
+                    AudioUIMessage::name(),
+                    AudioUIMessage {
+                        spectrum: Some(
+                            stereo_params.left.sdft.norm_vec()[0..stereo_params.left.sdft.size / 2]
+                                .to_vec(),
+                        ),
+                        time: Some(stereo_params.time as f32),
+                        ..Default::default()
+                    },
+                );
             }
         },
         err_fn,
