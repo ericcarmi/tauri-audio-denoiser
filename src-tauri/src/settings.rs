@@ -13,8 +13,6 @@ pub struct Settings {
     pub draw_filter_amp_axis: bool,
     // pub fft_plot_decay: f32,
     // pub fft_plot_size: usize,
-    // pub redis_update_time: usize,
-    // pub redis_update_amount: usize,
     // pub colors: Colors,
 }
 
@@ -29,8 +27,6 @@ impl Default for Settings {
             theme: Theme::POG,
             // fft_plot_decay: 0.8,
             // fft_plot_size: 256,
-            // redis_update_time: 30,
-            // redis_update_amount: 5,
             // colors: Colors::default(),
         }
     }
