@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(non_snake_case)]
+// #![allow(dead_code)]
 use cpal::traits::StreamTrait;
 use std::{fs::File, sync::Mutex};
 use tauri::{Manager, State};
@@ -30,7 +31,6 @@ fn main() {
             get_stft_data,
             get_time_onefft,
             get_time_data,
-            get_fft_plot_data,
             message_filters,
             message_time,
             message_clean,
@@ -43,7 +43,6 @@ fn main() {
             message_right_mute,
             message_all,
             process_export,
-            get_audioui_message,
             sql_theme,
             sql_theme_name,
             sql_settings,
@@ -72,6 +71,14 @@ fn main() {
                 .into_string()
                 .unwrap();
 
+            #[cfg(target_os = "windows")]
+            let _w = WriteLogger::init(
+                LevelFilter::Info,
+                Config::default(),
+                File::create(p.to_owned() + "\\text.log").unwrap(),
+            );
+
+            #[cfg(not(target_os = "windows"))]
             let _w = WriteLogger::init(
                 LevelFilter::Info,
                 Config::default(),
@@ -126,42 +133,4 @@ fn pause_stream(streamsend: State<MStreamSend>) {
         .lock()
         .unwrap()
         .pause();
-}
-
-#[tauri::command]
-fn get_fft_plot_data(streamsend: State<MStreamSend>) -> Result<AudioUIMessage, String> {
-    let r = streamsend
-        .0
-        .lock()
-        .unwrap()
-        .mreceiver
-        .0
-        .lock()
-        .unwrap()
-        .try_recv();
-
-    if r.is_ok() {
-        Ok(r.unwrap())
-    } else {
-        r.map_err(|e| e.to_string())
-    }
-}
-
-#[tauri::command]
-fn get_audioui_message(streamsend: State<MStreamSend>) -> Result<AudioUIMessage, String> {
-    let r = streamsend
-        .0
-        .lock()
-        .unwrap()
-        .mreceiver
-        .0
-        .lock()
-        .unwrap()
-        .try_recv();
-
-    if r.is_ok() {
-        Ok(r.unwrap())
-    } else {
-        r.map_err(|e| e.to_string())
-    }
 }
