@@ -1,7 +1,9 @@
 use rusqlite::{types::FromSql, ToSql};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, TS)]
+#[ts(export)]
 pub struct Settings {
     pub id: i32,
     pub plot_scale: PlotScale,
@@ -34,7 +36,8 @@ impl Default for Settings {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, TS)]
+#[ts(export)]
 pub enum PlotScale {
     Linear,
     Mel,
@@ -70,11 +73,13 @@ impl FromSql for PlotScale {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, TS)]
+#[ts(export)]
 pub enum Theme {
     RGB,
     CYM,
     POG,
+    BWG,
     CUSTOM,
 }
 
@@ -85,6 +90,7 @@ impl ToSql for Theme {
             RGB => "RGB".to_sql(),
             CYM => "CYM".to_sql(),
             POG => "POG".to_sql(),
+            BWG => "BWG".to_sql(),
             CUSTOM => "CUSTOM".to_sql(),
         }
     }
@@ -98,6 +104,7 @@ impl FromSql for Theme {
                 "RGB" => Ok(RGB),
                 "CYM" => Ok(CYM),
                 "POG" => Ok(POG),
+                "BWG" => Ok(BWG),
                 "CUSTOM" => Ok(CUSTOM),
                 _ => Err(rusqlite::types::FromSqlError::InvalidType),
             };
@@ -113,6 +120,7 @@ impl Theme {
             RGB => self.rgb(),
             CYM => self.cym(),
             POG => self.pog(),
+            BWG => self.bwg(),
             CUSTOM => self.cym(),
         }
     }
@@ -122,6 +130,7 @@ impl Theme {
             RGB => "RGB",
             CYM => "CYM",
             POG => "POG",
+            BWG => "BWG",
             CUSTOM => "CUSTOM",
         }
     }
@@ -178,9 +187,24 @@ impl Theme {
             plot_filter_hover: PURPLE,
         }
     }
+    pub fn bwg(&self) -> Colors {
+        Colors {
+            rotary_tick: ORANGE,
+            rotary_hover: WHITE,
+            slider_hover: GRAY100,
+            slider_border: BLACK,
+            slider_active: ORANGE,
+            slider_indicator: ORANGE,
+            plot_main: ORANGE,
+            plot_single_filter: GRAY100,
+            plot_total_curve: WHITE,
+            plot_filter_hover: ORANGE,
+        }
+    }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, TS)]
+#[ts(export)]
 pub struct Colors {
     pub rotary_tick: Color,
     pub rotary_hover: Color,
@@ -235,7 +259,8 @@ impl FromSql for Colors {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, TS)]
+#[ts(export)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -309,7 +334,7 @@ pub const BLUE: Color = Color::new(0, 0, 170);
 pub const LIGHTBLUE: Color = Color::new(0, 0, 230);
 
 pub const PURPLE: Color = Color::new(100, 0, 140);
-// pub const ORANGE: Color = Color::new(220, 100, 0);
+pub const ORANGE: Color = Color::new(220, 100, 0);
 pub const GREEN: Color = Color::new(0, 140, 0);
 
 pub const CYAN: Color = Color::new(0, 200, 240);
@@ -325,3 +350,5 @@ pub const GRAY100: Color = Color::new(100, 100, 100);
 // pub const GRAY150: Color = Color::new(100, 100, 100);
 pub const GRAY200: Color = Color::new(200, 200, 200);
 // pub const GRAY250: Color = Color::new(250, 250, 250);
+pub const WHITE: Color = Color::new(255, 255, 255);
+pub const BLACK: Color = Color::new(0, 0, 0);

@@ -13,6 +13,21 @@
    */
   export type BPF = { gain: number; freq: number; Q: number };
 
+  export type Color = { r: number; g: number; b: number; a: number | null };
+
+  export type Colors = {
+    rotary_tick: Color;
+    rotary_hover: Color;
+    slider_hover: Color;
+    slider_border: Color;
+    slider_active: Color;
+    slider_indicator: Color;
+    plot_main: Color;
+    plot_single_filter: Color;
+    plot_total_curve: Color;
+    plot_filter_hover: Color;
+  };
+
   export type Complex = { re: number; im: number };
 
   /**
@@ -42,6 +57,15 @@
 
   export type PlotScale = "Linear" | "Mel" | "Log" | "Bark";
 
+  export type Settings = {
+    id: number;
+    plot_scale: PlotScale;
+    theme: Theme;
+    draw_freq_axis: boolean;
+    draw_fft_amp_axis: boolean;
+    draw_filter_amp_axis: boolean;
+  };
+
   export type StereoChoice = "Left" | "Right" | "Both";
 
   /**
@@ -57,6 +81,8 @@
     is_stereo: boolean;
     time: number;
   };
+
+  export type Theme = "RGB" | "CYM" | "POG" | "BWG" | "CUSTOM";
 
   export type UIFilterBank = {
     bp1: BPF;

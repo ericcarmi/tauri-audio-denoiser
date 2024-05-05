@@ -193,11 +193,11 @@ input {
 
 @keyframes button-border-pulse {
   0% {
-    border: 1px solid var(--purple);
+    border: 1px solid rgb(from var(--rotary-tick) r g b);
   }
 
   100% {
-    border: 1px solid var(--lightpurple);
+    border: 1px solid rgb(from var(--rotary-tick) calc(r/2) calc(g/2) b);
 
   }
 }

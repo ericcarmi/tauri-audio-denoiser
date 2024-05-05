@@ -1,14 +1,11 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/tauri";
   import { onMount } from "svelte";
-  import { WebglPlot, WebglLine, ColorRGBA, WebglSquare } from "webgl-plot";
+  import { WebglPlot, WebglLine, ColorRGBA } from "webgl-plot";
   import {
     loglin,
-    linlog,
     biquad,
     freq_response,
-    linlog2,
-    loglin2,
     mel,
     bark_scale,
     rgbToHex,
@@ -17,7 +14,6 @@
   import {
     FREQ_PLOT_HEIGHT,
     FREQ_PLOT_WIDTH,
-    MAX_FREQ,
     MIN_FREQ,
     NYQUIST,
     TIME_PLOT_HEIGHT,

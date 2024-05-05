@@ -34,7 +34,11 @@
   let theme: any;
   let is_backend_params_initialized = false;
   let is_processing = false;
+  let is_selecting_processing_choice = false;
   let processing_percentage = 0;
+  type ProcessingChoice = "Both" | "Independent";
+  let processing_choice: ProcessingChoice = "Both";
+
   let show_settings = false;
   // if these values are the same as what is in server, values will not update when loaded, so use values that are way out of range? silly but it works
   var gains = [0, 0, 0, 0, 0];
@@ -68,7 +72,7 @@
   });
 
   const unlisten_audioui_message = listen(
-    "message_processing_percentage",
+    "update_processing_percentage",
     async (event: any) => {
       processing_percentage = event.payload as number;
     }
@@ -304,9 +308,6 @@
             } else if (ui_params.stereo_choice === "Both") {
               get_ui_params("Left");
             }
-            console.log(ui_params.stereo_choice);
-
-            get_ui_params();
           }}>R</button
         >
         control: {ui_params.stereo_choice}
@@ -537,18 +538,46 @@
     <button
       on:click={() => {
         if (!is_processing) {
-          is_processing = true;
-          is_playing = false;
-          // resetInterval();
-          invoke("process_export").then((r) => {
-            is_processing = false;
-            // resetInterval();
-          });
+          is_selecting_processing_choice = !is_selecting_processing_choice;
         }
       }}
     >
       {!is_processing ? "export file" : "exporting.."}
     </button>
+    {#if is_selecting_processing_choice}
+      <button
+        style="position: absolute; bottom: 40px;right:30px;"
+        title="apply 'Both' to each"
+        on:click={() => {
+          if (!is_processing) {
+            is_processing = true;
+            is_playing = false;
+            invoke("process_export", { stereoChoice: "Both" }).then(() => {
+              is_processing = false;
+            });
+          }
+          is_selecting_processing_choice = false;
+        }}
+      >
+        Both
+      </button>
+      <button
+        style="position: absolute; bottom: 10px;right:30px;"
+        title="apply independently"
+        on:click={() => {
+          if (!is_processing) {
+            is_processing = true;
+            is_playing = false;
+            invoke("process_export", { stereoChoice: "Left" }).then(() => {
+              is_processing = false;
+            });
+          }
+          is_selecting_processing_choice = false;
+        }}
+      >
+        L/R
+      </button>
+    {/if}
     {#if is_processing}
       <div
         style="position: absolute; right: 30px; height: 3em; width: 3em; display: flex; align-items: center; justify-content: center; "

@@ -3,7 +3,7 @@
   import { onDestroy, onMount } from "svelte";
   import { hexToRgb, rgbToHex } from "./functions.svelte";
   import { shortcut } from "./shortcut.svelte";
-  import type { PlotScale } from "./types.svelte";
+  import type { Colors, PlotScale, Settings, Theme } from "./types.svelte";
 
   let fft_plot_decay = 0.8;
   let fft_plot_size = 256;
@@ -11,17 +11,13 @@
   let draw_filter_amp_axis = true;
   let draw_freq_axis = true;
 
-  // this will need to rewrite redis.conf...right?
-  let server_update_interval = 30;
-  let server_update_num_changes = 5;
-
   let plot_scale: PlotScale;
 
-  export let settings: any;
+  export let settings: Settings;
   export let show_settings;
 
-  export let theme: any;
-  let theme_name = "POG";
+  export let theme: Colors;
+  let theme_name: Theme;
 
   let on_top = false;
   let rotary_tick: string;
@@ -90,7 +86,11 @@
         `--${color_name.replace("_", "-")}`,
         color
       );
-      theme[color_name] = hexToRgb(color);
+      let s = color_name as keyof Colors;
+      let c = hexToRgb(color);
+      if (c) {
+        theme[s] = c;
+      }
     }
   }
   let ref: any;
@@ -331,6 +331,21 @@
             }}
             checked={theme_name === "POG"}
           /> pog</span
+        >
+        <span class="check-label"
+          ><input
+            type="radio"
+            name="theme"
+            on:click={async () => {
+              theme_name = "BWG";
+              settings.theme = theme_name;
+              theme = await invoke("sql_theme", {
+                theme: theme_name,
+              });
+              update_local_colors();
+            }}
+            checked={theme_name === "BWG"}
+          /> bwg</span
         >
         <span class="check-label"
           ><input

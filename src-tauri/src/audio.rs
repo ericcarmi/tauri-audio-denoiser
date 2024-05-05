@@ -1,5 +1,6 @@
 use crate::constants::*;
 use crate::messages::{AudioUIMessage, UIAudioMessage};
+use crate::sql::{query_filter_bank, query_ui_params};
 use crate::types::*;
 use anyhow;
 use cpal::traits::StreamTrait;
@@ -295,6 +296,7 @@ pub async fn process_export(
     streamsend: State<'_, MStreamSend>,
     app_handle: AppHandle,
     file_path: Option<String>,
+    stereo_choice: StereoChoice,
     window: Window,
 ) -> Result<(), String> {
     let _ = streamsend
@@ -310,17 +312,84 @@ pub async fn process_export(
     // file samples are not an audio param, stream is remade when file is changed so this stays
     let file_samples;
     let is_stereo;
+    // need to update this
     if let Some(f) = file_path {
         (file_samples, is_stereo) = get_wav_samples(f.as_str(), app_handle.clone());
     } else {
         (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE_PATH, app_handle.clone());
     }
+
+    let p = app_handle
+        .path_resolver()
+        .resource_dir()
+        .expect("failed to resolve resource")
+        .into_os_string()
+        .into_string()
+        .unwrap();
+
+    // query db
+
     let mut stereo_params = StereoParams::new();
     stereo_params.is_stereo = is_stereo;
     stereo_params.num_file_samples = file_samples.len();
 
-    let _r = window.emit("update_processing_percentage", 0.0);
-    // println!("{:?}", r);
+    match stereo_choice {
+        StereoChoice::Both => {
+            let filter_bank = query_filter_bank(stereo_choice, p.clone());
+            let ui_params = query_ui_params(stereo_choice, p);
+            if filter_bank.is_err() || ui_params.is_err() {
+                // return something
+            }
+            let fb = filter_bank.unwrap();
+            stereo_params.left.filter_bank = fb.clone().into();
+            stereo_params.right.filter_bank = fb.into();
+            stereo_params.left.noise_spectrum =
+                stereo_params.left.filter_bank.parallel_transfer(256);
+            stereo_params.right.noise_spectrum =
+                stereo_params.right.filter_bank.parallel_transfer(256);
+            let p = ui_params.unwrap();
+            stereo_params.left.ui_params.noise_gain = from_log(p.noise_gain);
+            stereo_params.left.ui_params.output_gain = from_log(p.output_gain);
+            stereo_params.left.ui_params.pre_smooth_gain = p.pre_smooth_gain;
+            stereo_params.left.ui_params.post_smooth_gain = p.post_smooth_gain;
+            stereo_params.right.ui_params.noise_gain = from_log(p.noise_gain);
+            stereo_params.right.ui_params.output_gain = from_log(p.output_gain);
+            stereo_params.right.ui_params.pre_smooth_gain = p.pre_smooth_gain;
+            stereo_params.right.ui_params.post_smooth_gain = p.post_smooth_gain;
+        }
+        _ => {
+            let left_bank = query_filter_bank(StereoChoice::Left, p.clone());
+            let right_bank = query_filter_bank(StereoChoice::Right, p.clone());
+            let left_ui_params = query_ui_params(StereoChoice::Left, p.clone());
+            let right_ui_params = query_ui_params(StereoChoice::Right, p);
+            if left_bank.is_err()
+                || left_ui_params.is_err()
+                || right_bank.is_err()
+                || right_ui_params.is_err()
+            {
+                // return something
+            }
+            stereo_params.left.filter_bank = left_bank.unwrap().into();
+            stereo_params.right.filter_bank = right_bank.unwrap().into();
+            stereo_params.left.noise_spectrum =
+                stereo_params.left.filter_bank.parallel_transfer(256);
+            stereo_params.right.noise_spectrum =
+                stereo_params.right.filter_bank.parallel_transfer(256);
+            let lu = left_ui_params.unwrap();
+            let ru = right_ui_params.unwrap();
+
+            stereo_params.left.ui_params.noise_gain = from_log(lu.noise_gain);
+            stereo_params.left.ui_params.output_gain = from_log(lu.output_gain);
+            stereo_params.left.ui_params.pre_smooth_gain = lu.pre_smooth_gain;
+            stereo_params.left.ui_params.post_smooth_gain = lu.post_smooth_gain;
+            stereo_params.right.ui_params.noise_gain = from_log(ru.noise_gain);
+            stereo_params.right.ui_params.output_gain = from_log(ru.output_gain);
+            stereo_params.right.ui_params.pre_smooth_gain = ru.pre_smooth_gain;
+            stereo_params.right.ui_params.post_smooth_gain = ru.post_smooth_gain;
+        }
+    }
+
+    let _ = window.emit("update_processing_percentage", 0.0);
 
     let num_samples = stereo_params.num_file_samples;
 
