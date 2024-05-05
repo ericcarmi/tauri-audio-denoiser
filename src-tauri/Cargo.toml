@@ -21,12 +21,11 @@ dasp_ring_buffer = "0.11.0"
 chrono = "0.4.37"
 rustfft = "6.2.0"
 dsp = "0.11.0"
-redis = { version = "0.25.2", features = ["tokio-comp"] }
 wav_io = "0.1.14"
 rand = "0.8.5"
 simplelog = "0.12.2"
 log = "0.4.21"
-rusqlite = { version = "0.31.0", features = ["serde_json"] }
+rusqlite = { version = "0.31.0", features = ["serde_json", "bundled"] }
 ts-rs = "8.1.0"
 
 [features]
