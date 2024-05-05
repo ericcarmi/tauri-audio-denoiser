@@ -40,7 +40,7 @@
   export let settings: any;
   export let theme: any;
 
-  let time_data: any;
+  export let time_data: any;
 
   let freq_axis_labels = [20, 500, 1000, 2000, 5000, 10000, 20000];
   let filter_amp_axis_labels = [30, 20, 10, 0, -10, -20, -30];
@@ -93,7 +93,6 @@
   $: theme, update_settings();
 
   function update_settings() {
-
     if (settings && theme) {
       plot_total_curve = rgbToHex(theme.plot_total_curve);
       eq_color = rgbToHex(theme.plot_single_filter);
@@ -142,7 +141,7 @@
   function redraw_time_data() {
     let renderPlot = () => {
       line = new WebglLine(
-        new ColorRGBA(plot_color.r / 255, plot_color.g, plot_color.b / 255, 1),
+        new ColorRGBA(plot_color.r / 255, plot_color.g / 255, plot_color.b / 255, 1),
         time_data.length
       );
 
@@ -157,10 +156,11 @@
 
       is_loading = false;
     };
-    requestAnimationFrame(renderPlot);
+    time_data && requestAnimationFrame(renderPlot);
   }
 
-  async function get_time_data(file_path: string) {
+  function get_time_data(file_path: string) {
+    console.log(file_path);
 
     if (file_path === "" || plot_color === undefined) return;
     // check cache...maybe
@@ -171,7 +171,9 @@
     is_loading = true;
     invoke("get_time_data", { path: file_path }).then((res) => {
       let data: any = res;
+      // let data = [1,2,3]
       time_data = data;
+      // console.log(time_data);
       let renderPlot = () => {
         line = new WebglLine(
           new ColorRGBA(
@@ -343,7 +345,6 @@
   }
 
   function update_filter_bank(should_clear: boolean) {
-
     function renderPlot() {
       const canvas = freqcanvas;
 
@@ -405,9 +406,11 @@
     requestAnimationFrame(renderPlot);
   }
 
-  $: bpfs, !is_playing && update_filter_bank(true), !is_playing && update_axes();
+  $: bpfs,
+    !is_playing && update_filter_bank(true),
+    !is_playing && update_axes();
   $: bpf_hovering, update_filter_bank(true), update_axes();
-  $: selectedRecording, get_time_data(selectedRecording);
+  $: time_data, redraw_time_data();
   $: fft_data, update_fft();
 </script>
 

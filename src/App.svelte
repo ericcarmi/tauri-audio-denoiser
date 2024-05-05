@@ -48,6 +48,7 @@
   let time = 0;
   let time_position = 0;
   let selectedRecording = "";
+  let time_data: Array<number>;
   let is_playing = false;
   let is_stereo = true;
 
@@ -165,6 +166,8 @@
       fromAssets: from_assets,
     }).then((res) => {
       let data: any = res;
+      time_data = data;
+
       // need to sync this and the downsample rate from the backend
       // or not...when it reads the correct number of samples
       num_time_samples = data.length;
@@ -184,6 +187,8 @@
       // settings = await invoke("get_settings");
     });
     theme = await invoke("sql_theme", { theme: settings.theme });
+    console.log(theme, settings)
+
 
     update_css_color(rgbToHex(theme.rotary_tick), "rotary-tick");
     update_css_color(rgbToHex(theme.rotary_hover), "rotary-hover");
@@ -251,6 +256,7 @@
         bind:is_playing
         bind:bpfs
         bind:selectedRecording
+        bind:time_data
         {fft_data}
       />
     {/if}
