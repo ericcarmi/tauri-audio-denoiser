@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { NYQUIST } from "./constants.svelte";
-	let control_max_freq = NYQUIST;
-	let control_min_freq = 20;
+
+
+	export let control_max_freq = NYQUIST;
+	export let control_min_freq = 20;
 
 	export let value: number = control_max_freq / 2;
 	export let index: number;
@@ -188,7 +190,7 @@
 
 <style>
 	.wrapper {
-		background: var(--gray100);
+		background: linear-gradient(90deg, var(--gray4), var(--gray5), var(--gray4));
 		display: flex;
 		justify-content: center;
 		border: 1px solid var(--slider-border);
@@ -216,6 +218,7 @@
 		color: var(--gray200);
 		pointer-events: none;
 		font-weight: bold;
+		z-index: 1;
 	}
 	.scroll-number {
 		background: rgba(0, 0, 0, 0.5);

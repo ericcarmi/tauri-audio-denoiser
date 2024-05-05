@@ -553,7 +553,7 @@
     {#if is_selecting_processing_choice}
       <button
         style="position: absolute; bottom: 40px;right:30px;"
-        title="apply 'Both' to each"
+        title="apply parameters for 'Both' to left and right"
         on:click={() => {
           if (!is_processing) {
             is_processing = true;
@@ -569,7 +569,7 @@
       </button>
       <button
         style="position: absolute; bottom: 10px;right:30px;"
-        title="apply independently"
+        title="apply parameters for left and right independently"
         on:click={() => {
           if (!is_processing) {
             is_processing = true;
