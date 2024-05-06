@@ -212,6 +212,74 @@ impl UIFilterBank {
     }
 }
 
+const NUM_FILTERS: usize = 6;
+#[derive(Clone, Serialize, Copy, Deserialize, Debug, TS)]
+#[ts(export)]
+pub struct Filters {
+    pub bank: [IIR2; NUM_FILTERS],
+}
+
+impl Default for Filters {
+    fn default() -> Self {
+        let bank = [
+            IIR2::new(),
+            IIR2::new(),
+            IIR2::new(),
+            IIR2::new(),
+            IIR2::new(),
+            IIR2::new(),
+        ];
+        Self { bank }
+    }
+}
+
+impl Filters {
+    pub fn new() -> Self {
+        let bank = [
+            IIR2::new(),
+            IIR2::new(),
+            IIR2::new(),
+            IIR2::new(),
+            IIR2::new(),
+            IIR2::new(),
+        ];
+        Self { bank }
+    }
+
+    pub fn parallel_transfer(&self, n: usize) -> Vec<f32> {
+        let mut H: Vec<Complex32> = vec![CZERO; n];
+        let l = Complex32 {
+            re: NUM_FILTERS as f32,
+            im: 0.0,
+        };
+
+        // loop over all filters first
+        for (_i, filt) in self.bank.iter().enumerate() {
+            let h = filt.freq_response(n);
+            H.iter_mut().enumerate().for_each(|(i, x)| *x += h[i] / l);
+        }
+        // take norm after summing filters
+        let mut out: Vec<f32> = H.iter().map(|x| x.norm()).collect();
+        if out[0].is_nan() {
+            out[0] = 0.0;
+        }
+        out
+    }
+}
+
+#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
+pub struct FiltersMessage {
+    pub filters: [Option<BPF>; NUM_FILTERS],
+}
+
+impl Default for FiltersMessage {
+    fn default() -> Self {
+        Self {
+            filters: [None; NUM_FILTERS],
+        }
+    }
+}
+
 /// FilterBank -- holds IIR2 filters, might want to store as vec? or some other collection...
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, TS)]
 #[ts(export)]
@@ -345,6 +413,8 @@ pub struct AudioParams {
     #[serde(skip)]
     pub filter_bank: FilterBank,
     #[serde(skip)]
+    pub filters: Filters,
+    #[serde(skip)]
     pub output_spectrum: Vec<f32>,
     #[serde(skip)]
     pub noise_spectrum: Vec<f32>,
@@ -365,6 +435,7 @@ impl AudioParams {
             output_spectrum: vec![],
             noise_spectrum: fb.parallel_transfer(n),
             sdft: SDFT::new(n),
+            filters: Filters::new(),
         }
     }
 }
@@ -382,6 +453,7 @@ impl Default for AudioParams {
             output_spectrum: vec![],
             noise_spectrum: fb.parallel_transfer(n),
             sdft: SDFT::new(n),
+            filters: Filters::new(),
         }
     }
 }

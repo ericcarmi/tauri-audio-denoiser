@@ -4,15 +4,15 @@ use crate::{
     audio::setup_stream,
     constants::{czerov, from_log},
     types::{
-        AudioParams, MSender, MStream, MStreamSend, MUIReceiver, StereoChoice, StereoParams, BPF,
-        IIR2,
+        AudioParams, FiltersMessage, MSender, MStream, MStreamSend, MUIReceiver, StereoChoice,
+        StereoParams, BPF, IIR2,
     },
 };
 use cpal::traits::StreamTrait;
 use dasp_ring_buffer::Fixed;
 use rustfft::num_complex::Complex;
 use serde::{Deserialize, Serialize};
-use tauri::{window, AppHandle, State, Window};
+use tauri::{AppHandle, State, Window};
 
 /// this is to load params directly from server, the ones that are setup in the stream, the audio params...want to keep them synced with UI on startup, so this will just be called onMount from frontend
 #[tauri::command]
@@ -306,6 +306,7 @@ pub struct ChannelMessage {
     pub pre_smooth_gain: Option<f32>,
     pub post_smooth_gain: Option<f32>,
     pub filter_bank: Option<FilterBankMessage>,
+    pub filters: Option<FiltersMessage>,
 }
 
 impl Default for ChannelMessage {
@@ -321,6 +322,7 @@ impl Default for ChannelMessage {
             pre_smooth_gain: None,
             post_smooth_gain: None,
             filter_bank: None,
+            filters: None,
         }
     }
 }
@@ -451,6 +453,18 @@ impl UIAudioMessage {
                 channel_params.noise_spectrum = channel_params
                     .filter_bank
                     .parallel_transfer(channel_params.dft_size);
+            }
+        }
+        // new code -- iterate through filters
+        if let Some(msg) = channel_message.filters {
+            for (i, filter) in msg.filters.iter().enumerate() {
+                if let Some(f) = filter {
+                    let iir: IIR2 = Into::<IIR2>::into(*f);
+                    channel_params.filters.bank[i].update_coeffs(iir);
+                    channel_params.noise_spectrum = channel_params
+                        .filters
+                        .parallel_transfer(channel_params.dft_size);
+                }
             }
         }
         if let Some(m) = channel_message.left_mute {
