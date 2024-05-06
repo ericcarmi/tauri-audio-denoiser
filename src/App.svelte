@@ -54,7 +54,7 @@
 
   let ui_params: UIParams = init_ui_params(gains, freqs, Qs);
 
-  const unlisten = listen("tauri://file-drop", async (event: any) => {
+  const unlisten_file_drop = listen("tauri://file-drop", async (event: any) => {
     change_file(event.payload[0] as string);
   });
   const unlisten_audioui_message = listen(
@@ -65,14 +65,13 @@
   );
   const unlisten_2 = listen("audioui_message", (event: any) => {
     fft_data = event.payload.spectrum;
-    time = (event.payload.time)/num_time_samples ;
+    time = event.payload.time / num_time_samples;
     time_position = time * FREQ_PLOT_WIDTH;
-    console.log(time, time_position, num_time_samples);
   });
   onDestroy(() => {
     unlisten_2.then((f) => f());
     unlisten_audioui_message.then((f) => f());
-    unlisten.then((f) => f());
+    unlisten_file_drop.then((f) => f());
   });
 
   function change_file(path: string, from_assets?: boolean) {
@@ -200,16 +199,9 @@
         is_time_slider_dragging = false;
       }}
       on:input={() => {
-        console.log("input");
-
-        // time_position = (time / DOWN_RATE) * SAMPLING_RATE;
-        // time_origin = time_position*DOWN_RATE/SAMPLING_RATE
-        // time = (time_position * DOWN_RATE) / SAMPLING_RATE;
         time = time_position / FREQ_PLOT_WIDTH;
-
-        console.log("sent to backend", time);
-
-        invoke("message_time", {
+        // only send message when playing, otherwise after dragging the slider, the first message received is the location it started in
+        is_playing && invoke("message_time", {
           time: time * num_time_samples,
         });
       }}
@@ -291,6 +283,7 @@
         on:click={async () => {
           if (!is_playing) {
             invoke("play_stream").then(() => {
+              time = time_position / FREQ_PLOT_WIDTH;
               invoke("message_time", {
                 time: time * num_time_samples,
               });

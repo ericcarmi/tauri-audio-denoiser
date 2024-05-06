@@ -39,8 +39,13 @@ pub fn sql_theme_name(app_handle: AppHandle) -> Result<Theme, String> {
 
 pub fn query_theme(s: String, theme: Theme) -> Result<Colors, rusqlite::Error> {
     let conn = Connection::open(s + DB_FILE_NAME)?;
-    let mut stmt =
-        conn.prepare(format!("SELECT * FROM themes WHERE name='{}'", theme.as_str()).as_str())?;
+    let mut stmt = conn.prepare(
+        format!(
+            "SELECT * FROM COMPONENTCOLORS WHERE name='{}'",
+            theme.as_str()
+        )
+        .as_str(),
+    )?;
 
     let colors_iter = stmt.query_map([], |row| {
         Ok(Colors {
