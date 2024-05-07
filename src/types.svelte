@@ -1,7 +1,4 @@
 <script lang="ts" context="module">
-  /**
-   * audio params to be used in the audio thread -- some variables can be set directly from messages, others are computed (spectra, sdft) and can skip being serialized
-   */
   export type AudioParams = {
     ui_params: UIParams;
     time: number;
@@ -13,33 +10,24 @@
    */
   export type BPF = { gain: number; freq: number; Q: number };
 
-  export type Color = { r: number; g: number; b: number; a: number | null };
-
-  export type Colors = {
-    rotary_tick: Color;
-    rotary_hover: Color;
-    slider_hover: Color;
-    slider_border: Color;
-    slider_active: Color;
-    slider_indicator: Color;
-    plot_main: Color;
-    plot_single_filter: Color;
-    plot_total_curve: Color;
-    plot_filter_hover: Color;
-  };
+  export type Colors = "RotaryTick" | "RotaryHover";
 
   export type Complex = { re: number; im: number };
 
-  /**
-   * FilterBank -- holds IIR2 filters, might want to store as vec? or some other collection...
-   */
-  export type FilterBank = {
-    bp1: IIR2;
-    bp2: IIR2;
-    bp3: IIR2;
-    bp4: IIR2;
-    bp5: IIR2;
+  export type ComponentColors = {
+    rotary_tick: string;
+    rotary_hover: string;
+    slider_hover: string;
+    slider_border: string;
+    slider_active: string;
+    slider_indicator: string;
+    plot_main: string;
+    plot_single_filter: string;
+    plot_total_curve: string;
+    plot_filter_hover: string;
   };
+
+  export type Filters = { bank: [IIR2, IIR2, IIR2, IIR2, IIR2] };
 
   /**
    * IIR filter, second order
@@ -84,13 +72,7 @@
 
   export type Theme = "RGB" | "CYM" | "POG" | "BWG" | "CUSTOM";
 
-  export type UIFilterBank = {
-    bp1: BPF;
-    bp2: BPF;
-    bp3: BPF;
-    bp4: BPF;
-    bp5: BPF;
-  };
+  export type UIFilters = { bank: [BPF, BPF, BPF, BPF, BPF] };
 
   /**
    * ui params -- states of everything in the ui, does not include everything that can be sent in a Message (file name and a few others), just the stuff that gets stored in db
@@ -104,6 +86,6 @@
     noise_gain: number;
     pre_smooth_gain: number;
     post_smooth_gain: number;
-    filter_bank: UIFilterBank;
+    filters: UIFilters;
   };
 </script>

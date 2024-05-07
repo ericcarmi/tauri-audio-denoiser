@@ -1,6 +1,16 @@
+use std::mem::size_of;
+
 use rusqlite::{types::FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
+
+// to make settings iterable, needs to be enum because it holds different types
+// pub enum SettingsTypes {
+//     Id(i32),
+//     PlotScale(PlotScale),
+//     Theme(String),
+//     DrawFreqAxis(bool),
+// }
 
 #[derive(Serialize, Deserialize, Debug, TS)]
 #[ts(export)]
@@ -31,6 +41,10 @@ impl Default for Settings {
         }
     }
 }
+
+// impl Settings {
+//     pub fn as_array(&self) ->
+// }
 
 #[derive(Serialize, Deserialize, Debug, TS)]
 #[ts(export)]
@@ -110,16 +124,6 @@ impl FromSql for Theme {
 }
 
 impl Theme {
-    pub fn get_colors(&self, theme: Theme) -> Colors {
-        use Theme::*;
-        match theme {
-            RGB => self.rgb(),
-            CYM => self.cym(),
-            POG => self.pog(),
-            BWG => self.bwg(),
-            CUSTOM => self.cym(),
-        }
-    }
     pub fn as_str(&self) -> &str {
         use Theme::*;
         match self {
@@ -141,67 +145,31 @@ impl Theme {
             _ => Err("invalid theme string"),
         }
     }
-    pub fn rgb(&self) -> Colors {
-        Colors {
-            rotary_tick: RED,
-            rotary_hover: BLUE,
-            slider_hover: LIGHTBLUE,
-            slider_border: BLUE,
-            slider_active: GREEN,
-            slider_indicator: RED,
-            plot_main: BLUE,
-            plot_single_filter: GRAY100,
-            plot_total_curve: GRAY200,
-            plot_filter_hover: RED,
-        }
-    }
-    pub fn cym(&self) -> Colors {
-        Colors {
-            rotary_tick: CYAN,
-            rotary_hover: MAGENTA,
-            slider_hover: CYAN,
-            slider_border: MAGENTA,
-            slider_active: YELLOW,
-            slider_indicator: MAGENTA,
-            plot_main: MAGENTA,
-            plot_single_filter: GRAY100,
-            plot_total_curve: GRAY200,
-            plot_filter_hover: CYAN,
-        }
-    }
-    pub fn pog(&self) -> Colors {
-        Colors {
-            rotary_tick: LIGHTPURPLE,
-            rotary_hover: GREEN,
-            slider_hover: LIGHTPURPLE,
-            slider_border: PURPLE,
-            slider_active: GREEN,
-            slider_indicator: GREEN,
-            plot_main: PURPLE,
-            plot_single_filter: GRAY100,
-            plot_total_curve: GRAY200,
-            plot_filter_hover: PURPLE,
-        }
-    }
-    pub fn bwg(&self) -> Colors {
-        Colors {
-            rotary_tick: ORANGE,
-            rotary_hover: WHITE,
-            slider_hover: GRAY100,
-            slider_border: BLACK,
-            slider_active: ORANGE,
-            slider_indicator: ORANGE,
-            plot_main: ORANGE,
-            plot_single_filter: GRAY100,
-            plot_total_curve: WHITE,
-            plot_filter_hover: ORANGE,
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, TS)]
 #[ts(export)]
-pub struct Colors {
+pub enum Colors {
+    RotaryTick,
+    RotaryHover,
+}
+const NUM_COLORS: usize = size_of::<Colors>() / 24;
+
+impl Colors {
+    pub fn as_slice() -> Vec<String> {
+        let N = size_of::<Colors>() / 24; // 24 : num bytes in String
+        let mut v = vec![];
+        for _ in 0..N {
+            v.push("".to_string());
+        }
+        v
+    }
+}
+pub type Color = String;
+
+#[derive(Serialize, Deserialize, Debug, TS)]
+#[ts(export)]
+pub struct ComponentColors {
     pub rotary_tick: Color,
     pub rotary_hover: Color,
     pub slider_hover: Color,
@@ -213,90 +181,40 @@ pub struct Colors {
     pub plot_total_curve: Color,
     pub plot_filter_hover: Color,
 }
+const NUM_COMPONENT_COLORS: usize = size_of::<ComponentColors>() / 24; // 24 : num bytes in String
 
-impl Default for Colors {
-    fn default() -> Self {
-        Self {
-            rotary_tick: LIGHTPURPLE,
-            rotary_hover: GREEN,
-            slider_hover: LIGHTPURPLE,
-            slider_border: PURPLE,
-            slider_active: GREEN,
-            slider_indicator: GREEN,
-            plot_main: PURPLE,
-            plot_single_filter: GRAY100,
-            plot_total_curve: GRAY200,
-            plot_filter_hover: PURPLE,
-        }
-    }
+impl ComponentColors {
+    // pub fn as_slice() -> Vec<Color> {
+    // let N = size_of::<ComponentColors>() / 24; // 24 : num bytes in String
+    // let mut v = vec![];
+    // for _ in 0..N {
+    //     v.push("".to_string());
+    // }
+    // v
+    // }
+    // pub fn as_slice() -> [Color; NUM_COMPONENT_COLORS] {
+    //     [
+    //         "".to_string()
+    //     ]
+    // }
 }
 
-impl FromSql for Color {
-    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
-        if let Ok(v) = value.as_str() {
-            if let Ok(c) = Color::new_from_hex(v) {
-                return Ok(c);
-            }
-        }
-        Err(rusqlite::types::FromSqlError::InvalidType)
-    }
-}
-
-impl FromSql for Colors {
-    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
-        if let Ok(v) = value.as_str() {
-            // let mut colors = vec![];
-            // for color in v {
-            //     colors.push(color);
-            // }
-            return Ok(Colors::default());
-        }
-        Err(rusqlite::types::FromSqlError::InvalidType)
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, TS)]
-#[ts(export)]
-pub struct Color {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
-    pub a: Option<f32>,
-}
-
-impl Color {
-    pub fn newt(r: u8, g: u8, b: u8, a: f32) -> Self {
-        return Self {
-            r,
-            g,
-            b,
-            a: Some(a),
-        };
-    }
-
-    pub fn new_from_hex(hex_string: &str) -> Result<Self, String> {
-        if hex_string.len() != 7 && &hex_string[0..1] != "#" {
-            return Err("invalid color".to_string());
-        }
-
-        Ok(Self {
-            r: u8::from_str_radix(&hex_string[1..3], 16).unwrap(),
-            g: u8::from_str_radix(&hex_string[3..5], 16).unwrap(),
-            b: u8::from_str_radix(&hex_string[5..7], 16).unwrap(),
-            a: None,
-        })
-    }
-    pub const fn new(r: u8, g: u8, b: u8) -> Self {
-        return Self { r, g, b, a: None };
-    }
-    pub fn to_string(&self) -> String {
-        if let Some(t) = self.a {
-            format!("rgb({},{},{},{})", self.r, self.g, self.b, t)
-        } else {
-            format!("rgb({},{},{})", self.r, self.g, self.b)
-        }
-    }
-}
+// impl Default for ComponentColors {
+//     fn default() -> Self {
+//         Self {
+//             rotary_tick: LIGHTPURPLE,
+//             rotary_hover: GREEN,
+//             slider_hover: LIGHTPURPLE,
+//             slider_border: PURPLE,
+//             slider_active: GREEN,
+//             slider_indicator: GREEN,
+//             plot_main: PURPLE,
+//             plot_single_filter: GRAY100,
+//             plot_total_curve: GRAY200,
+//             plot_filter_hover: PURPLE,
+//         }
+//     }
+// }
 
 fn hex_to_rgb(hex_string: &str) -> Result<(u8, u8, u8), String> {
     if hex_string.len() != 7 && &hex_string[0..1] != "#" {
@@ -320,31 +238,3 @@ fn hex_to_rgb(hex_string: &str) -> Result<(u8, u8, u8), String> {
 //     // Return the hexadecimal representation
 //     hex
 // }
-
-pub const RED: Color = Color::new(170, 0, 0);
-// pub const GREEN: Color = Color::new(0, 180, 0);
-pub const BLUE: Color = Color::new(0, 0, 170);
-
-// pub const LIGHTRED: Color = Color::new(230, 0, 0);
-// pub const LIGHTGREEN: Color = Color::new(0, 180, 0);
-pub const LIGHTBLUE: Color = Color::new(0, 0, 230);
-
-pub const PURPLE: Color = Color::new(100, 0, 140);
-pub const ORANGE: Color = Color::new(220, 100, 0);
-pub const GREEN: Color = Color::new(0, 140, 0);
-
-pub const CYAN: Color = Color::new(0, 200, 240);
-pub const YELLOW: Color = Color::new(220, 220, 0);
-pub const MAGENTA: Color = Color::new(200, 0, 250);
-
-pub const LIGHTPURPLE: Color = Color::new(100, 0, 140);
-// pub const LIGHTORANGE: Color = Color::new(220, 100, 0);
-// pub const LIGHTGREEN: Color = Color::new(0, 140, 0);
-
-// pub const GRAY50: Color = Color::new(50, 50, 50);
-pub const GRAY100: Color = Color::new(100, 100, 100);
-// pub const GRAY150: Color = Color::new(100, 100, 100);
-pub const GRAY200: Color = Color::new(200, 200, 200);
-// pub const GRAY250: Color = Color::new(250, 250, 250);
-pub const WHITE: Color = Color::new(255, 255, 255);
-pub const BLACK: Color = Color::new(0, 0, 0);

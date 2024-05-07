@@ -35,14 +35,6 @@
 				return { gain: gains[i], freq: freqs[i], Q: Qs[i] };
 			});
 
-		let fb = {
-			bp1: bpf_filters[0],
-			bp2: bpf_filters[1],
-			bp3: bpf_filters[2],
-			bp4: bpf_filters[3],
-			bp5: bpf_filters[4],
-		};
-
 		let ui = {
 			clean: clean,
 			left_mute: false,
@@ -52,7 +44,7 @@
 			pre_smooth_gain: pre_smooth_gain,
 			post_smooth_gain: post_smooth_gain,
 			stereo_choice: "Both",
-			filter_bank: fb,
+			filters: { bank: bpf_filters },
 		} as UIParams;
 
 		let c = {
@@ -93,14 +85,6 @@
 				return { gain: gains[i], freq: freqs[i], Q: Qs[i] };
 			});
 
-		let fb = {
-			bp1: bpf_filters[0],
-			bp2: bpf_filters[1],
-			bp3: bpf_filters[2],
-			bp4: bpf_filters[3],
-			bp5: bpf_filters[4],
-		};
-
 		return {
 			clean: clean,
 			left_mute: false,
@@ -110,7 +94,7 @@
 			pre_smooth_gain: pre_smooth_gain,
 			post_smooth_gain: post_smooth_gain,
 			stereo_choice: "Both",
-			filter_bank: fb,
+			filters: { bank: bpf_filters },
 		} as UIParams;
 	}
 
@@ -238,18 +222,13 @@
 		return xAxis;
 	}
 
-	export function componentToHex(c: number) {
-		var hex = c.toString(16);
-		return hex.length == 1 ? "0" + hex : hex;
-	}
-
-	export function rgbToHex(rgb: any) {
-		return (
-			"#" +
-			componentToHex(rgb.r) +
-			componentToHex(rgb.g) +
-			componentToHex(rgb.b)
-		);
+	export function remove_slashes_ext(s: string) {
+		if (s.includes("/")) {
+			let x = s.split("/");
+			return x[x.length - 1].split(".")[0];
+		} else {
+			return s.split(".")[0];
+		}
 	}
 
 	export function hexToRgb(hex: string) {
@@ -259,17 +238,8 @@
 					r: parseInt(result[1], 16),
 					g: parseInt(result[2], 16),
 					b: parseInt(result[3], 16),
-					a: null
+					a: null,
 			  }
 			: null;
-	}
-
-	export function remove_slashes_ext(s: string) {
-		if (s.includes("/")) {
-			let x = s.split("/");
-			return x[x.length - 1].split(".")[0];
-		} else {
-			return s.split(".")[0];
-		}
 	}
 </script>

@@ -63,6 +63,9 @@ fn main() {
             // let _ = mainwindow.set_always_on_top(true);
             let app_handle = app.app_handle();
 
+            // let c = ComponentColors::as_slice();
+            // println!("{:?}", c);
+
             let p = app_handle
                 .path_resolver()
                 .resource_dir()
@@ -119,7 +122,6 @@ fn main() {
 #[tauri::command]
 fn play_stream(streamsend: State<MStreamSend>) {
     let _ = streamsend.0.lock().unwrap().stream.0.lock().unwrap().play();
-    println!("play");
 }
 
 #[tauri::command]

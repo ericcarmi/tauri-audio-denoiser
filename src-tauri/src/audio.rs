@@ -356,12 +356,10 @@ pub async fn process_export(
                 // return something
             }
             let fb = filter_bank.unwrap();
-            stereo_params.left.filter_bank = fb.clone().into();
-            stereo_params.right.filter_bank = fb.into();
-            stereo_params.left.noise_spectrum =
-                stereo_params.left.filter_bank.parallel_transfer(256);
-            stereo_params.right.noise_spectrum =
-                stereo_params.right.filter_bank.parallel_transfer(256);
+            stereo_params.left.filters = fb.clone().into();
+            stereo_params.right.filters = fb.into();
+            stereo_params.left.noise_spectrum = stereo_params.left.filters.parallel_transfer(256);
+            stereo_params.right.noise_spectrum = stereo_params.right.filters.parallel_transfer(256);
             let p = ui_params.unwrap();
             stereo_params.left.ui_params.noise_gain = from_log(p.noise_gain);
             stereo_params.left.ui_params.output_gain = from_log(p.output_gain);
@@ -384,12 +382,10 @@ pub async fn process_export(
             {
                 // return something
             }
-            stereo_params.left.filter_bank = left_bank.unwrap().into();
-            stereo_params.right.filter_bank = right_bank.unwrap().into();
-            stereo_params.left.noise_spectrum =
-                stereo_params.left.filter_bank.parallel_transfer(256);
-            stereo_params.right.noise_spectrum =
-                stereo_params.right.filter_bank.parallel_transfer(256);
+            stereo_params.left.filters = left_bank.unwrap().into();
+            stereo_params.right.filters = right_bank.unwrap().into();
+            stereo_params.left.noise_spectrum = stereo_params.left.filters.parallel_transfer(256);
+            stereo_params.right.noise_spectrum = stereo_params.right.filters.parallel_transfer(256);
             let lu = left_ui_params.unwrap();
             let ru = right_ui_params.unwrap();
 

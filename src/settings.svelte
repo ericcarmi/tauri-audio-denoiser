@@ -1,9 +1,13 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/tauri";
   import { onDestroy, onMount } from "svelte";
-  import { hexToRgb, rgbToHex } from "./functions.svelte";
   import { shortcut } from "./shortcut.svelte";
-  import type { Colors, PlotScale, Settings, Theme } from "./types.svelte";
+  import type {
+    ComponentColors,
+    PlotScale,
+    Settings,
+    Theme,
+  } from "./types.svelte";
 
   let fft_plot_decay = 0.8;
   let fft_plot_size = 256;
@@ -16,7 +20,7 @@
   export let settings: Settings;
   export let show_settings;
 
-  export let theme: Colors;
+  export let theme: ComponentColors;
   let theme_name: Theme;
 
   let on_top = false;
@@ -32,16 +36,16 @@
   let plot_filter_hover: string;
 
   function update_local_colors() {
-    rotary_tick = rgbToHex(theme.rotary_tick);
-    rotary_hover = rgbToHex(theme.rotary_hover);
-    slider_border = rgbToHex(theme.slider_border);
-    slider_indicator = rgbToHex(theme.slider_indicator);
-    slider_hover = rgbToHex(theme.slider_hover);
-    slider_active = rgbToHex(theme.slider_active);
-    plot_main = rgbToHex(theme.plot_main);
-    plot_total_curve = rgbToHex(theme.plot_total_curve);
-    plot_single_filter = rgbToHex(theme.plot_single_filter);
-    plot_filter_hover = rgbToHex(theme.plot_filter_hover);
+    rotary_tick = theme.rotary_tick;
+    rotary_hover = theme.rotary_hover;
+    slider_border = theme.slider_border;
+    slider_indicator = theme.slider_indicator;
+    slider_hover = theme.slider_hover;
+    slider_active = theme.slider_active;
+    plot_main = theme.plot_main;
+    plot_total_curve = theme.plot_total_curve;
+    plot_single_filter = theme.plot_single_filter;
+    plot_filter_hover = theme.plot_filter_hover;
     plot_scale = settings.plot_scale;
   }
 
@@ -86,11 +90,8 @@
         `--${color_name.replace("_", "-")}`,
         color
       );
-      let s = color_name as keyof Colors;
-      let c = hexToRgb(color);
-      if (c) {
-        theme[s] = c;
-      }
+      let s = color_name as keyof ComponentColors;
+      theme[s] = color;
     }
   }
   let ref: any;

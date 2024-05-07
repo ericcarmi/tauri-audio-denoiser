@@ -1,27 +1,22 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/tauri";
   import { listen } from "@tauri-apps/api/event";
-  import { message, open, save } from "@tauri-apps/api/dialog";
+  import { open } from "@tauri-apps/api/dialog";
   import { onDestroy, onMount } from "svelte";
 
   import Plot from "./plot.svelte";
-  import {
-    DOWN_RATE,
-    FREQ_PLOT_WIDTH,
-    SAMPLING_RATE,
-    num_sliders,
-  } from "./constants.svelte";
+  import { DOWN_RATE, FREQ_PLOT_WIDTH, num_sliders } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
   import type {
     UIParams,
     StereoChoice,
-    FilterBank,
-    UIFilterBank,
+    Filters,
+    UIFilters,
+    BPF,
   } from "./types.svelte";
   import {
     init_ui_params,
     remove_slashes_ext,
-    rgbToHex,
     update_css_color,
   } from "./functions.svelte";
   import RotarySlider from "./rotary-slider.svelte";
@@ -49,8 +44,11 @@
   let is_time_slider_dragging = false;
 
   let fft_data: any;
-
-  let bpfs: Array<any>;
+  let bpfs: UIFilters = {
+    bank: Array(num_sliders).flatMap((_) => {
+      return { gain: 0, freq: 1000, Q: 1 };
+    }),
+  } as UIFilters;
 
   let ui_params: UIParams = init_ui_params(gains, freqs, Qs);
 
@@ -94,8 +92,8 @@
         ui_params.stereo_choice = new_choice;
         await invoke("sql_filter_bank", { stereoChoice: new_choice }).then(
           (res) => {
-            const fb = res as FilterBank;
-            bpfs = [fb.bp1, fb.bp2, fb.bp3, fb.bp4, fb.bp5];
+            const fb = res as UIFilters;
+            bpfs = fb;
           }
         );
       }
@@ -112,13 +110,7 @@
       pre_smooth_gain: ui_params.pre_smooth_gain,
       clean: ui_params.clean,
       stereo_choice: ui_params.stereo_choice,
-      filter_bank: {
-        bp1: bpfs[0],
-        bp2: bpfs[1],
-        bp3: bpfs[2],
-        bp4: bpfs[3],
-        bp5: bpfs[4],
-      } as UIFilterBank,
+      filters: bpfs,
     };
     invoke("sql_update_ui_params", {
       stereoChoice: ui_params.stereo_choice,
@@ -129,13 +121,13 @@
   let bpf_hovering = Array(num_sliders).fill(false);
   let num_time_samples = 1;
 
-  async function get_time_data(from_assets?: boolean) {
+  function get_time_data(from_assets?: boolean) {
     if (selectedRecording === "") return;
-    await invoke("get_time_data", {
+    invoke("get_time_data", {
       path: selectedRecording,
       fromAssets: from_assets,
     }).then((res) => {
-      let data: any = res;
+      let data = res as Array<number>;
       time_data = data;
       num_time_samples = data.length * DOWN_RATE;
     });
@@ -150,16 +142,16 @@
     });
     theme = await invoke("sql_theme", { theme: settings.theme });
 
-    update_css_color(rgbToHex(theme.rotary_tick), "rotary-tick");
-    update_css_color(rgbToHex(theme.rotary_hover), "rotary-hover");
-    update_css_color(rgbToHex(theme.slider_border), "slider-border");
-    update_css_color(rgbToHex(theme.slider_indicator), "slider-indicator");
-    update_css_color(rgbToHex(theme.slider_hover), "slider-hover");
-    update_css_color(rgbToHex(theme.slider_active), "slider-active");
-    update_css_color(rgbToHex(theme.plot_main), "plot-main");
-    update_css_color(rgbToHex(theme.plot_single_filter), "plot-single-filter");
-    update_css_color(rgbToHex(theme.plot_total_curve), "plot-total-curve");
-    update_css_color(rgbToHex(theme.plot_filter_hover), "plot-filter-hover");
+    update_css_color(theme.rotary_tick, "rotary-tick");
+    update_css_color(theme.rotary_hover, "rotary-hover");
+    update_css_color(theme.slider_border, "slider-border");
+    update_css_color(theme.slider_indicator, "slider-indicator");
+    update_css_color(theme.slider_hover, "slider-hover");
+    update_css_color(theme.slider_active, "slider-active");
+    update_css_color(theme.plot_main, "plot-main");
+    update_css_color(theme.plot_single_filter, "plot-single-filter");
+    update_css_color(theme.plot_total_curve, "plot-total-curve");
+    update_css_color(theme.plot_filter_hover, "plot-filter-hover");
 
     selectedRecording = "reisman.wav";
     // selected recording also needs to be in sync with backend file...should be resolved once files are imported correctly instead of one by default, tho should still have that for loading saved state?
@@ -172,14 +164,13 @@
     {#if show_settings}
       <Settings bind:settings bind:show_settings bind:theme />
     {/if}
-    {#if bpfs?.length === 5}
+    {#if bpfs.bank.length === 5}
       <Plot
         bind:settings
         bind:theme
         bind:bpf_hovering
         bind:is_playing
-        bind:bpfs
-        bind:selectedRecording
+        bind:bpfs={bpfs.bank}
         bind:time_data
         {fft_data}
       />
@@ -201,9 +192,10 @@
       on:input={() => {
         time = time_position / FREQ_PLOT_WIDTH;
         // only send message when playing, otherwise after dragging the slider, the first message received is the location it started in
-        is_playing && invoke("message_time", {
-          time: time * num_time_samples,
-        });
+        is_playing &&
+          invoke("message_time", {
+            time: time * num_time_samples,
+          });
       }}
     />
     <div class="button-bar">
@@ -311,12 +303,12 @@
     </div>
   </div>
 
-  {#if bpfs?.length === 5}
-    <div
-      class="filter-grid"
-      style="grid-template-columns:repeat({num_sliders}, auto)"
-    >
-      {#each bpfs as _, i}
+  <div
+    class="filter-grid"
+    style="grid-template-columns:repeat({num_sliders}, auto)"
+  >
+    {#if bpfs.bank.length === 5}
+      {#each bpfs.bank as _, i}
         <div
           class="bpf-wrap"
           role="button"
@@ -329,16 +321,16 @@
           }}
         >
           <BandpassSlider
-            bind:gain={bpfs[i].gain}
-            bind:freq={bpfs[i].freq}
-            bind:Q={bpfs[i].Q}
+            bind:gain={bpfs.bank[i].gain}
+            bind:freq={bpfs.bank[i].freq}
+            bind:Q={bpfs.bank[i].Q}
             bind:stereo_choice={ui_params.stereo_choice}
             index={i + 1}
           />
         </div>
       {/each}
-    </div>
-  {/if}
+    {/if}
+  </div>
   <div
     style="display: flex; flex-direction: row; justify-content: space-evenly;height:6em;"
   >
@@ -433,18 +425,18 @@
       class="reset-all-gains-switch"
       title="reset all gains to 0 dB"
       on:click={() => {
-        bpfs = [
-          ...bpfs.map((filt, i) => {
-            invoke("message_filters", {
-              stereoChoice: ui_params.stereo_choice,
-              index: i + 1,
-              gain: 0.0,
-              freq: filt.freq,
-              q: filt.Q,
-            });
-            return { gain: 0.0, freq: filt.freq, Q: filt.Q };
-          }),
-        ];
+        // bpfs.bank = [
+        //   ...bpfs.bank.map((filt, i) => {
+        //     invoke("message_filters", {
+        //       stereoChoice: ui_params.stereo_choice,
+        //       index: i + 1,
+        //       gain: 0.0,
+        //       freq: filt.freq,
+        //       q: filt.Q,
+        //     });
+        //     return { gain: 0.0, freq: filt.freq, Q: filt.Q };
+        //   }),
+        // ];
       }}>reset gains</button
     >
     <button

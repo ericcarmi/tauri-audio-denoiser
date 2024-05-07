@@ -423,38 +423,6 @@ impl UIAudioMessage {
     }
 
     pub fn recv_channel(&self, channel_params: &mut AudioParams, channel_message: ChannelMessage) {
-        if let Some(fb) = channel_message.filter_bank {
-            if let Some(bp) = fb.bp1 {
-                channel_params.filter_bank.bp1.update_coeffs(bp.into());
-                channel_params.noise_spectrum = channel_params
-                    .filter_bank
-                    .parallel_transfer(channel_params.dft_size);
-            }
-            if let Some(bp) = fb.bp2 {
-                channel_params.filter_bank.bp2.update_coeffs(bp.into());
-                channel_params.noise_spectrum = channel_params
-                    .filter_bank
-                    .parallel_transfer(channel_params.dft_size);
-            }
-            if let Some(bp) = fb.bp3 {
-                channel_params.filter_bank.bp3.update_coeffs(bp.into());
-                channel_params.noise_spectrum = channel_params
-                    .filter_bank
-                    .parallel_transfer(channel_params.dft_size);
-            }
-            if let Some(bp) = fb.bp4 {
-                channel_params.filter_bank.bp5.update_coeffs(bp.into());
-                channel_params.noise_spectrum = channel_params
-                    .filter_bank
-                    .parallel_transfer(channel_params.dft_size);
-            }
-            if let Some(bp) = fb.bp5 {
-                channel_params.filter_bank.bp5.update_coeffs(bp.into());
-                channel_params.noise_spectrum = channel_params
-                    .filter_bank
-                    .parallel_transfer(channel_params.dft_size);
-            }
-        }
         // new code -- iterate through filters
         if let Some(msg) = channel_message.filters {
             for (i, filter) in msg.filters.iter().enumerate() {

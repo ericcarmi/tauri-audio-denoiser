@@ -26,7 +26,6 @@ pub async fn get_time_data(
 
                 return samples.iter().step_by(16).cloned().collect::<Vec<f32>>();
             }
-            // send error message to ui
             vec![]
         });
 
@@ -42,13 +41,15 @@ pub async fn get_time_data(
 
                 return samples.iter().step_by(16).cloned().collect::<Vec<f32>>();
             }
-            // send error message to ui
             vec![]
         });
 
         if let Ok(r) = thread.await {
             time_data = r;
         }
+    }
+    if time_data.is_empty() {
+        return Err("failed to get time data");
     }
 
     Ok(time_data)

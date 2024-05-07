@@ -6,7 +6,7 @@ use std::{f32::consts::PI, sync::Mutex};
 use ts_rs::TS;
 
 use crate::{
-    constants::{CZERO, SAMPLING_RATE},
+    constants::{CZERO, NUM_FILTERS, SAMPLING_RATE},
     messages::{AudioUIMessage, UIAudioMessage},
     sdft::SDFT,
 };
@@ -91,22 +91,6 @@ pub struct IIR2 {
     pub y: [f32; 2],
 }
 
-pub fn biquad(gain: f32, freq: f32, Q: f32) -> IIR2 {
-    let A = (gain / 40.0).powf(10.0);
-    let w0 = (2.0 * PI * freq) / SAMPLING_RATE;
-    let alpha = (w0).sin() / 2.0 / Q;
-    IIR2 {
-        b0: 1.0 + alpha * A,
-        b1: -2.0 * w0.cos(),
-        b2: 1.0 - alpha * A,
-        a0: 1.0 + alpha / A,
-        a1: -2.0 * w0.cos(),
-        a2: 1.0 - alpha / A,
-        x: [0.0, 0.0],
-        y: [0.0, 0.0],
-    }
-}
-
 impl From<BPF> for IIR2 {
     fn from(bpf: BPF) -> Self {
         let A = (bpf.gain / 40.0).powf(10.0);
@@ -177,82 +161,38 @@ impl IIR2 {
     }
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, TS)]
-#[ts(export)]
-pub struct UIFilterBank {
-    pub bp1: BPF,
-    pub bp2: BPF,
-    pub bp3: BPF,
-    pub bp4: BPF,
-    pub bp5: BPF,
-}
-
-impl From<UIFilterBank> for FilterBank {
-    fn from(fb: UIFilterBank) -> Self {
-        Self {
-            bp1: fb.bp1.into(),
-            bp2: fb.bp2.into(),
-            bp3: fb.bp3.into(),
-            bp4: fb.bp4.into(),
-            bp5: fb.bp5.into(),
+impl From<UIFilters> for Filters {
+    fn from(fb: UIFilters) -> Self {
+        let mut bank = [IIR2::new(); NUM_FILTERS];
+        for i in 0..NUM_FILTERS {
+            bank[i] = IIR2::from(fb.bank[i]);
         }
+        Self { bank }
     }
 }
 
-impl UIFilterBank {
-    pub fn new() -> Self {
-        let bpf = BPF::new();
-        Self {
-            bp1: bpf,
-            bp2: bpf,
-            bp3: bpf,
-            bp4: bpf,
-            bp5: bpf,
-        }
-    }
-}
-
-const NUM_FILTERS: usize = 6;
 #[derive(Clone, Serialize, Copy, Deserialize, Debug, TS)]
 #[ts(export)]
 pub struct Filters {
     pub bank: [IIR2; NUM_FILTERS],
 }
-
 impl Default for Filters {
     fn default() -> Self {
-        let bank = [
-            IIR2::new(),
-            IIR2::new(),
-            IIR2::new(),
-            IIR2::new(),
-            IIR2::new(),
-            IIR2::new(),
-        ];
+        let bank = [IIR2::new(); NUM_FILTERS];
         Self { bank }
     }
 }
-
 impl Filters {
     pub fn new() -> Self {
-        let bank = [
-            IIR2::new(),
-            IIR2::new(),
-            IIR2::new(),
-            IIR2::new(),
-            IIR2::new(),
-            IIR2::new(),
-        ];
+        let bank = [IIR2::new(); NUM_FILTERS];
         Self { bank }
     }
-
     pub fn parallel_transfer(&self, n: usize) -> Vec<f32> {
         let mut H: Vec<Complex32> = vec![CZERO; n];
         let l = Complex32 {
             re: NUM_FILTERS as f32,
             im: 0.0,
         };
-
         // loop over all filters first
         for (_i, filt) in self.bank.iter().enumerate() {
             let h = filt.freq_response(n);
@@ -267,78 +207,34 @@ impl Filters {
     }
 }
 
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, TS)]
+#[ts(export)]
+pub struct UIFilters {
+    pub bank: [BPF; NUM_FILTERS],
+}
+impl Default for UIFilters {
+    fn default() -> Self {
+        let bank = [BPF::new(); NUM_FILTERS];
+        Self { bank }
+    }
+}
+impl UIFilters {
+    pub fn new() -> Self {
+        let bank = [BPF::new(); NUM_FILTERS];
+        Self { bank }
+    }
+}
+
+/// filters sent from ui to audio thread
 #[derive(Clone, Debug, Copy, Serialize, Deserialize)]
 pub struct FiltersMessage {
     pub filters: [Option<BPF>; NUM_FILTERS],
 }
-
 impl Default for FiltersMessage {
     fn default() -> Self {
         Self {
             filters: [None; NUM_FILTERS],
         }
-    }
-}
-
-/// FilterBank -- holds IIR2 filters, might want to store as vec? or some other collection...
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, TS)]
-#[ts(export)]
-pub struct FilterBank {
-    pub bp1: IIR2,
-    pub bp2: IIR2,
-    pub bp3: IIR2,
-    pub bp4: IIR2,
-    pub bp5: IIR2,
-}
-
-impl Default for FilterBank {
-    fn default() -> Self {
-        let bp = IIR2::new();
-        Self {
-            bp1: bp,
-            bp2: bp,
-            bp3: bp,
-            bp4: bp,
-            bp5: bp,
-        }
-    }
-}
-
-impl FilterBank {
-    pub fn new() -> Self {
-        let bp = IIR2::new();
-        Self {
-            bp1: bp,
-            bp2: bp,
-            bp3: bp,
-            bp4: bp,
-            bp5: bp,
-        }
-    }
-
-    /// to iterate over all the filters
-    pub fn as_slice(&self) -> [IIR2; 5] {
-        [self.bp1, self.bp2, self.bp3, self.bp4, self.bp5]
-    }
-
-    pub fn parallel_transfer(&self, n: usize) -> Vec<f32> {
-        let mut H: Vec<Complex32> = vec![CZERO; n];
-        let l = Complex32 {
-            re: self.as_slice().len() as f32,
-            im: 0.0,
-        };
-
-        // loop over all filters first
-        for (_i, filt) in self.as_slice().iter().enumerate() {
-            let h = filt.freq_response(n);
-            H.iter_mut().enumerate().for_each(|(i, x)| *x += h[i] / l);
-        }
-        // take norm after summing filters
-        let mut out: Vec<f32> = H.iter().map(|x| x.norm()).collect();
-        if out[0].is_nan() {
-            out[0] = 0.0;
-        }
-        out
     }
 }
 
@@ -380,28 +276,8 @@ impl StereoChoice {
             Both => "Both",
         }
     }
-    pub fn is_left(&self) -> bool {
-        if self.as_str() == "Left" {
-            return true;
-        }
-        false
-    }
-    pub fn is_right(&self) -> bool {
-        if self.as_str() == "Right" {
-            return true;
-        }
-        false
-    }
-    pub fn is_both(&self) -> bool {
-        if self.as_str() == "Both" {
-            return true;
-        }
-        false
-    }
 }
 
-/// audio params to be used in the audio thread -- some variables can be set directly from messages, others are computed (spectra, sdft) and can skip being serialized
-// rename to channel params?
 #[derive(Clone, Debug, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub struct AudioParams {
@@ -410,8 +286,6 @@ pub struct AudioParams {
     pub time: usize,
     pub dft_size: usize,
     // don't serialize all
-    #[serde(skip)]
-    pub filter_bank: FilterBank,
     #[serde(skip)]
     pub filters: Filters,
     #[serde(skip)]
@@ -424,36 +298,34 @@ pub struct AudioParams {
 
 impl AudioParams {
     pub fn new() -> Self {
-        let fb = FilterBank::new();
         let n = 256;
         let ui_params = UIParams::new();
+        let filters = Filters::new();
         Self {
             ui_params,
-            filter_bank: fb,
             dft_size: n,
             time: 0,
             output_spectrum: vec![],
-            noise_spectrum: fb.parallel_transfer(n),
+            noise_spectrum: filters.parallel_transfer(n),
             sdft: SDFT::new(n),
-            filters: Filters::new(),
+            filters,
         }
     }
 }
 
 impl Default for AudioParams {
     fn default() -> Self {
-        let fb = FilterBank::new();
         let n = 256;
         let ui_params = UIParams::new();
+        let filters = Filters::new();
         Self {
             ui_params,
-            filter_bank: fb,
             dft_size: n,
             time: 0,
             output_spectrum: vec![],
-            noise_spectrum: fb.parallel_transfer(n),
+            noise_spectrum: filters.parallel_transfer(n),
             sdft: SDFT::new(n),
-            filters: Filters::new(),
+            filters,
         }
     }
 }
@@ -514,13 +386,12 @@ pub struct UIParams {
     pub noise_gain: f32,
     pub pre_smooth_gain: f32,
     pub post_smooth_gain: f32,
-    pub filter_bank: UIFilterBank,
+    pub filters: UIFilters,
 }
 
 impl UIParams {
     pub fn new() -> Self {
         Self {
-            filter_bank: UIFilterBank::new(),
             clean: false,
             left_mute: false,
             right_mute: false,
@@ -529,6 +400,7 @@ impl UIParams {
             noise_gain: 0.0,
             pre_smooth_gain: 0.5,
             post_smooth_gain: 0.5,
+            filters: UIFilters::new(),
         }
     }
 }
@@ -536,7 +408,6 @@ impl UIParams {
 impl Default for UIParams {
     fn default() -> Self {
         Self {
-            filter_bank: UIFilterBank::new(),
             clean: false,
             left_mute: false,
             right_mute: false,
@@ -545,6 +416,7 @@ impl Default for UIParams {
             noise_gain: 0.0,
             pre_smooth_gain: 0.5,
             post_smooth_gain: 0.5,
+            filters: UIFilters::default(),
         }
     }
 }

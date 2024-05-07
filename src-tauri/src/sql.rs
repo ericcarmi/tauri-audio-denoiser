@@ -1,6 +1,7 @@
 use crate::{
-    settings::{Colors, Settings, Theme},
-    types::{StereoChoice, UIFilterBank, UIParams, BPF},
+    constants::NUM_FILTERS,
+    settings::{ComponentColors, Settings, Theme},
+    types::{StereoChoice, UIFilters, UIParams, BPF},
 };
 use rusqlite::{Connection, Result};
 use tauri::AppHandle;
@@ -37,7 +38,7 @@ pub fn sql_theme_name(app_handle: AppHandle) -> Result<Theme, String> {
     }
 }
 
-pub fn query_theme(s: String, theme: Theme) -> Result<Colors, rusqlite::Error> {
+pub fn query_theme(s: String, theme: Theme) -> Result<ComponentColors, rusqlite::Error> {
     let conn = Connection::open(s + DB_FILE_NAME)?;
     let mut stmt = conn.prepare(
         format!(
@@ -48,7 +49,7 @@ pub fn query_theme(s: String, theme: Theme) -> Result<Colors, rusqlite::Error> {
     )?;
 
     let colors_iter = stmt.query_map([], |row| {
-        Ok(Colors {
+        Ok(ComponentColors {
             rotary_tick: row.get(2)?,
             rotary_hover: row.get(3)?,
             slider_hover: row.get(4)?,
@@ -71,7 +72,7 @@ pub fn query_theme(s: String, theme: Theme) -> Result<Colors, rusqlite::Error> {
 }
 
 #[tauri::command]
-pub fn sql_theme(theme: Theme, app_handle: AppHandle) -> Result<Colors, String> {
+pub fn sql_theme(theme: Theme, app_handle: AppHandle) -> Result<ComponentColors, String> {
     let p = app_handle
         .path_resolver()
         .resource_dir()
@@ -185,41 +186,22 @@ pub fn sql_settings(app_handle: AppHandle) -> Result<Settings, String> {
 pub fn query_filter_bank(
     stereo_choice: StereoChoice,
     s: String,
-) -> Result<UIFilterBank, rusqlite::Error> {
+) -> Result<UIFilters, rusqlite::Error> {
     let conn = Connection::open(s + DB_FILE_NAME)?;
     let chan = stereo_choice.as_str().to_lowercase();
     let mut stmt =
         conn.prepare(format!("SELECT * FROM FILTERBANK WHERE stereo_choice='{}'", chan).as_str())?;
     let control_iter = stmt.query_map([], |row| {
-        let offset = 1;
-        Ok(UIFilterBank {
-            // id: row.get(0)?,
-            bp1: BPF {
-                gain: row.get(offset + 1)?,
-                freq: row.get(offset + 2)?,
-                Q: row.get(offset + 3)?,
-            },
-            bp2: BPF {
-                gain: row.get(offset + 4)?,
-                freq: row.get(offset + 5)?,
-                Q: row.get(offset + 6)?,
-            },
-            bp3: BPF {
-                gain: row.get(offset + 7)?,
-                freq: row.get(offset + 8)?,
-                Q: row.get(offset + 9)?,
-            },
-            bp4: BPF {
-                gain: row.get(offset + 10)?,
-                freq: row.get(offset + 11)?,
-                Q: row.get(offset + 12)?,
-            },
-            bp5: BPF {
-                gain: row.get(offset + 13)?,
-                freq: row.get(offset + 14)?,
-                Q: row.get(offset + 15)?,
-            },
-        })
+        let offset = 2;
+        let mut ui_filters = UIFilters::new();
+        for i in 0..NUM_FILTERS {
+            ui_filters.bank[i] = BPF {
+                gain: row.get(offset + 3 * i)?,
+                freq: row.get(offset + 3 * i + 1)?,
+                Q: row.get(offset + 3 * i + 2)?,
+            };
+        }
+        Ok(ui_filters)
     })?;
 
     for control in control_iter {
@@ -234,7 +216,7 @@ pub fn query_filter_bank(
 pub fn sql_filter_bank(
     stereo_choice: StereoChoice,
     app_handle: AppHandle,
-) -> Result<UIFilterBank, String> {
+) -> Result<UIFilters, String> {
     let p = app_handle
         .path_resolver()
         .resource_dir()
@@ -260,16 +242,24 @@ pub fn update_ui_params(
 ) -> Result<(), rusqlite::Error> {
     let conn = Connection::open(s + DB_FILE_NAME)?;
     let st = stereo_choice.as_str().to_lowercase();
-    let q = format!("UPDATE UI_PARAMS SET clean={}, left_mute={}, right_mute={}, output_gain={}, noise_gain={}, pre_smooth_gain={}, post_smooth_gain={}  WHERE stereo_choice='{}';
-        UPDATE FILTERBANK SET 
-        bpf_gain_1 = {}, bpf_freq_1 = {}, bpf_q_1 = {},  
-        bpf_gain_2 = {}, bpf_freq_2 = {}, bpf_q_2 = {},  
-        bpf_gain_3 = {}, bpf_freq_3 = {}, bpf_q_3 = {},  
-        bpf_gain_4 = {}, bpf_freq_4 = {}, bpf_q_4 = {},  
-        bpf_gain_5 = {}, bpf_freq_5 = {}, bpf_q_5 = {}  
-        WHERE stereo_choice='{}';
-        
-        ",ui_params.clean, ui_params.left_mute, ui_params.right_mute, ui_params.output_gain, ui_params.noise_gain, ui_params.pre_smooth_gain, ui_params.post_smooth_gain, st, ui_params.filter_bank.bp1.gain, ui_params.filter_bank.bp1.freq, ui_params.filter_bank.bp1.Q,ui_params.filter_bank.bp2.gain, ui_params.filter_bank.bp2.freq, ui_params.filter_bank.bp2.Q, ui_params.filter_bank.bp3.gain, ui_params.filter_bank.bp3.freq, ui_params.filter_bank.bp3.Q,ui_params.filter_bank.bp4.gain, ui_params.filter_bank.bp4.freq, ui_params.filter_bank.bp4.Q,ui_params.filter_bank.bp5.gain, ui_params.filter_bank.bp5.freq, ui_params.filter_bank.bp5.Q, st);
+
+    let mut filter_string = "".to_string();
+    let bank = ui_params.filters.bank;
+    for i in 0..NUM_FILTERS {
+        filter_string += format!(
+            " bpf_gain_{} = {}, bpf_freq_{} = {}, bpf_Q_{} = {} ",
+            i, bank[i].gain, i, bank[i].freq, i, bank[i].Q
+        )
+        .as_str()
+    }
+
+    let mut q = format!("UPDATE UI_PARAMS SET clean={}, left_mute={}, right_mute={}, output_gain={}, noise_gain={}, pre_smooth_gain={}, post_smooth_gain={}  WHERE stereo_choice='{}';
+        UPDATE FILTERBANK SET          
+        ",ui_params.clean, ui_params.left_mute, ui_params.right_mute, ui_params.output_gain, ui_params.noise_gain, ui_params.pre_smooth_gain, ui_params.post_smooth_gain, st);
+
+    let end_string = format!(" WHERE stereo_choice='{}'", st);
+    q += filter_string.as_str();
+    q += end_string.as_str();
 
     conn.execute_batch(q.as_str())?;
 

@@ -80,27 +80,29 @@ CREATE TABLE FILTERBANK (
   id INTEGER PRIMARY KEY,
   stereo_choice TEXT NOT NULL,
   bpf_gain_1 REAL,
-  bpf_freq_1 REAL,
-  bpf_q_1 REAL,
+  bpf_freQ_1 REAL,
+  bpf_Q_1 REAL,
   bpf_gain_2 REAL,
-  bpf_freq_2 REAL,
-  bpf_q_2 REAL,
+  bpf_freQ_2 REAL,
+  bpf_Q_2 REAL,
   bpf_gain_3 REAL,
-  bpf_freq_3 REAL,
-  bpf_q_3 REAL,
+  bpf_freQ_3 REAL,
+  bpf_Q_3 REAL,
   bpf_gain_4 REAL,
-  bpf_freq_4 REAL,
-  bpf_q_4 REAL,
+  bpf_freQ_4 REAL,
+  bpf_Q_4 REAL,
   bpf_gain_5 REAL,
-  bpf_freq_5 REAL,
-  bpf_q_5 REAL
+  bpf_freQ_5 REAL,
+  bpf_Q_5 REAL
 );
 
-INSERT INTO FILTERBANK (id, stereo_choice, bpf_gain_1, bpf_freq_1, bpf_q_1,  bpf_gain_2, bpf_freq_2, bpf_q_2,  bpf_gain_3, bpf_freq_3, bpf_q_3,  bpf_gain_4, bpf_freq_4, bpf_q_4,  bpf_gain_5, bpf_freq_5, bpf_q_5) VALUES (1, 'left', 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0);
-INSERT INTO FILTERBANK (id, stereo_choice, bpf_gain_1, bpf_freq_1, bpf_q_1,  bpf_gain_2, bpf_freq_2, bpf_q_2,  bpf_gain_3, bpf_freq_3, bpf_q_3,  bpf_gain_4, bpf_freq_4, bpf_q_4,  bpf_gain_5, bpf_freq_5, bpf_q_5) VALUES (2, 'right', 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0);
-INSERT INTO FILTERBANK (id, stereo_choice, bpf_gain_1, bpf_freq_1, bpf_q_1,  bpf_gain_2, bpf_freq_2, bpf_q_2,  bpf_gain_3, bpf_freq_3, bpf_q_3,  bpf_gain_4, bpf_freq_4, bpf_q_4,  bpf_gain_5, bpf_freq_5, bpf_q_5) VALUES (3, 'both', 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0);
+INSERT INTO FILTERBANK (id, stereo_choice, bpf_gain_1, bpf_freQ_1, bpf_Q_1,  bpf_gain_2, bpf_freQ_2, bpf_Q_2,  bpf_gain_3, bpf_freQ_3, bpf_Q_3,  bpf_gain_4, bpf_freQ_4, bpf_Q_4,  bpf_gain_5, bpf_freQ_5, bpf_Q_5) VALUES (1, 'left', 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0);
+INSERT INTO FILTERBANK (id, stereo_choice, bpf_gain_1, bpf_freQ_1, bpf_Q_1,  bpf_gain_2, bpf_freQ_2, bpf_Q_2,  bpf_gain_3, bpf_freQ_3, bpf_Q_3,  bpf_gain_4, bpf_freQ_4, bpf_Q_4,  bpf_gain_5, bpf_freQ_5, bpf_Q_5) VALUES (2, 'right', 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0);
+INSERT INTO FILTERBANK (id, stereo_choice, bpf_gain_1, bpf_freQ_1, bpf_Q_1,  bpf_gain_2, bpf_freQ_2, bpf_Q_2,  bpf_gain_3, bpf_freQ_3, bpf_Q_3,  bpf_gain_4, bpf_freQ_4, bpf_Q_4,  bpf_gain_5, bpf_freQ_5, bpf_Q_5) VALUES (3, 'both', 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0);
 
 "
 
-# cp db.sqlite .
-cp db.sqlite ./target/debug
+# cp db.sQlite .
+cp db.sQlite ./target/debug
+
+rm types.svelte-e

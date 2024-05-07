@@ -8,9 +8,13 @@
     freq_response,
     mel,
     bark_scale,
-    rgbToHex,
+    hexToRgb,
   } from "./functions.svelte";
-  import { type BPF } from "./types.svelte";
+  import {
+    type BPF,
+    type ComponentColors,
+    type Settings,
+  } from "./types.svelte";
   import {
     FREQ_PLOT_HEIGHT,
     FREQ_PLOT_WIDTH,
@@ -24,7 +28,6 @@
   export let bpfs: Array<BPF>;
   export let fft_data: any;
   export let is_playing = false;
-  export let selectedRecording: string;
   export let bpf_hovering = Array(num_sliders).fill(false);
 
   let eq_color: string;
@@ -37,10 +40,10 @@
   let draw_filter_amp_axis = true;
   let draw_freq_axis = true;
 
-  export let settings: any;
-  export let theme: any;
+  export let settings: Settings;
+  export let theme: ComponentColors;
 
-  export let time_data: any;
+  export let time_data: Array<number> = [];
 
   let freq_axis_labels = [20, 500, 1000, 2000, 5000, 10000, 20000];
   let filter_amp_axis_labels = [30, 20, 10, 0, -10, -20, -30];
@@ -91,13 +94,14 @@
 
   $: settings, update_settings();
   $: theme, update_settings();
+  $: time_data, redraw_time_data();
 
   function update_settings() {
     if (settings && theme) {
-      plot_total_curve = rgbToHex(theme.plot_total_curve);
-      eq_color = rgbToHex(theme.plot_single_filter);
-      eq_hover_color = rgbToHex(theme.plot_filter_hover);
-      plot_color = theme.plot_main;
+      plot_total_curve = theme.plot_total_curve;
+      eq_color = theme.plot_single_filter;
+      eq_hover_color = theme.plot_filter_hover;
+      plot_color = hexToRgb(theme.plot_main);
       plot_scale = settings.plot_scale;
       max_plot_freq = set_plot_scale(NYQUIST);
       draw_fft_amp_axis = settings.draw_fft_amp_axis;
@@ -105,7 +109,6 @@
       draw_freq_axis = settings.draw_freq_axis;
       update_filter_bank(true);
       update_axes();
-      get_time_data(selectedRecording);
     }
   }
 
@@ -117,7 +120,7 @@
 
   onMount(() => {
     plot_scale = "Log";
-    freq_axis_labels.map((i) => {
+    freq_axis_labels.map((_i) => {
       // console.log(i, get_plot_scale(i, plot_scale));
     });
 
@@ -141,7 +144,12 @@
   function redraw_time_data() {
     let renderPlot = () => {
       line = new WebglLine(
-        new ColorRGBA(plot_color.r / 255, plot_color.g / 255, plot_color.b / 255, 1),
+        new ColorRGBA(
+          plot_color.r / 255,
+          plot_color.g / 255,
+          plot_color.b / 255,
+          1
+        ),
         time_data.length
       );
 
@@ -159,46 +167,6 @@
     time_data && requestAnimationFrame(renderPlot);
   }
 
-  function get_time_data(file_path: string) {
-    console.log(file_path);
-
-    if (file_path === "" || plot_color === undefined) return;
-    // check cache...maybe
-    // if (time_data !== undefined) {
-    //   redraw_time_data();
-    //   return;
-    // }
-    is_loading = true;
-    invoke("get_time_data", { path: file_path }).then((res) => {
-      let data: any = res;
-      // let data = [1,2,3]
-      time_data = data;
-      // console.log(time_data);
-      let renderPlot = () => {
-        line = new WebglLine(
-          new ColorRGBA(
-            plot_color.r / 255,
-            plot_color.g,
-            plot_color.b / 255,
-            1
-          ),
-          data.length
-        );
-
-        webglp.removeAllLines();
-        webglp.addLine(line);
-        line.arrangeX();
-        let hop = Math.round(data.length / TIME_PLOT_WIDTH / 8);
-        for (let i = 0; i < data.length; i += hop) {
-          line.setY(i, data[i]);
-        }
-        webglp.update();
-
-        is_loading = false;
-      };
-      requestAnimationFrame(renderPlot);
-    });
-  }
 
   function update_fft() {
     let data = Promise.resolve(fft_data);
@@ -410,7 +378,6 @@
     !is_playing && update_filter_bank(true),
     !is_playing && update_axes();
   $: bpf_hovering, update_filter_bank(true), update_axes();
-  $: time_data, redraw_time_data();
   $: fft_data, update_fft();
 </script>
 
