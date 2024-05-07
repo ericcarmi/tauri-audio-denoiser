@@ -22,12 +22,12 @@
     NYQUIST,
     TIME_PLOT_HEIGHT,
     TIME_PLOT_WIDTH,
-    num_sliders,
   } from "./constants.svelte";
 
   export let bpfs: Array<BPF>;
   export let fft_data: any;
   export let is_playing = false;
+  export let num_sliders = 0;
   export let bpf_hovering = Array(num_sliders).fill(false);
 
   let eq_color: string;

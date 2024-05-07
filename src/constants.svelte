@@ -1,8 +1,10 @@
 <script context="module" lang="ts">
 	import { invoke } from "@tauri-apps/api/tauri";
-	export const num_sliders = async () => {
-		return await invoke("get_num_filters");
-	};
+	// this doesn't work, can't be run in here, returns promise
+	export async function get_num_filters() {
+		let n = await invoke("get_num_filters");
+		return n as number
+	}
 	export const FREQ_PLOT_WIDTH = 950;
 	export const FREQ_PLOT_HEIGHT = 300;
 	export const TIME_PLOT_WIDTH = FREQ_PLOT_WIDTH;

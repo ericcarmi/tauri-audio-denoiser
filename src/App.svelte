@@ -5,7 +5,7 @@
   import { onDestroy, onMount } from "svelte";
 
   import Plot from "./plot.svelte";
-  import { DOWN_RATE, FREQ_PLOT_WIDTH, num_sliders } from "./constants.svelte";
+  import { DOWN_RATE, FREQ_PLOT_WIDTH, get_num_filters } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
   import type {
     UIParams,
@@ -22,6 +22,7 @@
   import RotarySlider from "./rotary-slider.svelte";
   import Settings from "./settings.svelte";
 
+  let num_sliders = 0;
   let settings: any;
   let theme: any;
   let is_processing = false;
@@ -134,6 +135,7 @@
   }
 
   onMount(async () => {
+    num_sliders = await get_num_filters();
     await get_ui_params(ui_params.stereo_choice);
     settings = await invoke("sql_settings").catch(async (r) => {
       // await message("have to init settings", "denoiser");
@@ -164,11 +166,12 @@
     {#if show_settings}
       <Settings bind:settings bind:show_settings bind:theme />
     {/if}
-    {#if bpfs.bank.length === 5}
+    {#if bpfs.bank.length === num_sliders}
       <Plot
         bind:settings
         bind:theme
         bind:bpf_hovering
+        bind:num_sliders
         bind:is_playing
         bind:bpfs={bpfs.bank}
         bind:time_data
@@ -307,7 +310,7 @@
     class="filter-grid"
     style="grid-template-columns:repeat({num_sliders}, auto)"
   >
-    {#if bpfs.bank.length === 5}
+    {#if bpfs.bank.length === num_sliders}
       {#each bpfs.bank as _, i}
         <div
           class="bpf-wrap"

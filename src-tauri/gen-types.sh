@@ -8,3 +8,4 @@ sed '1 i\
 sed -i -e '$a\'$'\n''</script>' types.svelte
 npx prettier --write --plugin prettier-plugin-svelte types.svelte
 mv types.svelte ../src/
+rm types.svelte-e

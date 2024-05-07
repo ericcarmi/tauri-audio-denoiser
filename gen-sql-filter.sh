@@ -1,7 +1,7 @@
 #!/bin/zsh
 num_filters=-1;
 
-input="./src/constants.rs"
+input="./src-tauri/src/constants.rs"
 while IFS= read -r line
 do
   # echo "$line"

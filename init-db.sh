@@ -1,5 +1,4 @@
-#!/bin/sh
-rm db.sqlite
+#!/bin/bash
 
 red=#ff0000
 green=#00ff00
@@ -102,7 +101,7 @@ INSERT INTO FILTERBANK (id, stereo_choice, bpf_gain_1, bpf_freQ_1, bpf_Q_1,  bpf
 
 "
 
-# cp db.sQlite .
-cp db.sQlite ./target/debug
+# cp db.sqlite .
+cp db.sqlite ./src-tauri/target/debug
+rm db.sqlite
 
-rm types.svelte-e
