@@ -31,6 +31,7 @@ fn main() {
             get_stft_data,
             get_time_onefft,
             get_time_data,
+            constants::get_num_filters,
             message_filters,
             message_time,
             message_clean,
@@ -112,7 +113,7 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
     app.run(|_app_handle, event| match event {
-        tauri::RunEvent::ExitRequested { api, .. } => {
+        tauri::RunEvent::ExitRequested { .. } => {
             // can get api from brackets ^
         }
         _ => {}

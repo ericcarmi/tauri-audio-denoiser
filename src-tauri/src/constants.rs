@@ -5,11 +5,11 @@ use rustfft::num_complex::Complex;
 use crate::types::IIR2;
 
 pub const NUM_FILTERS: usize = 5;
-// #[derive(Serialize, Deserialize, TS)]
-// #[ts(export)]
-// pub struct ExportedConstants {
-//     num_filters: usize,
-// }
+
+#[tauri::command]
+pub fn get_num_filters() -> usize {
+    NUM_FILTERS
+}
 
 pub const TEST_FILE_PATH: &str = "assets/reisman.wav";
 pub const ASSETS_PATH: &str = "assets/";
