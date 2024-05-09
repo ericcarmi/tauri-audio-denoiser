@@ -11,7 +11,7 @@
     get_num_filters,
   } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
-  import type { UIParams, StereoChoice, UIFilters } from "./types.svelte";
+  import type { UIParams, StereoChoice, UIFilters, BPF } from "./types.svelte";
   import {
     init_ui_params,
     remove_slashes_ext,
@@ -40,13 +40,14 @@
   let is_stereo = true;
 
   let is_time_slider_dragging = false;
+  let filters_message: Array<BPF>;
 
   let fft_data: any;
-  let bpfs: UIFilters = {
-    bank: Array(num_sliders).flatMap((_) => {
-      return { gain: 0, freq: 1000, Q: 1 };
-    }),
-  } as UIFilters;
+  // let bpfs: UIFilters = {
+  //   bank: Array(num_sliders).flatMap((_) => {
+  //     return { gain: 0, freq: 1000, Q: 1 };
+  //   }),
+  // } as UIFilters;
 
   let ui_params: UIParams = init_ui_params(gains, freqs, Qs);
 
@@ -91,7 +92,8 @@
         await invoke("sql_filter_bank", { stereoChoice: new_choice }).then(
           (res) => {
             const fb = res as UIFilters;
-            bpfs = fb;
+            // bpfs = fb;
+            ui_params.filters = fb;
           }
         );
       }
@@ -108,7 +110,7 @@
       pre_smooth_gain: ui_params.pre_smooth_gain,
       clean: ui_params.clean,
       stereo_choice: ui_params.stereo_choice,
-      filters: bpfs,
+      filters: ui_params.filters,
     };
     invoke("sql_update_ui_params", {
       stereoChoice: ui_params.stereo_choice,
@@ -163,14 +165,14 @@
     {#if show_settings}
       <Settings bind:settings bind:show_settings bind:theme />
     {/if}
-    {#if bpfs.bank.length === num_sliders}
+    {#if ui_params.filters.bank.length === num_sliders}
       <Plot
         bind:settings
         bind:theme
         bind:bpf_hovering
         bind:num_sliders
         bind:is_playing
-        bind:bpfs={bpfs.bank}
+        bind:bpfs={ui_params.filters.bank}
         bind:time_data
         {fft_data}
       />
@@ -279,17 +281,18 @@
               invoke("message_time", {
                 time: time * num_time_samples,
               });
-              // invoke("message_all", {
-              //   stereo_choice: ui_params.stereo_choice,
-              //   left_mute: ui_params.left_mute,
-              //   right_mute: ui_params.right_mute,
-              //   noise_gain: ui_params.noise_gain,
-              //   output_gain: ui_params.output_gain,
-              //   post_smooth_gain: ui_params.post_smooth_gain,
-              //   pre_smooth_gain: ui_params.pre_smooth_gain,
-              //   clean: ui_params.clean,
-              //   filters: bpfs,
-              // });
+
+              invoke("message_all", {
+                stereoChoice: ui_params.stereo_choice,
+                leftMute: ui_params.left_mute,
+                rightMute: ui_params.right_mute,
+                noiseGain: ui_params.noise_gain,
+                outputGain: ui_params.output_gain,
+                postSmoothGain: ui_params.post_smooth_gain,
+                preSmoothGain: ui_params.pre_smooth_gain,
+                clean: ui_params.clean,
+                filters: ui_params.filters.bank,
+              });
             });
             is_playing = true;
           } else {
@@ -318,8 +321,8 @@
     class="filter-grid"
     style="grid-template-columns:repeat({num_sliders}, auto)"
   >
-    {#if bpfs.bank.length === num_sliders}
-      {#each bpfs.bank as _, i}
+    {#if ui_params.filters.bank.length === num_sliders}
+      {#each ui_params.filters.bank as _, i}
         <div
           class="bpf-wrap"
           role="button"
@@ -332,9 +335,9 @@
           }}
         >
           <BandpassSlider
-            bind:gain={bpfs.bank[i].gain}
-            bind:freq={bpfs.bank[i].freq}
-            bind:Q={bpfs.bank[i].Q}
+            bind:gain={ui_params.filters.bank[i].gain}
+            bind:freq={ui_params.filters.bank[i].freq}
+            bind:Q={ui_params.filters.bank[i].Q}
             bind:stereo_choice={ui_params.stereo_choice}
             index={i}
           />

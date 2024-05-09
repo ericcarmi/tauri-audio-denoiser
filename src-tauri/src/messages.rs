@@ -26,7 +26,7 @@ pub async fn message_all(
     noise_gain: f32,
     pre_smooth_gain: f32,
     post_smooth_gain: f32,
-    filters: FiltersMessage,
+    filters: [Option<BPF>; NUM_FILTERS],
 ) -> Result<(), String> {
     stereo_message(
         stereo_choice,
@@ -74,7 +74,7 @@ pub fn message_filters(
         stereo_choice,
         streamsend,
         Some(ChannelMessage {
-            filters: Some(filters_message),
+            filters: Some(filters),
             ..Default::default()
         }),
     );
@@ -273,7 +273,7 @@ pub struct ChannelMessage {
     pub noise_gain: Option<f32>,
     pub pre_smooth_gain: Option<f32>,
     pub post_smooth_gain: Option<f32>,
-    pub filters: Option<FiltersMessage>,
+    pub filters: Option<[Option<BPF>; NUM_FILTERS]>,
 }
 
 impl Default for ChannelMessage {
@@ -391,7 +391,7 @@ impl UIAudioMessage {
     pub fn recv_channel(&self, channel_params: &mut AudioParams, channel_message: ChannelMessage) {
         // new code -- iterate through filters
         if let Some(msg) = channel_message.filters {
-            for (i, filter) in msg.filters.iter().enumerate() {
+            for (i, filter) in msg.iter().enumerate() {
                 if let Some(f) = filter {
                     let iir: IIR2 = Into::<IIR2>::into(*f);
                     channel_params.filters.bank[i].update_coeffs(iir);
