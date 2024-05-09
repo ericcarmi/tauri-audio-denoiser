@@ -2,10 +2,8 @@
 	import { onMount } from "svelte";
 	import { NYQUIST } from "./constants.svelte";
 
-
 	export let control_max_freq = NYQUIST;
 	export let control_min_freq = 20;
-
 	export let value: number = control_max_freq / 2;
 	export let index: number;
 	export let update_backend = () => {};

@@ -78,26 +78,54 @@ INSERT INTO UI_PARAMS (id, stereo_choice, output_gain, noise_gain, pre_smooth_ga
 CREATE TABLE FILTERBANK (
   id INTEGER PRIMARY KEY,
   stereo_choice TEXT NOT NULL,
+  bpf_gain_0 REAL,
+  bpf_freq_0 REAL,
+  bpf_Q_0 REAL,
   bpf_gain_1 REAL,
-  bpf_freQ_1 REAL,
+  bpf_freq_1 REAL,
   bpf_Q_1 REAL,
   bpf_gain_2 REAL,
-  bpf_freQ_2 REAL,
+  bpf_freq_2 REAL,
   bpf_Q_2 REAL,
   bpf_gain_3 REAL,
-  bpf_freQ_3 REAL,
+  bpf_freq_3 REAL,
   bpf_Q_3 REAL,
   bpf_gain_4 REAL,
-  bpf_freQ_4 REAL,
-  bpf_Q_4 REAL,
-  bpf_gain_5 REAL,
-  bpf_freQ_5 REAL,
-  bpf_Q_5 REAL
+  bpf_freq_4 REAL,
+  bpf_Q_4 REAL
 );
 
-INSERT INTO FILTERBANK (id, stereo_choice, bpf_gain_1, bpf_freQ_1, bpf_Q_1,  bpf_gain_2, bpf_freQ_2, bpf_Q_2,  bpf_gain_3, bpf_freQ_3, bpf_Q_3,  bpf_gain_4, bpf_freQ_4, bpf_Q_4,  bpf_gain_5, bpf_freQ_5, bpf_Q_5) VALUES (1, 'left', 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0);
-INSERT INTO FILTERBANK (id, stereo_choice, bpf_gain_1, bpf_freQ_1, bpf_Q_1,  bpf_gain_2, bpf_freQ_2, bpf_Q_2,  bpf_gain_3, bpf_freQ_3, bpf_Q_3,  bpf_gain_4, bpf_freQ_4, bpf_Q_4,  bpf_gain_5, bpf_freQ_5, bpf_Q_5) VALUES (2, 'right', 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0);
-INSERT INTO FILTERBANK (id, stereo_choice, bpf_gain_1, bpf_freQ_1, bpf_Q_1,  bpf_gain_2, bpf_freQ_2, bpf_Q_2,  bpf_gain_3, bpf_freQ_3, bpf_Q_3,  bpf_gain_4, bpf_freQ_4, bpf_Q_4,  bpf_gain_5, bpf_freQ_5, bpf_Q_5) VALUES (3, 'both', 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 1000.0, 1.0);
+INSERT INTO FILTERBANK (stereo_choice, bpf_gain_0, bpf_freq_0, bpf_Q_0, bpf_gain_1, bpf_freq_1, bpf_Q_1,  bpf_gain_2, bpf_freq_2, bpf_Q_2,  bpf_gain_3, bpf_freq_3, bpf_Q_3,  bpf_gain_4, bpf_freq_4, bpf_Q_4) 
+VALUES ('left', 0.0, 100.0, 1.0, 0.0, 500.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 2000.0, 1.0, 0.0, 5000.0, 1.0);
+INSERT INTO FILTERBANK (stereo_choice, bpf_gain_0, bpf_freq_0, bpf_Q_0, bpf_gain_1, bpf_freq_1, bpf_Q_1,  bpf_gain_2, bpf_freq_2, bpf_Q_2,  bpf_gain_3, bpf_freq_3, bpf_Q_3,  bpf_gain_4, bpf_freq_4, bpf_Q_4) 
+VALUES ('right', 0.0, 100.0, 1.0, 0.0, 500.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 2000.0, 1.0, 0.0, 5000.0, 1.0);
+INSERT INTO FILTERBANK (stereo_choice, bpf_gain_0, bpf_freq_0, bpf_Q_0, bpf_gain_1, bpf_freq_1, bpf_Q_1,  bpf_gain_2, bpf_freq_2, bpf_Q_2,  bpf_gain_3, bpf_freq_3, bpf_Q_3,  bpf_gain_4, bpf_freq_4, bpf_Q_4) 
+VALUES ('both', 0.0, 100.0, 1.0, 0.0, 500.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 2000.0, 1.0, 0.0, 5000.0, 1.0);
+
+
+CREATE TABLE FREQRANGE (
+  id INTEGER PRIMARY KEY,
+  stereo_choice TEXT NOT NULL,
+  index INTEGER,
+  min REAL,
+  max REAL,
+);
+
+INSERT INTO FREQRANGE (stereo_choice, index, min, max) VALUES (
+  ('left', 0, 20, 500)  
+);
+INSERT INTO FREQRANGE (stereo_choice, index, min, max) VALUES (
+  ('left', 1, 100, 1000)  
+);
+INSERT INTO FREQRANGE (stereo_choice, index, min, max) VALUES (
+  ('left', 2, 500, 2000)  
+);
+INSERT INTO FREQRANGE (stereo_choice, index, min, max) VALUES (
+  ('left', 3, 1000, 5000)  
+);
+INSERT INTO FREQRANGE (stereo_choice, index, min, max) VALUES (
+  ('left', 4, 2000, 10000)  
+);
 
 "
 

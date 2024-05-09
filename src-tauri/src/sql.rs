@@ -247,11 +247,12 @@ pub fn update_ui_params(
     let bank = ui_params.filters.bank;
     for i in 0..NUM_FILTERS {
         filter_string += format!(
-            " bpf_gain_{} = {}, bpf_freq_{} = {}, bpf_Q_{} = {} ",
+            " bpf_gain_{} = {}, bpf_freq_{} = {}, bpf_Q_{} = {},",
             i, bank[i].gain, i, bank[i].freq, i, bank[i].Q
         )
         .as_str()
     }
+    filter_string.pop();
 
     let mut q = format!("UPDATE UI_PARAMS SET clean={}, left_mute={}, right_mute={}, output_gain={}, noise_gain={}, pre_smooth_gain={}, post_smooth_gain={}  WHERE stereo_choice='{}';
         UPDATE FILTERBANK SET          

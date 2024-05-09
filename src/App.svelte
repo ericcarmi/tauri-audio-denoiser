@@ -5,15 +5,13 @@
   import { onDestroy, onMount } from "svelte";
 
   import Plot from "./plot.svelte";
-  import { DOWN_RATE, FREQ_PLOT_WIDTH, get_num_filters } from "./constants.svelte";
+  import {
+    DOWN_RATE,
+    FREQ_PLOT_WIDTH,
+    get_num_filters,
+  } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
-  import type {
-    UIParams,
-    StereoChoice,
-    Filters,
-    UIFilters,
-    BPF,
-  } from "./types.svelte";
+  import type { UIParams, StereoChoice, UIFilters } from "./types.svelte";
   import {
     init_ui_params,
     remove_slashes_ext,
@@ -30,7 +28,6 @@
   let processing_percentage = 0;
 
   let show_settings = false;
-  // if these values are the same as what is in server, values will not update when loaded, so use values that are way out of range? silly but it works
   var gains = [0, 0, 0, 0, 0];
   var freqs = [100, 500, 1000, 2000, 5000];
   var Qs = [1, 1, 1, 1, 1];
@@ -137,7 +134,7 @@
   onMount(async () => {
     num_sliders = await get_num_filters();
     await get_ui_params(ui_params.stereo_choice);
-    settings = await invoke("sql_settings").catch(async (r) => {
+    settings = await invoke("sql_settings").catch(async (_r) => {
       // await message("have to init settings", "denoiser");
       // await invoke("init_settings");
       // settings = await invoke("get_settings");
@@ -214,7 +211,7 @@
             } else if (ui_params.stereo_choice === "Right") {
               get_ui_params("Both");
             } else if (ui_params.stereo_choice === "Both") {
-              get_ui_params("Right");
+              get_ui_params("Left");
             }
           }}>L</button
         >
@@ -226,9 +223,9 @@
             if (ui_params.stereo_choice === "Left") {
               get_ui_params("Both");
             } else if (ui_params.stereo_choice === "Right") {
-              get_ui_params("Both");
-            } else if (ui_params.stereo_choice === "Both") {
               get_ui_params("Left");
+            } else if (ui_params.stereo_choice === "Both") {
+              get_ui_params("Right");
             }
           }}>R</button
         >
@@ -282,6 +279,17 @@
               invoke("message_time", {
                 time: time * num_time_samples,
               });
+              // invoke("message_all", {
+              //   stereo_choice: ui_params.stereo_choice,
+              //   left_mute: ui_params.left_mute,
+              //   right_mute: ui_params.right_mute,
+              //   noise_gain: ui_params.noise_gain,
+              //   output_gain: ui_params.output_gain,
+              //   post_smooth_gain: ui_params.post_smooth_gain,
+              //   pre_smooth_gain: ui_params.pre_smooth_gain,
+              //   clean: ui_params.clean,
+              //   filters: bpfs,
+              // });
             });
             is_playing = true;
           } else {
@@ -328,7 +336,7 @@
             bind:freq={bpfs.bank[i].freq}
             bind:Q={bpfs.bank[i].Q}
             bind:stereo_choice={ui_params.stereo_choice}
-            index={i + 1}
+            index={i}
           />
         </div>
       {/each}
@@ -631,9 +639,11 @@
   }
   .mute-button {
     background: var(--rotary-tick);
+    border: 1px solid black;
   }
   .mute-button[data-attribute="true"] {
     background: black;
+    border: 1px solid var(--rotary-tick);
     text-decoration: line-through;
     filter: contrast(70%);
   }

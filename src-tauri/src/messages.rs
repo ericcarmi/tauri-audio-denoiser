@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use crate::{
     audio::setup_stream,
-    constants::{czerov, from_log},
+    constants::{czerov, from_log, NUM_FILTERS},
     types::{
         AudioParams, FiltersMessage, MSender, MStream, MStreamSend, MUIReceiver, StereoChoice,
         StereoParams, BPF, IIR2,
@@ -26,7 +26,7 @@ pub async fn message_all(
     noise_gain: f32,
     pre_smooth_gain: f32,
     post_smooth_gain: f32,
-    filter_bank: FilterBankMessage,
+    filters: FiltersMessage,
 ) -> Result<(), String> {
     stereo_message(
         stereo_choice,
@@ -39,7 +39,7 @@ pub async fn message_all(
             noise_gain: Some(from_log(noise_gain)),
             pre_smooth_gain: Some(pre_smooth_gain),
             post_smooth_gain: Some(post_smooth_gain),
-            filter_bank: Some(filter_bank),
+            filters: Some(filters),
             ..Default::default()
         }),
     );
@@ -56,35 +56,25 @@ pub fn message_filters(
     Q: f32,
     streamsend: State<MStreamSend>,
 ) {
-    let gain = (10.0_f32).powf(gain / 20.0);
-    let filter_bank_message = match index {
-        1 => FilterBankMessage {
-            bp1: Some(BPF { gain, freq, Q }),
-            ..Default::default()
-        },
-        2 => FilterBankMessage {
-            bp2: Some(BPF { gain, freq, Q }),
-            ..Default::default()
-        },
-        3 => FilterBankMessage {
-            bp3: Some(BPF { gain, freq, Q }),
-            ..Default::default()
-        },
-        4 => FilterBankMessage {
-            bp4: Some(BPF { gain, freq, Q }),
-            ..Default::default()
-        },
-        5 => FilterBankMessage {
-            bp5: Some(BPF { gain, freq, Q }),
-            ..Default::default()
-        },
-        _ => FilterBankMessage::default(),
+    if index >= NUM_FILTERS {
+        return;
+    }
+    let gain = from_log(gain);
+
+    let mut filters = [None; NUM_FILTERS];
+    let bpf = BPF {
+        gain: from_log(gain),
+        freq,
+        Q,
     };
+    filters[index] = Some(bpf);
+    let filters_message = FiltersMessage { filters };
+
     stereo_message(
         stereo_choice,
         streamsend,
         Some(ChannelMessage {
-            filter_bank: Some(filter_bank_message),
+            filters: Some(filters_message),
             ..Default::default()
         }),
     );
@@ -143,7 +133,7 @@ pub fn message_right_mute(mute: bool, streamsend: State<MStreamSend>, stereo_cho
 
 #[tauri::command]
 pub fn message_output_gain(gain: f32, streamsend: State<MStreamSend>, stereo_choice: StereoChoice) {
-    let g = (10.0_f32).powf(gain / 20.0);
+    let g = from_log(gain);
     stereo_message(
         stereo_choice,
         streamsend,
@@ -156,7 +146,7 @@ pub fn message_output_gain(gain: f32, streamsend: State<MStreamSend>, stereo_cho
 
 #[tauri::command]
 pub fn message_noise_gain(gain: f32, streamsend: State<MStreamSend>, stereo_choice: StereoChoice) {
-    let g = (10.0_f32).powf(gain / 20.0) / 10.0;
+    let g = from_log(gain);
 
     stereo_message(
         stereo_choice,
@@ -272,28 +262,6 @@ fn stereo_message(
     };
 }
 
-// would prefer to have this derived from FilterBank, but would have to do with macros to get Options for each item splayed out
-#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
-pub struct FilterBankMessage {
-    pub bp1: Option<BPF>,
-    pub bp2: Option<BPF>,
-    pub bp3: Option<BPF>,
-    pub bp4: Option<BPF>,
-    pub bp5: Option<BPF>,
-}
-
-impl Default for FilterBankMessage {
-    fn default() -> Self {
-        Self {
-            bp1: None,
-            bp2: None,
-            bp3: None,
-            bp4: None,
-            bp5: None,
-        }
-    }
-}
-
 /// a message from a single channel (left or right)
 #[derive(Clone, Debug, Copy)]
 pub struct ChannelMessage {
@@ -305,7 +273,6 @@ pub struct ChannelMessage {
     pub noise_gain: Option<f32>,
     pub pre_smooth_gain: Option<f32>,
     pub post_smooth_gain: Option<f32>,
-    pub filter_bank: Option<FilterBankMessage>,
     pub filters: Option<FiltersMessage>,
 }
 
@@ -321,7 +288,6 @@ impl Default for ChannelMessage {
             noise_gain: None,
             pre_smooth_gain: None,
             post_smooth_gain: None,
-            filter_bank: None,
             filters: None,
         }
     }
@@ -453,24 +419,6 @@ impl UIAudioMessage {
         if let Some(g) = channel_message.post_smooth_gain {
             channel_params.ui_params.post_smooth_gain = g;
         }
-    }
-}
-
-#[tauri::command]
-pub fn get_is_stereo(streamsend: State<MStreamSend>) -> Result<AudioUIMessage, String> {
-    let r = streamsend
-        .0
-        .lock()
-        .unwrap()
-        .mreceiver
-        .0
-        .lock()
-        .unwrap()
-        .try_recv();
-    if r.is_ok() {
-        Ok(r.unwrap())
-    } else {
-        r.map_err(|e| e.to_string())
     }
 }
 

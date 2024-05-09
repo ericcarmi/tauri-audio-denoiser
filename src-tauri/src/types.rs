@@ -122,18 +122,6 @@ impl IIR2 {
             y: [0.0, 0.0],
         }
     }
-    // pub fn process(&mut self, data: f32) -> f32 {
-    //     let out = (self.b0 * data + self.b1 * self.x[0] + self.b2 * self.x[1]
-    //         - self.a1 * self.y[0]
-    //         - self.a2 * self.y[1])
-    //         / self.a0;
-    //     self.x[1] = self.x[0];
-    //     self.x[0] = data;
-    //     self.y[1] = self.y[0];
-    //     self.y[0] = out;
-    //     out
-    // }
-
     pub fn update_coeffs(&mut self, iir: IIR2) {
         self.b0 = iir.b0;
         self.b1 = iir.b1;
@@ -198,6 +186,7 @@ impl Filters {
             let h = filt.freq_response(n);
             H.iter_mut().enumerate().for_each(|(i, x)| *x += h[i] / l);
         }
+
         // take norm after summing filters
         let mut out: Vec<f32> = H.iter().map(|x| x.norm()).collect();
         if out[0].is_nan() {

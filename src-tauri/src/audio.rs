@@ -1,9 +1,7 @@
 use crate::constants::*;
 use crate::messages::{AudioUIMessage, UIAudioMessage};
-use crate::sql::{query_filter_bank, query_ui_params};
 use crate::types::*;
 use anyhow;
-use cpal::traits::StreamTrait;
 use cpal::FromSample;
 use cpal::{self};
 use cpal::{
@@ -11,7 +9,7 @@ use cpal::{
     SizedSample,
 };
 use std::fs::File;
-use tauri::{AppHandle, State, Window};
+use tauri::{AppHandle, Window};
 
 pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>, bool) {
     let p = app_handle
@@ -241,6 +239,7 @@ where
                         if stereo_params.time + 2 >= stereo_params.num_file_samples {
                             break;
                         }
+
                         if !stereo_params.left.ui_params.left_mute {
                             let left_sample = file_samples[stereo_params.time]
                                 * stereo_params.left.ui_params.output_gain;
@@ -277,15 +276,6 @@ where
                     }
                 }
 
-                // send a chunk of the fft here
-                // let _r = tx_ui.try_send(AudioUIMessage {
-                //     spectrum: Some(
-                //         stereo_params.left.sdft.norm_vec()[0..stereo_params.left.sdft.size / 2]
-                //             .to_vec(),
-                //     ),
-                //     ..Default::default()
-                // });
-
                 let _ = window.emit(
                     AudioUIMessage::name(),
                     AudioUIMessage {
@@ -304,177 +294,4 @@ where
     )?;
 
     Ok((stream, tx))
-}
-
-#[tauri::command]
-pub async fn process_export(
-    streamsend: State<'_, MStreamSend>,
-    app_handle: AppHandle,
-    file_path: Option<String>,
-    stereo_choice: StereoChoice,
-    window: Window,
-) -> Result<(), String> {
-    let _ = streamsend
-        .0
-        .lock()
-        .unwrap()
-        .stream
-        .0
-        .lock()
-        .unwrap()
-        .pause();
-
-    // file samples are not an audio param, stream is remade when file is changed so this stays
-    let file_samples;
-    let is_stereo;
-    // need to update this
-    if let Some(f) = file_path {
-        (file_samples, is_stereo) = get_wav_samples(f.as_str(), app_handle.clone());
-    } else {
-        (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE_PATH, app_handle.clone());
-    }
-
-    let p = app_handle
-        .path_resolver()
-        .resource_dir()
-        .expect("failed to resolve resource")
-        .into_os_string()
-        .into_string()
-        .unwrap();
-
-    // query db
-
-    let mut stereo_params = StereoParams::new();
-    stereo_params.is_stereo = is_stereo;
-    stereo_params.num_file_samples = file_samples.len();
-
-    match stereo_choice {
-        StereoChoice::Both => {
-            let filter_bank = query_filter_bank(stereo_choice, p.clone());
-            let ui_params = query_ui_params(stereo_choice, p);
-            if filter_bank.is_err() || ui_params.is_err() {
-                // return something
-            }
-            let fb = filter_bank.unwrap();
-            stereo_params.left.filters = fb.clone().into();
-            stereo_params.right.filters = fb.into();
-            stereo_params.left.noise_spectrum = stereo_params.left.filters.parallel_transfer(256);
-            stereo_params.right.noise_spectrum = stereo_params.right.filters.parallel_transfer(256);
-            let p = ui_params.unwrap();
-            stereo_params.left.ui_params.noise_gain = from_log(p.noise_gain);
-            stereo_params.left.ui_params.output_gain = from_log(p.output_gain);
-            stereo_params.left.ui_params.pre_smooth_gain = p.pre_smooth_gain;
-            stereo_params.left.ui_params.post_smooth_gain = p.post_smooth_gain;
-            stereo_params.right.ui_params.noise_gain = from_log(p.noise_gain);
-            stereo_params.right.ui_params.output_gain = from_log(p.output_gain);
-            stereo_params.right.ui_params.pre_smooth_gain = p.pre_smooth_gain;
-            stereo_params.right.ui_params.post_smooth_gain = p.post_smooth_gain;
-        }
-        _ => {
-            let left_bank = query_filter_bank(StereoChoice::Left, p.clone());
-            let right_bank = query_filter_bank(StereoChoice::Right, p.clone());
-            let left_ui_params = query_ui_params(StereoChoice::Left, p.clone());
-            let right_ui_params = query_ui_params(StereoChoice::Right, p);
-            if left_bank.is_err()
-                || left_ui_params.is_err()
-                || right_bank.is_err()
-                || right_ui_params.is_err()
-            {
-                // return something
-            }
-            stereo_params.left.filters = left_bank.unwrap().into();
-            stereo_params.right.filters = right_bank.unwrap().into();
-            stereo_params.left.noise_spectrum = stereo_params.left.filters.parallel_transfer(256);
-            stereo_params.right.noise_spectrum = stereo_params.right.filters.parallel_transfer(256);
-            let lu = left_ui_params.unwrap();
-            let ru = right_ui_params.unwrap();
-
-            stereo_params.left.ui_params.noise_gain = from_log(lu.noise_gain);
-            stereo_params.left.ui_params.output_gain = from_log(lu.output_gain);
-            stereo_params.left.ui_params.pre_smooth_gain = lu.pre_smooth_gain;
-            stereo_params.left.ui_params.post_smooth_gain = lu.post_smooth_gain;
-            stereo_params.right.ui_params.noise_gain = from_log(ru.noise_gain);
-            stereo_params.right.ui_params.output_gain = from_log(ru.output_gain);
-            stereo_params.right.ui_params.pre_smooth_gain = ru.pre_smooth_gain;
-            stereo_params.right.ui_params.post_smooth_gain = ru.post_smooth_gain;
-        }
-    }
-
-    let _ = window.emit("update_processing_percentage", 0.0);
-
-    let num_samples = stereo_params.num_file_samples;
-
-    let thread = tauri::async_runtime::spawn(async move {
-        let mut samples = vec![];
-        if !stereo_params.is_stereo {
-            for time in 0..num_samples {
-                let sample = file_samples[time] * stereo_params.left.ui_params.output_gain;
-                let filtered = stereo_params.left.sdft.spectral_subtraction(
-                    sample,
-                    &stereo_params.left.noise_spectrum,
-                    stereo_params.left.ui_params.noise_gain,
-                    stereo_params.left.ui_params.pre_smooth_gain,
-                    stereo_params.left.ui_params.post_smooth_gain,
-                );
-                samples.push(filtered);
-                samples.push(filtered);
-            }
-        }
-        // PROCESS STEREO
-        else {
-            for time in 0..num_samples / 2 - 1 {
-                if time % 4410 == 0 {
-                    let _r = window.emit(
-                        "update_processing_percentage",
-                        time as f32 / num_samples as f32 * 2.0 * 100.0,
-                    );
-                }
-
-                let left_sample = file_samples[2 * time] * stereo_params.left.ui_params.output_gain;
-                let left_filtered = stereo_params.left.sdft.spectral_subtraction(
-                    left_sample,
-                    &stereo_params.left.noise_spectrum,
-                    stereo_params.left.ui_params.noise_gain,
-                    stereo_params.left.ui_params.pre_smooth_gain,
-                    stereo_params.left.ui_params.post_smooth_gain,
-                );
-
-                samples.push(left_filtered);
-
-                let right_sample =
-                    file_samples[2 * time + 1] * stereo_params.right.ui_params.output_gain;
-                let right_filtered = stereo_params.right.sdft.spectral_subtraction(
-                    right_sample,
-                    &stereo_params.right.noise_spectrum,
-                    stereo_params.right.ui_params.noise_gain,
-                    stereo_params.right.ui_params.pre_smooth_gain,
-                    stereo_params.right.ui_params.post_smooth_gain,
-                );
-                samples.push(right_filtered);
-            }
-        };
-        samples
-    });
-
-    if let Ok(r) = thread.await {
-        let samples: Vec<f32> = r;
-        if samples.is_empty() {
-            return Err("empty samples, failed to write to file".to_string());
-        }
-        let p = app_handle
-            .path_resolver()
-            .resolve_resource(ASSETS_PATH)
-            .expect("failed to resolve resource")
-            .into_os_string()
-            .into_string()
-            .unwrap();
-
-        let header = wav_io::new_stereo_header();
-        if let Ok(mut file) = File::create(p + "/" + "output.wav") {
-            let _r = wav_io::write_to_file(&mut file, &header, &samples);
-        };
-        Ok(())
-    } else {
-        Err("failed to write to file".to_string())
-    }
 }
