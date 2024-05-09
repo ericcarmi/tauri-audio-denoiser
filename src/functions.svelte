@@ -9,6 +9,7 @@
 		IIR2,
 		StereoChoice,
 		StereoParams,
+        UIFilters,
 	} from "./types.svelte";
 
 	export function cabs(z: Complex) {
@@ -241,5 +242,21 @@
 					a: null,
 			  }
 			: null;
+	}
+
+	export function resetGains(ui_params: UIParams) {
+		let bpfs = [
+			...ui_params.filters.bank.map((filt, i) => {
+				invoke("message_filters", {
+					stereoChoice: ui_params.stereo_choice,
+					index: i + 1,
+					gain: 0.0,
+					freq: filt.freq,
+					q: filt.Q,
+				});
+				return { gain: 0.0, freq: filt.freq, Q: filt.Q };
+			}),
+		];
+		return  {bank: bpfs} as UIFilters
 	}
 </script>

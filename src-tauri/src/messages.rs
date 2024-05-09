@@ -389,7 +389,6 @@ impl UIAudioMessage {
     }
 
     pub fn recv_channel(&self, channel_params: &mut AudioParams, channel_message: ChannelMessage) {
-        // new code -- iterate through filters
         if let Some(msg) = channel_message.filters {
             for (i, filter) in msg.iter().enumerate() {
                 if let Some(f) = filter {

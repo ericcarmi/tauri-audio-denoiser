@@ -15,6 +15,7 @@
   import {
     init_ui_params,
     remove_slashes_ext,
+    resetGains,
     update_css_color,
   } from "./functions.svelte";
   import RotarySlider from "./rotary-slider.svelte";
@@ -439,18 +440,7 @@
       class="reset-all-gains-switch"
       title="reset all gains to 0 dB"
       on:click={() => {
-        // bpfs.bank = [
-        //   ...bpfs.bank.map((filt, i) => {
-        //     invoke("message_filters", {
-        //       stereoChoice: ui_params.stereo_choice,
-        //       index: i + 1,
-        //       gain: 0.0,
-        //       freq: filt.freq,
-        //       q: filt.Q,
-        //     });
-        //     return { gain: 0.0, freq: filt.freq, Q: filt.Q };
-        //   }),
-        // ];
+        ui_params.filters = resetGains(ui_params);
       }}>reset gains</button
     >
     <button
