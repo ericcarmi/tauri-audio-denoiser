@@ -43,8 +43,6 @@
   export let settings: Settings;
   export let theme: ComponentColors;
 
-  export let time_data: Array<number> = [];
-
   let freq_axis_labels = [20, 500, 1000, 2000, 5000, 10000, 20000];
   let filter_amp_axis_labels = [30, 20, 10, 0, -10, -20, -30];
   let fft_amp_axis_labels = [30, 25, 20, 15, 10, 5, 0];
@@ -87,14 +85,10 @@
 
   let is_loading = false;
 
-  let webglp: WebglPlot;
-  let line: WebglLine;
-  let canvasMain: any;
   let freqcanvas: any;
 
   $: settings, update_settings();
   $: theme, update_settings();
-  $: time_data, redraw_time_data();
 
   function update_settings() {
     if (settings && theme) {
@@ -123,50 +117,11 @@
     freq_axis_labels.map((_i) => {
       // console.log(i, get_plot_scale(i, plot_scale));
     });
-
     update_settings();
-    canvasMain = document.getElementById("time_canvas");
-    canvasMain.width = TIME_PLOT_WIDTH;
-    canvasMain.height = TIME_PLOT_HEIGHT;
-
-    webglp = new WebglPlot(canvasMain);
-    const numX = 1000;
-
-    line = new WebglLine(new ColorRGBA(1, 0, 0, 1), numX);
-    webglp.addLine(line);
-    line.arrangeX();
-
     freqcanvas = document.getElementById("freq_canvas");
     freqcanvas.width = FREQ_PLOT_WIDTH;
     freqcanvas.height = FREQ_PLOT_HEIGHT;
   });
-
-  function redraw_time_data() {
-    let renderPlot = () => {
-      line = new WebglLine(
-        new ColorRGBA(
-          plot_color.r / 255,
-          plot_color.g / 255,
-          plot_color.b / 255,
-          1
-        ),
-        time_data.length
-      );
-
-      webglp.removeAllLines();
-      webglp.addLine(line);
-      line.arrangeX();
-      let hop = Math.round(time_data.length / TIME_PLOT_WIDTH / 8);
-      for (let i = 0; i < time_data.length; i += hop) {
-        line.setY(i, time_data[i]);
-      }
-      webglp.update();
-
-      is_loading = false;
-    };
-    time_data && requestAnimationFrame(renderPlot);
-  }
-
 
   function update_fft() {
     let data = Promise.resolve(fft_data);
@@ -411,10 +366,6 @@
         >
       {/each}
     </div>
-    <canvas id="time_canvas" />
-    {#if is_loading}
-      <div class="spinner" />
-    {/if}
   </div>
 </div>
 
@@ -473,10 +424,5 @@
   }
   div {
     user-select: none;
-  }
-  .spinner {
-    position: absolute;
-    top: calc(44.7% - 1em);
-    left: calc(50% - 1em);
   }
 </style>

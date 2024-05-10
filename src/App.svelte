@@ -4,7 +4,7 @@
   import { open } from "@tauri-apps/api/dialog";
   import { onDestroy, onMount } from "svelte";
 
-  import Plot from "./plot.svelte";
+  import FreqPlot from "./freq-plot.svelte";
   import {
     DOWN_RATE,
     FREQ_PLOT_WIDTH,
@@ -20,6 +20,7 @@
   } from "./functions.svelte";
   import RotarySlider from "./rotary-slider.svelte";
   import Settings from "./settings.svelte";
+  import TimePlot from "./time-plot.svelte";
 
   let num_sliders = 0;
   let settings: any;
@@ -27,29 +28,21 @@
   let is_processing = false;
   let is_selecting_processing_choice = false;
   let processing_percentage = 0;
+  let time_position = 0;
+  let time = 0;
+  let num_time_samples = 1;
+  let time_data: Array<number> = [];
 
   let show_settings = false;
   var gains = [0, 0, 0, 0, 0];
   var freqs = [100, 500, 1000, 2000, 5000];
   var Qs = [1, 1, 1, 1, 1];
 
-  let time = 0;
-  let time_position = 0;
   let selectedRecording = "";
-  let time_data: Array<number>;
   let is_playing = false;
   let is_stereo = true;
 
-  let is_time_slider_dragging = false;
-  let filters_message: Array<BPF>;
-
   let fft_data: any;
-  // let bpfs: UIFilters = {
-  //   bank: Array(num_sliders).flatMap((_) => {
-  //     return { gain: 0, freq: 1000, Q: 1 };
-  //   }),
-  // } as UIFilters;
-
   let ui_params: UIParams = init_ui_params(gains, freqs, Qs);
 
   const unlisten_file_drop = listen("tauri://file-drop", async (event: any) => {
@@ -61,13 +54,7 @@
       processing_percentage = event.payload as number;
     }
   );
-  const unlisten_2 = listen("audioui_message", (event: any) => {
-    fft_data = event.payload.spectrum;
-    time = event.payload.time / num_time_samples;
-    time_position = time * FREQ_PLOT_WIDTH;
-  });
   onDestroy(() => {
-    unlisten_2.then((f) => f());
     unlisten_audioui_message.then((f) => f());
     unlisten_file_drop.then((f) => f());
   });
@@ -120,7 +107,6 @@
   }
 
   let bpf_hovering = Array(num_sliders).fill(false);
-  let num_time_samples = 1;
 
   function get_time_data(from_assets?: boolean) {
     if (selectedRecording === "") return;
@@ -167,40 +153,26 @@
       <Settings bind:settings bind:show_settings bind:theme />
     {/if}
     {#if ui_params.filters.bank.length === num_sliders}
-      <Plot
+      <FreqPlot
         bind:settings
         bind:theme
         bind:bpf_hovering
         bind:num_sliders
         bind:is_playing
         bind:bpfs={ui_params.filters.bank}
-        bind:time_data
         {fft_data}
       />
     {/if}
-    <input
-      style="width: {FREQ_PLOT_WIDTH}px;"
-      class="time-slider"
-      type="range"
-      data-attribute={is_time_slider_dragging}
-      min={0}
-      max={FREQ_PLOT_WIDTH}
-      bind:value={time_position}
-      on:mousedown={() => {
-        is_time_slider_dragging = true;
-      }}
-      on:mouseup={() => {
-        is_time_slider_dragging = false;
-      }}
-      on:input={() => {
-        time = time_position / FREQ_PLOT_WIDTH;
-        // only send message when playing, otherwise after dragging the slider, the first message received is the location it started in
-        is_playing &&
-          invoke("message_time", {
-            time: time * num_time_samples,
-          });
-      }}
-    />
+    {#if theme}
+      <TimePlot
+        bind:time_position
+        bind:time
+        bind:time_data
+        bind:num_time_samples
+        bind:is_playing
+        bind:plot_color={theme.plot_main}
+      />
+    {/if}
     <div class="button-bar">
       <div class="stereo-control-buttons">
         <button
@@ -524,28 +496,6 @@
 </main>
 
 <style>
-  input[type="range"] {
-    appearance: none;
-  }
-  input[type="range"]::-webkit-slider-thumb {
-    background: black;
-    appearance: none;
-    -webkit-appearance: none;
-    height: 2em;
-    width: 1em;
-  }
-
-  input[type="range"]::-webkit-slider-thumb:active {
-    background: var(--slider-active);
-  }
-  input[type="range"][data-attribute="true"]::-webkit-slider-thumb {
-    background: var(--slider-active);
-  }
-
-  input[type="range"]::-webkit-slider-runnable-track {
-    background: var(--gray100);
-  }
-
   .filter-grid {
     display: grid;
     justify-items: center;
@@ -555,17 +505,6 @@
     margin-bottom: 10px;
   }
 
-  .time-slider {
-    align-self: center;
-    border: 2px solid var(--slider-border);
-    transition: border 0.33s;
-  }
-  .time-slider[data-attribute="true"] {
-    border: 2px solid var(--slider-active);
-  }
-  .time-slider:hover {
-    border: 2px solid var(--slider-hover);
-  }
   .bpf-wrap {
     display: flex;
     height: max-content;
