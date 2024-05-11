@@ -5,7 +5,7 @@ use tauri::{AppHandle, State, Window};
 
 use crate::{
     audio::{get_resource_wav_samples, get_wav_samples},
-    constants::{from_log, ASSETS_PATH, TEST_FILE_PATH},
+    constants::{from_log, ASSETS_PATH, DOWN_RATE, TEST_FILE_PATH},
     sql::{query_filter_bank, query_ui_params},
     types::{MStreamSend, StereoChoice, StereoParams},
 };
@@ -32,7 +32,11 @@ pub async fn get_time_data(
             if let Ok(f) = File::open(filepath) {
                 let (_head, samples) = wav_io::read_from_file(f).unwrap();
 
-                return samples.iter().step_by(16).cloned().collect::<Vec<f32>>();
+                return samples
+                    .iter()
+                    .step_by(DOWN_RATE)
+                    .cloned()
+                    .collect::<Vec<f32>>();
             }
             vec![]
         });
@@ -47,7 +51,11 @@ pub async fn get_time_data(
             if let Ok(f) = File::open(PathBuf::from(filepath)) {
                 let (_head, samples) = wav_io::read_from_file(f).unwrap();
 
-                return samples.iter().step_by(16).cloned().collect::<Vec<f32>>();
+                return samples
+                    .iter()
+                    .step_by(DOWN_RATE)
+                    .cloned()
+                    .collect::<Vec<f32>>();
             }
             vec![]
         });

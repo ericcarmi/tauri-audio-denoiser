@@ -33,6 +33,8 @@
   let num_time_samples = 1;
   let time_data: Array<number> = [];
 
+  let time_hover_position = 0;
+
   let show_settings = false;
   var gains = [0, 0, 0, 0, 0];
   var freqs = [100, 500, 1000, 2000, 5000];
@@ -170,6 +172,7 @@
         bind:time_data
         bind:num_time_samples
         bind:is_playing
+        bind:hover_position={time_hover_position}
         bind:plot_color={theme.plot_main}
       />
     {/if}
@@ -287,6 +290,7 @@
       >
         {ui_params.clean ? "dry" : "wet"}
       </button>
+      <span style="width: 15em">time: {time_hover_position.toFixed(1)}</span>
     </div>
   </div>
 
