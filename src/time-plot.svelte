@@ -17,6 +17,7 @@
 	export let time: number;
 	export let num_time_samples: number;
 	export let hover_position = 0;
+	let origin = 0;
 
 	let is_time_slider_dragging = false;
 	let el: HTMLElement;
@@ -36,14 +37,10 @@
 	let zoom = 1;
 	let start = 0;
 	let end = 1;
-
-	$: start, redraw_time_data();
-	$: end, redraw_time_data();
-	// $: indicator_position, console.log(indicator_position)
-	// $: indicator_width, console.log(indicator_width)
+	let time_labels = [0, 0, 0, 0, 0];
 
 	let rgb_color: any = { r: 140, g: 0, b: 180 };
-	$: time_data, redraw_time_data();
+	$: time_data, (is_loading = true), redraw_time_data();
 	$: time_data, (end = time_data.length);
 	$: plot_color, (rgb_color = hexToRgb(plot_color));
 
@@ -51,7 +48,7 @@
 		time = event.payload.time / num_time_samples;
 		time_position = time * TIME_PLOT_WIDTH;
 	});
-	const unlisten_resize = listen("tauri://resize", (event: any) => {
+	const unlisten_resize = listen("tauri://resize", () => {
 		indicator_width = 0;
 	});
 
@@ -74,9 +71,32 @@
 		draggable();
 	});
 
+	let redraw_timer = 100;
+	let interval: any;
+
+	function resetInterval() {
+		clearInterval(interval);
+		interval = setInterval(() => {
+			redraw_timer += 1;
+		}, 10);
+	}
+	function reset_timer() {
+		if (redraw_timer > 100) {
+			clearInterval(interval);
+			interval = undefined;
+			redraw_timer = 0;
+			console.log("redraw", interval);
+
+			redraw_time_data();
+		}
+	}
+	$: redraw_timer, reset_timer();
+
 	function redraw_time_data() {
-		is_loading = true;
 		let renderPlot = () => {
+			if (time_data.length > 0) {
+				is_loading = true;
+			}
 			line = new WebglLine(
 				new ColorRGBA(
 					rgb_color.r / 255,
@@ -94,16 +114,16 @@
 			let hop = 1;
 
 			let r = Math.round((end - start) / TIME_PLOT_WIDTH);
-			// if (end - start > TIME_PLOT_WIDTH * 2) {
-			// 	hop = Math.round(time_data.length / TIME_PLOT_WIDTH / 8);
-			// }
+
 			for (let i = 0; i < TIME_PLOT_WIDTH; i += 1) {
-				line.setY(i, time_data[i * r]);
+				line.setY(i, time_data[start + i * r]);
 			}
 			webglp.update();
+			if (time_data.length > 0) {
+				is_loading = false;
+			}
 		};
 		time_data && requestAnimationFrame(renderPlot);
-		is_loading = false;
 	}
 
 	function draggable() {
@@ -115,11 +135,7 @@
 				if (el === null) {
 					return;
 				}
-
 				if (!mouse_down || is_time_slider_dragging) return;
-
-				// if (hover_position <= 0) return;
-				// if (ind_el.offsetLeft + indicator_width >= TIME_PLOT_WIDTH) return;
 
 				indicator_position = e.clientX;
 				if (indicator_position < el.offsetLeft) {
@@ -130,6 +146,7 @@
 					indicator_position = el.offsetLeft;
 					return;
 				}
+
 				indicator_width = Math.abs(e.clientX - indicator_origin);
 				if (e.clientX - indicator_origin < 0) {
 					ind_el.style.left = indicator_position.toString() + "px";
@@ -148,6 +165,7 @@
 
 <div class="plot-wrapper">
 	<div
+		class="scroll-container"
 		style="width: {TIME_PLOT_WIDTH}px; "
 		role="cell"
 		tabindex={0}
@@ -157,6 +175,28 @@
 				mouse_down = true;
 				indicator_position = e.clientX;
 				indicator_origin = e.clientX;
+			}
+		}}
+		on:wheel={(e) => {
+			if (!interval) {
+				redraw_timer = 0;
+				resetInterval();
+			}
+			e.preventDefault();
+			if (e.deltaY < 0) {
+				zoom = Math.min(zoom + 0.03, 5);
+				start = Math.min(start + 1, end - TIME_PLOT_WIDTH);
+				end = Math.max(end - 1, start + TIME_PLOT_WIDTH);
+				origin = hover_position;
+				canvas_el.style.transformOrigin = `${origin}px 0`;
+				canvas_el.style.scale = `${zoom} 1`;
+			} else if (e.deltaY > 0) {
+				zoom = Math.max(zoom - 0.03, 1);
+				start = Math.max(start - 1, 0);
+				end = Math.min(end + 1, num_time_samples);
+				origin = hover_position;
+				canvas_el.style.transformOrigin = `${origin}px 0`;
+				canvas_el.style.scale = `${zoom} 1`;
 			}
 		}}
 	>
@@ -175,56 +215,41 @@
 			bind:this={canvas_el}
 			on:mousemove={(e) => {
 				hover_position = e.offsetX;
-				// console.log(hover_position);
-				// hover_position = Math.min(hover_position, TIME_PLOT_WIDTH);
-			}}
-			on:wheel={(e) => {
-				e.preventDefault();
-				if (e.deltaY > 0) {
-					if ((hover_position / num_time_samples) * SAMPLING_RATE > 0.5) {
-						zoom = Math.min(zoom + 0.01, 10);
-					} else {
-						zoom = Math.max(zoom - 0.01, 1);
-						// start += 1
-					}
-				} else if (e.deltaY < 0) {
-					if ((hover_position / num_time_samples) * SAMPLING_RATE > 0.5) {
-						zoom = Math.max(zoom - 0.01, 1);
-					} else {
-						zoom = Math.min(zoom + 0.01, 10);
-						// start -= 1
-					}
-				}
 			}}
 		/>
-		{#if is_loading}
-			<div class="spinner" />
-		{/if}
-
-		<input
-			style="width: {TIME_PLOT_WIDTH}px;"
-			class="time-slider"
-			type="range"
-			data-attribute={is_time_slider_dragging}
-			min={0}
-			max={TIME_PLOT_WIDTH}
-			bind:value={time_position}
-			on:mousedown={() => {
-				is_time_slider_dragging = true;
-			}}
-			on:mouseup={() => {
-				is_time_slider_dragging = false;
-			}}
-			on:input={() => {
-				time = time_position / TIME_PLOT_WIDTH;
-				// only send message when playing, otherwise after dragging the slider, the first message received is the location it started in
-				is_playing &&
-					invoke("message_time", {
-						time: time * num_time_samples,
-					});
-			}}
-		/>
+		<div class="time-axis">
+			<span class="time-label">{(start/SAMPLING_RATE).toFixed(1)}</span>
+			<span class="time-label">{(end/SAMPLING_RATE).toFixed(1)}</span>
+		</div>
 	</div>
+
+	{#if is_loading}
+		<div class="spinner" />
+	{/if}
+
+	<input
+		style="width: {TIME_PLOT_WIDTH}px;"
+		class="time-slider"
+		type="range"
+		data-attribute={is_time_slider_dragging}
+		min={0}
+		max={TIME_PLOT_WIDTH}
+		bind:value={time_position}
+		on:mousedown={() => {
+			is_time_slider_dragging = true;
+		}}
+		on:mouseup={() => {
+			is_time_slider_dragging = false;
+		}}
+		on:input={() => {
+			time = time_position / TIME_PLOT_WIDTH;
+			// only send message when playing, otherwise after dragging the slider, the first message received is the location it started in
+			is_playing &&
+				invoke("message_time", {
+					time: time * num_time_samples,
+				});
+		}}
+	/>
 </div>
 
 <style>
@@ -237,16 +262,11 @@
 
 	canvas {
 		background: black;
+		scale: 1 1;
 	}
 
 	div {
 		user-select: none;
-	}
-	.spinner {
-		position: absolute;
-		top: calc(44.7% - 1em);
-		left: calc(50% - 1em);
-		z-index: 2;
 	}
 
 	input[type="range"] {
@@ -288,5 +308,21 @@
 	.indicator[data-attribute="true"] {
 		background: rgba(255, 255, 0, 0.4);
 		z-index: 1;
+	}
+	.scroll-container {
+		overflow-x: scroll;
+		overflow-y: hidden;
+	}
+	.time-axis {
+		display: flex;
+		height: 25px;
+		justify-content: space-between;
+	}
+	.time-label {
+		font-size: 10px;
+	}
+	.spinner {
+		position: absolute;
+		margin-top: 20px;
 	}
 </style>

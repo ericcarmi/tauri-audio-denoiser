@@ -8,10 +8,12 @@
   import {
     DOWN_RATE,
     FREQ_PLOT_WIDTH,
+    SAMPLING_RATE,
+    TIME_PLOT_WIDTH,
     get_num_filters,
   } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
-  import type { UIParams, StereoChoice, UIFilters, BPF } from "./types.svelte";
+  import type { UIParams, StereoChoice, UIFilters } from "./types.svelte";
   import {
     init_ui_params,
     remove_slashes_ext,
@@ -290,7 +292,7 @@
       >
         {ui_params.clean ? "dry" : "wet"}
       </button>
-      <span style="width: 15em">time: {time_hover_position.toFixed(1)}</span>
+      <span style="width: 15em">time: {(time_hover_position/TIME_PLOT_WIDTH * num_time_samples / SAMPLING_RATE).toFixed(1)}</span>
     </div>
   </div>
 
