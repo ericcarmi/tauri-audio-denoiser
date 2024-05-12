@@ -10,6 +10,10 @@
 	} from "./constants.svelte";
 	import { listen } from "@tauri-apps/api/event";
 
+	const max = Math.max
+	const min = Math.min
+	const round = Math.round
+
 	export let is_playing: boolean;
 	export let plot_color: string;
 	export let time_data: Array<number> = [];
@@ -35,6 +39,8 @@
 	let canvasMain: any;
 
 	let zoom = 1;
+	let max_zoom = 5;
+	let min_zoom = 1;
 	let start = 0;
 	let end = 1;
 	let time_labels = [0, 0, 0, 0, 0];
@@ -81,12 +87,10 @@
 		}, 10);
 	}
 	function reset_timer() {
-		if (redraw_timer > 100) {
+		if (redraw_timer > 10) {
 			clearInterval(interval);
 			interval = undefined;
 			redraw_timer = 0;
-			console.log("redraw", interval);
-
 			redraw_time_data();
 		}
 	}
@@ -111,9 +115,9 @@
 			webglp.addLine(line);
 			line.arrangeX();
 
-			let hop = 1;
-
+			// not sure this is right, hop about should use canvas width? or num samples? this is the hop for indexing time data...yeah but want to get there to end at width's end, it works
 			let r = Math.round((end - start) / TIME_PLOT_WIDTH);
+			r = Math.max(1, r);
 
 			for (let i = 0; i < TIME_PLOT_WIDTH; i += 1) {
 				line.setY(i, time_data[start + i * r]);
@@ -161,6 +165,26 @@
 			window.addEventListener("mouseup", reset);
 		});
 	}
+
+	function handleZoom(e: WheelEvent) {
+		e.preventDefault();
+		if (!interval) {
+			redraw_timer = 0;
+			resetInterval();
+		}
+		let d = 5000;
+		if (e.deltaY < 0) {
+			let r = hover_position / TIME_PLOT_WIDTH;
+			start = round(Math.min(start + d * r, end - TIME_PLOT_WIDTH));
+			end = round(Math.max(end - d * (1 - r), start + TIME_PLOT_WIDTH));
+			origin = hover_position;
+		} else if (e.deltaY > 0) {
+			let r = hover_position / TIME_PLOT_WIDTH;
+			start = round(Math.max(start - d * r, 0));
+			end = round(Math.min(end + d * (1 - r), num_time_samples));
+			origin = hover_position;
+		}
+	}
 </script>
 
 <div class="plot-wrapper">
@@ -170,33 +194,12 @@
 		role="cell"
 		tabindex={0}
 		bind:this={el}
+		on:wheel={handleZoom}
 		on:mousedown={(e) => {
 			if (!is_time_slider_dragging) {
 				mouse_down = true;
 				indicator_position = e.clientX;
 				indicator_origin = e.clientX;
-			}
-		}}
-		on:wheel={(e) => {
-			if (!interval) {
-				redraw_timer = 0;
-				resetInterval();
-			}
-			e.preventDefault();
-			if (e.deltaY < 0) {
-				zoom = Math.min(zoom + 0.03, 5);
-				start = Math.min(start + 1, end - TIME_PLOT_WIDTH);
-				end = Math.max(end - 1, start + TIME_PLOT_WIDTH);
-				origin = hover_position;
-				canvas_el.style.transformOrigin = `${origin}px 0`;
-				canvas_el.style.scale = `${zoom} 1`;
-			} else if (e.deltaY > 0) {
-				zoom = Math.max(zoom - 0.03, 1);
-				start = Math.max(start - 1, 0);
-				end = Math.min(end + 1, num_time_samples);
-				origin = hover_position;
-				canvas_el.style.transformOrigin = `${origin}px 0`;
-				canvas_el.style.scale = `${zoom} 1`;
 			}
 		}}
 	>
@@ -218,8 +221,8 @@
 			}}
 		/>
 		<div class="time-axis">
-			<span class="time-label">{(start/SAMPLING_RATE).toFixed(1)}</span>
-			<span class="time-label">{(end/SAMPLING_RATE).toFixed(1)}</span>
+			<span class="time-label">{(start / SAMPLING_RATE).toFixed(1)}</span>
+			<span class="time-label">{(end / SAMPLING_RATE).toFixed(1)}</span>
 		</div>
 	</div>
 

@@ -106,30 +106,30 @@ VALUES ('both', 0.0, 100.0, 1.0, 0.0, 500.0, 1.0, 0.0, 1000.0, 1.0, 0.0, 2000.0,
 CREATE TABLE FREQRANGE (
   id INTEGER PRIMARY KEY,
   stereo_choice TEXT NOT NULL,
-  index INTEGER,
+  idx INTEGER,
   min REAL,
-  max REAL,
+  max REAL
 );
 
-INSERT INTO FREQRANGE (stereo_choice, index, min, max) VALUES (
-  ('left', 0, 20, 500)  
+INSERT INTO FREQRANGE (stereo_choice, idx, min, max) VALUES (
+  'left', 0, 20, 500  
 );
-INSERT INTO FREQRANGE (stereo_choice, index, min, max) VALUES (
-  ('left', 1, 100, 1000)  
+INSERT INTO FREQRANGE (stereo_choice, idx, min, max) VALUES (
+  'left', 1, 100, 1000
 );
-INSERT INTO FREQRANGE (stereo_choice, index, min, max) VALUES (
-  ('left', 2, 500, 2000)  
+INSERT INTO FREQRANGE (stereo_choice, idx, min, max) VALUES (
+  'left', 2, 500, 2000
 );
-INSERT INTO FREQRANGE (stereo_choice, index, min, max) VALUES (
-  ('left', 3, 1000, 5000)  
+INSERT INTO FREQRANGE (stereo_choice, idx, min, max) VALUES (
+  'left', 3, 1000, 5000
 );
-INSERT INTO FREQRANGE (stereo_choice, index, min, max) VALUES (
-  ('left', 4, 2000, 10000)  
+INSERT INTO FREQRANGE (stereo_choice, idx, min, max) VALUES (
+  'left', 4, 2000, 10000
 );
 
 "
 
-# cp db.sqlite .
+cp db.sqlite ./src-tauri/
 cp db.sqlite ./src-tauri/target/debug
 rm db.sqlite
 
