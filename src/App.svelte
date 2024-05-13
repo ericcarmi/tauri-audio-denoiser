@@ -179,74 +179,78 @@
       />
     {/if}
     <div class="button-bar">
-      <div class="stereo-control-buttons">
-        <button
-          class="stereo-control-button"
-          data-attribute={ui_params.stereo_choice !== "Right"}
-          on:click={() => {
-            // also need to update ui to switch between left/right channel params
-            set_ui_params();
-            if (ui_params.stereo_choice === "Left") {
-              get_ui_params("Right");
-            } else if (ui_params.stereo_choice === "Right") {
-              get_ui_params("Both");
-            } else if (ui_params.stereo_choice === "Both") {
-              get_ui_params("Left");
-            }
-          }}>L</button
-        >
-        <button
-          class="stereo-control-button"
-          data-attribute={ui_params.stereo_choice !== "Left"}
-          on:click={() => {
-            set_ui_params();
-            if (ui_params.stereo_choice === "Left") {
-              get_ui_params("Both");
-            } else if (ui_params.stereo_choice === "Right") {
-              get_ui_params("Left");
-            } else if (ui_params.stereo_choice === "Both") {
-              get_ui_params("Right");
-            }
-          }}>R</button
-        >
-        control: {ui_params.stereo_choice}
-      </div>
-      <div class="stereo-mute-buttons">
-        mute
-        <button
-          class="mute-button"
-          data-attribute={ui_params.left_mute}
-          on:click={() => {
-            ui_params.left_mute = !ui_params.left_mute;
-            invoke("sql_update_left_mute", {
-              stereoChoice: ui_params.stereo_choice,
-              leftMute: ui_params.left_mute,
-            });
-            invoke("message_left_mute", {
-              stereoChoice: ui_params.stereo_choice,
-              mute: ui_params.left_mute,
-            });
-          }}
-        >
-          L
-        </button>
-        <button
-          class="mute-button"
-          data-attribute={ui_params.right_mute}
-          on:click={() => {
-            ui_params.right_mute = !ui_params.right_mute;
-            invoke("sql_update_right_mute", {
-              stereoChoice: ui_params.stereo_choice,
-              rightMute: ui_params.right_mute,
-            });
-            invoke("message_right_mute", {
-              stereoChoice: ui_params.stereo_choice,
-              mute: ui_params.right_mute,
-            });
-          }}
-        >
-          R
-        </button>
+      <div class="stereo-buttons-box">
+        <div class="stereo-control-buttons">
+          <button
+            class="stereo-control-button"
+            data-attribute={ui_params.stereo_choice !== "Right"}
+            on:click={() => {
+              // also need to update ui to switch between left/right channel params
+              set_ui_params();
+              if (ui_params.stereo_choice === "Left") {
+                get_ui_params("Right");
+              } else if (ui_params.stereo_choice === "Right") {
+                get_ui_params("Both");
+              } else if (ui_params.stereo_choice === "Both") {
+                get_ui_params("Left");
+              }
+            }}>L</button
+          >
+          <button
+            class="stereo-control-button"
+            data-attribute={ui_params.stereo_choice !== "Left"}
+            on:click={() => {
+              set_ui_params();
+              if (ui_params.stereo_choice === "Left") {
+                get_ui_params("Both");
+              } else if (ui_params.stereo_choice === "Right") {
+                get_ui_params("Left");
+              } else if (ui_params.stereo_choice === "Both") {
+                get_ui_params("Right");
+              }
+            }}>R</button
+          >
+          <span style="margin:0em 1em;">
+            control: {ui_params.stereo_choice}</span
+          >
+        </div>
+        <div class="stereo-mute-buttons">
+          <button
+            class="mute-button"
+            data-attribute={ui_params.left_mute}
+            on:click={() => {
+              ui_params.left_mute = !ui_params.left_mute;
+              invoke("sql_update_left_mute", {
+                stereoChoice: ui_params.stereo_choice,
+                leftMute: ui_params.left_mute,
+              });
+              invoke("message_left_mute", {
+                stereoChoice: ui_params.stereo_choice,
+                mute: ui_params.left_mute,
+              });
+            }}
+          >
+            L
+          </button>
+          <button
+            class="mute-button"
+            data-attribute={ui_params.right_mute}
+            on:click={() => {
+              ui_params.right_mute = !ui_params.right_mute;
+              invoke("sql_update_right_mute", {
+                stereoChoice: ui_params.stereo_choice,
+                rightMute: ui_params.right_mute,
+              });
+              invoke("message_right_mute", {
+                stereoChoice: ui_params.stereo_choice,
+                mute: ui_params.right_mute,
+              });
+            }}
+          >
+            R
+          </button>
+          <span style="margin:0em 1em;">mute</span>
+        </div>
       </div>
       <button
         style="animation: {is_playing
@@ -292,7 +296,18 @@
       >
         {ui_params.clean ? "dry" : "wet"}
       </button>
-      <span style="width: 15em">time: {(time_hover_position/TIME_PLOT_WIDTH * num_time_samples / SAMPLING_RATE).toFixed(1)}</span>
+      <span style="width: 15em; align-self: center;"
+        >cursor: {(
+          ((time_hover_position / TIME_PLOT_WIDTH) * num_time_samples) /
+          SAMPLING_RATE
+        ).toFixed(1)}</span
+      >
+      <span style="width: 15em; align-self: center;"
+        >time: {(
+          ((time_position / TIME_PLOT_WIDTH) * num_time_samples) /
+          SAMPLING_RATE
+        ).toFixed(1)}</span
+      >
     </div>
   </div>
 
@@ -550,8 +565,9 @@
   }
   .button-bar {
     display: flex;
-    justify-content: center;
+    justify-content: space-evenly;
     gap: 1em;
+    height: 5em;
     padding-bottom: 3px;
     border-bottom: 1px solid var(--gray2);
   }
@@ -567,13 +583,18 @@
     padding: 0 1em 0 1em;
     align-self: center;
   }
+  .stereo-buttons-box {
+    display: flex;
+    flex-direction: column;
+    width: 17em;
+  }
   .stereo-control-buttons {
-    position: absolute;
-    left: 2.5%;
+    margin-top: 0.2em;
+    align-self: flex-start;
   }
   .stereo-mute-buttons {
-    position: absolute;
-    right: 2.5%;
+    margin-top: 1em;
+    align-self: flex-start;
   }
   .mute-button {
     background: var(--rotary-tick);

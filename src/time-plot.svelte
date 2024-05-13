@@ -10,9 +10,9 @@
 	} from "./constants.svelte";
 	import { listen } from "@tauri-apps/api/event";
 
-	const max = Math.max
-	const min = Math.min
-	const round = Math.round
+	const max = Math.max;
+	const min = Math.min;
+	const round = Math.round;
 
 	export let is_playing: boolean;
 	export let plot_color: string;
@@ -30,6 +30,8 @@
 	let indicator_width = 1;
 	let indicator_origin = 0;
 	let indicator_position: number = 0;
+	let ind_left = 0;
+	let ind_right = 0;
 	let mouse_down = false;
 
 	let is_loading = false;
@@ -154,6 +156,13 @@
 				indicator_width = Math.abs(e.clientX - indicator_origin);
 				if (e.clientX - indicator_origin < 0) {
 					ind_el.style.left = indicator_position.toString() + "px";
+					ind_left = indicator_origin - indicator_width - canvas_el.offsetLeft
+					ind_right = indicator_origin - canvas_el.offsetLeft
+				}
+				else {
+					ind_left = indicator_origin  - canvas_el.offsetLeft
+					ind_right = indicator_origin + indicator_width - canvas_el.offsetLeft
+					
 				}
 			}
 			function reset() {
@@ -172,13 +181,14 @@
 			redraw_timer = 0;
 			resetInterval();
 		}
-		let d = 5000;
 		if (e.deltaY < 0) {
+			let d = 500 * Math.abs(e.deltaY);
 			let r = hover_position / TIME_PLOT_WIDTH;
 			start = round(Math.min(start + d * r, end - TIME_PLOT_WIDTH));
 			end = round(Math.max(end - d * (1 - r), start + TIME_PLOT_WIDTH));
 			origin = hover_position;
 		} else if (e.deltaY > 0) {
+			let d = 500 * e.deltaY;
 			let r = hover_position / TIME_PLOT_WIDTH;
 			start = round(Math.max(start - d * r, 0));
 			end = round(Math.min(end + d * (1 - r), num_time_samples));
@@ -212,7 +222,10 @@
 			on:mousemove={(e) => {
 				hover_position = e.clientX - canvas_el.offsetLeft;
 			}}
-		/>
+		>
+		<span class="ind-label" style="left: -2em;">{(ind_left*num_time_samples/SAMPLING_RATE/TIME_PLOT_WIDTH).toFixed(1)}</span>
+		<span class="ind-label" style="right: -2em;">{(ind_right*num_time_samples/SAMPLING_RATE/TIME_PLOT_WIDTH).toFixed(1)}</span>
+		</div>
 		<canvas
 			id="time_canvas"
 			bind:this={canvas_el}
@@ -307,13 +320,14 @@
 	.indicator {
 		position: absolute;
 		z-index: -1;
+		opacity: 0;
 	}
 	.indicator[data-attribute="true"] {
 		background: rgba(255, 255, 0, 0.4);
 		z-index: 1;
+		opacity: 1;
 	}
 	.scroll-container {
-		overflow-x: scroll;
 		overflow-y: hidden;
 	}
 	.time-axis {
@@ -327,5 +341,10 @@
 	.spinner {
 		position: absolute;
 		margin-top: 20px;
+	}
+	.ind-label {
+		position: absolute;
+		bottom: -20px;
+		font-size: 10px;
 	}
 </style>
