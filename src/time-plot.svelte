@@ -27,6 +27,7 @@
 	let el: HTMLElement;
 	let ind_el: HTMLElement;
 	let canvas_el: HTMLCanvasElement;
+	let time_ind_el: HTMLElement;
 	let indicator_width = 1;
 	let indicator_origin = 0;
 	let indicator_position: number = 0;
@@ -69,6 +70,11 @@
 		canvasMain = document.getElementById("time_canvas");
 		canvasMain.width = TIME_PLOT_WIDTH;
 		canvasMain.height = TIME_PLOT_HEIGHT;
+		time_ind_el.style.left =
+			Math.min(
+				Math.max(canvas_el.offsetLeft, 0),
+				canvas_el.offsetLeft + TIME_PLOT_WIDTH
+			) + "px";
 
 		webglp = new WebglPlot(canvasMain);
 		const numX = 1000;
@@ -156,13 +162,11 @@
 				indicator_width = Math.abs(e.clientX - indicator_origin);
 				if (e.clientX - indicator_origin < 0) {
 					ind_el.style.left = indicator_position.toString() + "px";
-					ind_left = indicator_origin - indicator_width - canvas_el.offsetLeft
-					ind_right = indicator_origin - canvas_el.offsetLeft
-				}
-				else {
-					ind_left = indicator_origin  - canvas_el.offsetLeft
-					ind_right = indicator_origin + indicator_width - canvas_el.offsetLeft
-					
+					ind_left = indicator_origin - indicator_width - canvas_el.offsetLeft;
+					ind_right = indicator_origin - canvas_el.offsetLeft;
+				} else {
+					ind_left = indicator_origin - canvas_el.offsetLeft;
+					ind_right = indicator_origin + indicator_width - canvas_el.offsetLeft;
 				}
 			}
 			function reset() {
@@ -198,6 +202,47 @@
 </script>
 
 <div class="plot-wrapper">
+	<input
+		style="width: calc({TIME_PLOT_WIDTH}px + 2em);"
+		class="time-slider"
+		type="range"
+		data-attribute={is_time_slider_dragging}
+		min={0}
+		max={TIME_PLOT_WIDTH}
+		bind:value={time_position}
+		on:mousedown={(e) => {
+			is_time_slider_dragging = true;
+			time_ind_el.style.left =
+				Math.min(
+					Math.max(canvas_el.offsetLeft, e.clientX),
+					canvas_el.offsetLeft + TIME_PLOT_WIDTH
+				) + "px";
+		}}
+		on:mousemove={(e) => {
+			if (is_time_slider_dragging) {
+				time_ind_el.style.left =
+					Math.min(
+						Math.max(canvas_el.offsetLeft, e.clientX),
+						canvas_el.offsetLeft + TIME_PLOT_WIDTH
+					) + "px";
+			}
+		}}
+		on:mouseup={() => {
+			is_time_slider_dragging = false;
+		}}
+		on:input={() => {
+			time = time_position / TIME_PLOT_WIDTH;
+			is_playing &&
+				invoke("message_time", {
+					time: time * num_time_samples,
+				});
+		}}
+	/>
+	<div
+		class="time-indicator"
+		style="height:{TIME_PLOT_HEIGHT}px"
+		bind:this={time_ind_el}
+	/>
 	<div
 		class="scroll-container"
 		style="width: {TIME_PLOT_WIDTH}px; "
@@ -214,7 +259,7 @@
 		}}
 	>
 		<div
-			class="indicator"
+			class="highlight"
 			bind:this={ind_el}
 			role="marquee"
 			style="height: {TIME_PLOT_HEIGHT}px; left: {indicator_origin}px; width: {indicator_width}px"
@@ -223,8 +268,20 @@
 				hover_position = e.clientX - canvas_el.offsetLeft;
 			}}
 		>
-		<span class="ind-label" style="left: -2em;">{(ind_left*num_time_samples/SAMPLING_RATE/TIME_PLOT_WIDTH).toFixed(1)}</span>
-		<span class="ind-label" style="right: -2em;">{(ind_right*num_time_samples/SAMPLING_RATE/TIME_PLOT_WIDTH).toFixed(1)}</span>
+			<span class="ind-label" style="left: -2em;"
+				>{(
+					(ind_left * num_time_samples) /
+					SAMPLING_RATE /
+					TIME_PLOT_WIDTH
+				).toFixed(1)}</span
+			>
+			<span class="ind-label" style="right: -2em;"
+				>{(
+					(ind_right * num_time_samples) /
+					SAMPLING_RATE /
+					TIME_PLOT_WIDTH
+				).toFixed(1)}</span
+			>
 		</div>
 		<canvas
 			id="time_canvas"
@@ -242,30 +299,6 @@
 	{#if is_loading}
 		<div class="spinner" />
 	{/if}
-
-	<input
-		style="width: {TIME_PLOT_WIDTH}px;"
-		class="time-slider"
-		type="range"
-		data-attribute={is_time_slider_dragging}
-		min={0}
-		max={TIME_PLOT_WIDTH}
-		bind:value={time_position}
-		on:mousedown={() => {
-			is_time_slider_dragging = true;
-		}}
-		on:mouseup={() => {
-			is_time_slider_dragging = false;
-		}}
-		on:input={() => {
-			time = time_position / TIME_PLOT_WIDTH;
-			// only send message when playing, otherwise after dragging the slider, the first message received is the location it started in
-			is_playing &&
-				invoke("message_time", {
-					time: time * num_time_samples,
-				});
-		}}
-	/>
 </div>
 
 <style>
@@ -288,12 +321,13 @@
 	input[type="range"] {
 		appearance: none;
 	}
+	/* indicator for the slider */
 	input[type="range"]::-webkit-slider-thumb {
 		background: black;
 		appearance: none;
 		-webkit-appearance: none;
 		height: 2em;
-		width: 1em;
+		width: 2em;
 	}
 
 	input[type="range"]::-webkit-slider-thumb:active {
@@ -308,22 +342,22 @@
 	}
 	.time-slider {
 		align-self: center;
-		border: 2px solid var(--slider-border);
-		transition: border 0.33s;
+		border: 0.5px solid var(--slider-border);
+		transition: border-color 0.33s;
 	}
 	.time-slider[data-attribute="true"] {
-		border: 2px solid var(--slider-active);
+		border-color: var(--slider-active);
 	}
 	.time-slider:hover {
-		border: 2px solid var(--slider-hover);
+		border-color: var(--slider-hover);
 	}
-	.indicator {
+	.highlight {
 		position: absolute;
 		z-index: -1;
 		opacity: 0;
 	}
-	.indicator[data-attribute="true"] {
-		background: rgba(255, 255, 0, 0.4);
+	.highlight[data-attribute="true"] {
+		background: rgba(255, 0, 255, 0.5);
 		z-index: 1;
 		opacity: 1;
 	}
@@ -344,7 +378,15 @@
 	}
 	.ind-label {
 		position: absolute;
-		bottom: -20px;
+		bottom: -0.5em;
 		font-size: 10px;
+	}
+	.time-indicator {
+		width: 2px;
+		background: rgb(255, 255, 255, 0.4);
+		position: absolute;
+		left: 0px;
+		margin-top: 1.7em;
+		z-index: 1;
 	}
 </style>
