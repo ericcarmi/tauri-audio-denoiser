@@ -296,13 +296,15 @@
       >
         {ui_params.clean ? "dry" : "wet"}
       </button>
-      <span style="width: 15em; align-self: center;"
+      <button>loop</button>
+      <button>fingerprint</button>
+      <span style="align-self: center;"
         >cursor: {(
           ((time_hover_position / TIME_PLOT_WIDTH) * num_time_samples) /
           SAMPLING_RATE
         ).toFixed(1)}</span
       >
-      <span style="width: 15em; align-self: center;"
+      <span style="align-self: center;"
         >time: {(
           ((time_position / TIME_PLOT_WIDTH) * num_time_samples) /
           SAMPLING_RATE

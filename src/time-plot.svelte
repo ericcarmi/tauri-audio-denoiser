@@ -199,6 +199,13 @@
 			origin = hover_position;
 		}
 	}
+
+	function update_time_ind() {
+		if (!is_time_slider_dragging && time_ind_el) {
+			time_ind_el.style.left = time_position + canvas_el.offsetLeft + "px";
+		}
+	}
+	$: time_position, update_time_ind();
 </script>
 
 <div class="plot-wrapper">
@@ -224,7 +231,7 @@
 					Math.min(
 						Math.max(canvas_el.offsetLeft, e.clientX),
 						canvas_el.offsetLeft + TIME_PLOT_WIDTH
-					) + "px";
+					) - 0 + "px";
 			}
 		}}
 		on:mouseup={() => {
@@ -328,6 +335,8 @@
 		-webkit-appearance: none;
 		height: 2em;
 		width: 2em;
+		clip-path:polygon(0% 0%, 100% 0%, 50% 100%);
+		border-radius: 5px;
 	}
 
 	input[type="range"]::-webkit-slider-thumb:active {
@@ -385,7 +394,6 @@
 		width: 2px;
 		background: rgb(255, 255, 255, 0.4);
 		position: absolute;
-		left: 0px;
 		margin-top: 1.7em;
 		z-index: 1;
 	}
