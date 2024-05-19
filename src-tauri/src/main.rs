@@ -108,6 +108,7 @@ fn main() {
             });
 
             let _ = app.manage(mss);
+
             Ok(())
         })
         .build(tauri::generate_context!())

@@ -29,6 +29,7 @@
   export let is_playing = false;
   export let num_sliders = 0;
   export let bpf_hovering = Array(num_sliders).fill(false);
+  export let sampling_rate: number;
 
   let eq_color: string;
   let eq_hover_color: string;
@@ -169,7 +170,7 @@
                 logfreq,
                 height,
                 barWidth,
-                -last_bar_heights[i] / 6
+                -last_bar_heights[i] / 6,
               );
             }
             last_bar_heights[i] *= 0.85;
@@ -281,7 +282,7 @@
       let sum_curve: Array<number> = Array(N).fill(0);
 
       bpfs.map((filt) => {
-        let coeffs = biquad(filt.gain, filt.freq, filt.Q);
+        let coeffs = biquad(filt.gain, filt.freq, filt.Q, sampling_rate);
         const curve = freq_response(coeffs, N);
         for (let i = 0; i < N; i++) {
           sum_curve[i] += curve[i];
@@ -297,7 +298,7 @@
           (set_plot_scale((i / N) * NYQUIST) * FREQ_PLOT_WIDTH) / max_plot_freq;
         context.lineTo(
           logfreq,
-          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2
+          (-sum_curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2,
         );
       }
       context.lineWidth = 2;
@@ -305,7 +306,7 @@
       context.stroke();
 
       bpfs.map((filt, idx) => {
-        let coeffs = biquad(filt.gain, filt.freq, filt.Q);
+        let coeffs = biquad(filt.gain, filt.freq, filt.Q, sampling_rate);
         const curve = freq_response(coeffs, N);
 
         context.beginPath();
@@ -318,7 +319,7 @@
           sum_curve[i] += curve[i];
           context.lineTo(
             logfreq,
-            (-curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2
+            (-curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2,
           );
         }
         context.lineWidth = 2;

@@ -8,6 +8,7 @@ use cpal::{
     traits::{DeviceTrait, HostTrait},
     SizedSample,
 };
+use samplerate::{convert, ConverterType};
 use std::fs::File;
 use tauri::{AppHandle, Window};
 
@@ -23,7 +24,13 @@ pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>,
     let file_in = File::open(p).unwrap();
     let (head, samples) = wav_io::read_from_file(file_in).unwrap();
     let is_stereo = if head.channels == 1 { false } else { true };
-    (samples, is_stereo)
+    let device_sample_rate = device_sample_rate().unwrap();
+    if device_sample_rate != cpal::SampleRate(head.sample_rate) {
+        let resampled = convert(44100, 48000, 1, ConverterType::SincBestQuality, &samples).unwrap();
+        (resampled, is_stereo)
+    } else {
+        (samples, is_stereo)
+    }
 }
 
 pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>, bool) {
@@ -43,7 +50,14 @@ pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>, bool) {
         let f = File::open(p).unwrap();
         let (head, samples) = wav_io::read_from_file(f).unwrap();
         let is_stereo = if head.channels == 1 { false } else { true };
-        (samples, is_stereo)
+        let device_sample_rate = device_sample_rate().unwrap();
+        if device_sample_rate != cpal::SampleRate(head.sample_rate) {
+            let resampled =
+                convert(44100, 48000, 1, ConverterType::SincBestQuality, &samples).unwrap();
+            (resampled, is_stereo)
+        } else {
+            (samples, is_stereo)
+        }
     }
 }
 
@@ -103,9 +117,32 @@ pub fn host_device_setup(
         .default_output_device()
         .ok_or_else(|| anyhow::Error::msg("Default output device is not available"))?;
 
-    let config = device.default_output_config()?;
+    // let s = device.supported_output_configs();
+    // if let Ok(c) = s {
+    //     for i in c {
+    //         println!("{:?}", i);
+    //     }
+    //     // let mut  = c;
+    // }
 
-    Ok((host, device, config))
+    let conf = device.default_output_config()?;
+    // let config = cpal::SupportedStreamConfig::new(
+    //     conf.channels(),
+    //     cpal::SampleRate(48000),
+    //     *conf.buffer_size(),
+    //     conf.sample_format(),
+    // );
+
+    Ok((host, device, conf))
+}
+
+pub fn device_sample_rate() -> Result<cpal::SampleRate, anyhow::Error> {
+    let host = cpal::default_host();
+    let device = host
+        .default_output_device()
+        .ok_or_else(|| anyhow::Error::msg("Default output device is not available"))?;
+    let conf = device.default_output_config()?;
+    Ok(conf.sample_rate())
 }
 
 pub fn make_stream<T>(
@@ -139,6 +176,9 @@ where
         ..Default::default()
     });
     stereo_params.num_file_samples = file_samples.len();
+    let _ = window
+        .clone()
+        .emit("update_sampling_rate", config.sample_rate.0);
 
     let stream = device.build_output_stream(
         config,

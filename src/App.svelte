@@ -8,7 +8,6 @@
   import {
     DOWN_RATE,
     FREQ_PLOT_WIDTH,
-    SAMPLING_RATE,
     TIME_PLOT_WIDTH,
     get_num_filters,
   } from "./constants.svelte";
@@ -34,6 +33,7 @@
   let time = 0;
   let num_time_samples = 1;
   let time_data: Array<number> = [];
+  let sampling_rate: number = 44100;
 
   let time_hover_position = 0;
 
@@ -56,11 +56,18 @@
     "update_processing_percentage",
     async (event: any) => {
       processing_percentage = event.payload as number;
-    }
+    },
+  );
+  const unlisten_samplerate_message = listen(
+    "update_sampling_rate",
+    async (event: any) => {
+      sampling_rate = event.payload as number;
+    },
   );
   onDestroy(() => {
     unlisten_audioui_message.then((f) => f());
     unlisten_file_drop.then((f) => f());
+    unlisten_samplerate_message.then((f) => f());
   });
 
   function change_file(path: string, from_assets?: boolean) {
@@ -86,9 +93,9 @@
             const fb = res as UIFilters;
             // bpfs = fb;
             ui_params.filters = fb;
-          }
+          },
         );
-      }
+      },
     );
   }
 
@@ -159,6 +166,7 @@
     {#if ui_params.filters.bank.length === num_sliders}
       <FreqPlot
         bind:settings
+        bind:sampling_rate
         bind:theme
         bind:bpf_hovering
         bind:num_sliders
@@ -170,6 +178,7 @@
     {#if theme}
       <TimePlot
         bind:time_position
+        bind:sampling_rate
         bind:time
         bind:time_data
         bind:num_time_samples
@@ -301,13 +310,13 @@
       <span style="align-self: center;"
         >cursor: {(
           ((time_hover_position / TIME_PLOT_WIDTH) * num_time_samples) /
-          SAMPLING_RATE
+          sampling_rate
         ).toFixed(1)}</span
       >
       <span style="align-self: center;"
         >time: {(
           ((time_position / TIME_PLOT_WIDTH) * num_time_samples) /
-          SAMPLING_RATE
+          sampling_rate
         ).toFixed(1)}</span
       >
     </div>
@@ -512,7 +521,7 @@
       title="full path: {selectedRecording}"
       style="position: absolute; bottom: 0; padding-right: 2em; align-self: center;"
       >current file ({is_stereo ? "stereo" : "mono"}): {remove_slashes_ext(
-        selectedRecording
+        selectedRecording,
       )}</span
     >
   </div>

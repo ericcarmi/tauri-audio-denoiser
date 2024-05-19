@@ -3,11 +3,7 @@
 	import { onDestroy, onMount } from "svelte";
 	import { WebglPlot, WebglLine, ColorRGBA } from "webgl-plot";
 	import { hexToRgb } from "./functions.svelte";
-	import {
-		SAMPLING_RATE,
-		TIME_PLOT_HEIGHT,
-		TIME_PLOT_WIDTH,
-	} from "./constants.svelte";
+	import { TIME_PLOT_HEIGHT, TIME_PLOT_WIDTH } from "./constants.svelte";
 	import { listen } from "@tauri-apps/api/event";
 
 	const max = Math.max;
@@ -21,11 +17,12 @@
 	export let time: number;
 	export let num_time_samples: number;
 	export let hover_position = 0;
+	export let sampling_rate: number;
 	let origin = 0;
 
 	let is_time_slider_dragging = false;
 	let el: HTMLElement;
-	let ind_el: HTMLElement;
+	let highlight_el: HTMLElement;
 	let canvas_el: HTMLCanvasElement;
 	let time_ind_el: HTMLElement;
 	let indicator_width = 1;
@@ -42,6 +39,9 @@
 	let canvasMain: any;
 
 	let zoom = 1;
+	let translate = 0;
+	// 0.1 is zoom delta, should set that too...
+	let delta_translate = TIME_PLOT_WIDTH * 0.1;
 	let max_zoom = 5;
 	let min_zoom = 1;
 	let start = 0;
@@ -73,7 +73,7 @@
 		time_ind_el.style.left =
 			Math.min(
 				Math.max(canvas_el.offsetLeft, 0),
-				canvas_el.offsetLeft + TIME_PLOT_WIDTH
+				canvas_el.offsetLeft + TIME_PLOT_WIDTH,
 			) + "px";
 
 		webglp = new WebglPlot(canvasMain);
@@ -114,9 +114,9 @@
 					rgb_color.r / 255,
 					rgb_color.g / 255,
 					rgb_color.b / 255,
-					1
+					1,
 				),
-				TIME_PLOT_WIDTH
+				TIME_PLOT_WIDTH,
 			);
 
 			webglp.removeAllLines();
@@ -161,7 +161,7 @@
 
 				indicator_width = Math.abs(e.clientX - indicator_origin);
 				if (e.clientX - indicator_origin < 0) {
-					ind_el.style.left = indicator_position.toString() + "px";
+					highlight_el.style.left = indicator_position.toString() + "px";
 					ind_left = indicator_origin - indicator_width - canvas_el.offsetLeft;
 					ind_right = indicator_origin - canvas_el.offsetLeft;
 				} else {
@@ -185,18 +185,34 @@
 			redraw_timer = 0;
 			resetInterval();
 		}
-		if (e.deltaY < 0) {
+		console.log(translate);
+
+		if (e.deltaY > 0) {
 			let d = 500 * Math.abs(e.deltaY);
 			let r = hover_position / TIME_PLOT_WIDTH;
-			start = round(Math.min(start + d * r, end - TIME_PLOT_WIDTH));
-			end = round(Math.max(end - d * (1 - r), start + TIME_PLOT_WIDTH));
-			origin = hover_position;
-		} else if (e.deltaY > 0) {
+			origin = hover_position / 2;
+			zoom = min(zoom + 0.1, max_zoom);
+			translate = min(translate + delta_translate * r, 1000);
+			// start = round(Math.min(start + d * r, end - TIME_PLOT_WIDTH));
+			// end = round(Math.max(end - d * (1 - r), start + TIME_PLOT_WIDTH));
+			// canvas_el.style.transformOrigin = "center";
+			canvas_el.style.transformOrigin = `${origin}px 0`;
+			canvas_el.style.transform = `scale(${zoom}, 1)`;
+			highlight_el.style.transform = `scale(${zoom}, 1)`;
+			el.scrollLeft = translate;
+		} else if (e.deltaY < 0) {
 			let d = 500 * e.deltaY;
 			let r = hover_position / TIME_PLOT_WIDTH;
-			start = round(Math.max(start - d * r, 0));
-			end = round(Math.min(end + d * (1 - r), num_time_samples));
-			origin = hover_position;
+			origin = hover_position / 2;
+			zoom = max(zoom - 0.1, min_zoom);
+			translate = max(translate - delta_translate * r, 0);
+			// start = round(Math.max(start - d * r, 0));
+			// end = round(Math.min(end + d * (1 - r), num_time_samples));
+			// canvas_el.style.transformOrigin = "center";
+			canvas_el.style.transformOrigin = `${origin}px 0`;
+			canvas_el.style.transform = `scale(${zoom}, 1)`;
+			highlight_el.style.transform = `scale(${zoom}, 1)`;
+			el.scrollLeft = translate;
 		}
 	}
 
@@ -222,7 +238,7 @@
 			time_ind_el.style.left =
 				Math.min(
 					Math.max(canvas_el.offsetLeft, e.clientX),
-					canvas_el.offsetLeft + TIME_PLOT_WIDTH
+					canvas_el.offsetLeft + TIME_PLOT_WIDTH,
 				) + "px";
 		}}
 		on:mousemove={(e) => {
@@ -230,8 +246,10 @@
 				time_ind_el.style.left =
 					Math.min(
 						Math.max(canvas_el.offsetLeft, e.clientX),
-						canvas_el.offsetLeft + TIME_PLOT_WIDTH
-					) - 0 + "px";
+						canvas_el.offsetLeft + TIME_PLOT_WIDTH,
+					) -
+					0 +
+					"px";
 			}
 		}}
 		on:mouseup={() => {
@@ -256,6 +274,10 @@
 		role="cell"
 		tabindex={0}
 		bind:this={el}
+		on:scroll={(e) => {
+			e.preventDefault();
+			// console.log(el.scrollLeft);
+		}}
 		on:wheel={handleZoom}
 		on:mousedown={(e) => {
 			if (!is_time_slider_dragging) {
@@ -267,7 +289,7 @@
 	>
 		<div
 			class="highlight"
-			bind:this={ind_el}
+			bind:this={highlight_el}
 			role="marquee"
 			style="height: {TIME_PLOT_HEIGHT}px; left: {indicator_origin}px; width: {indicator_width}px"
 			data-attribute={Math.abs(indicator_position - indicator_origin) > 0}
@@ -278,14 +300,14 @@
 			<span class="ind-label" style="left: -2em;"
 				>{(
 					(ind_left * num_time_samples) /
-					SAMPLING_RATE /
+					sampling_rate /
 					TIME_PLOT_WIDTH
 				).toFixed(1)}</span
 			>
 			<span class="ind-label" style="right: -2em;"
 				>{(
 					(ind_right * num_time_samples) /
-					SAMPLING_RATE /
+					sampling_rate /
 					TIME_PLOT_WIDTH
 				).toFixed(1)}</span
 			>
@@ -298,8 +320,8 @@
 			}}
 		/>
 		<div class="time-axis">
-			<span class="time-label">{(start / SAMPLING_RATE).toFixed(1)}</span>
-			<span class="time-label">{(end / SAMPLING_RATE).toFixed(1)}</span>
+			<span class="time-label">{(start / sampling_rate).toFixed(1)}</span>
+			<span class="time-label">{(end / sampling_rate).toFixed(1)}</span>
 		</div>
 	</div>
 
@@ -335,7 +357,7 @@
 		-webkit-appearance: none;
 		height: 2em;
 		width: 2em;
-		clip-path:polygon(0% 0%, 100% 0%, 50% 100%);
+		clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
 		border-radius: 5px;
 	}
 

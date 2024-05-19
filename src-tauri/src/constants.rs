@@ -11,8 +11,12 @@ pub fn get_num_filters() -> usize {
     NUM_FILTERS
 }
 
+#[cfg(not(windows))]
 pub const TEST_FILE_PATH: &str = "assets/reisman.wav";
+#[cfg(not(windows))]
 pub const ASSETS_PATH: &str = "assets/";
+pub const TEST_FILE_PATH: &str = "assets\\reisman.wav";
+pub const ASSETS_PATH: &str = "assets\\";
 
 pub const SAMPLING_RATE: f32 = 44100.0;
 pub const NYQUIST: f32 = SAMPLING_RATE / 2.0;

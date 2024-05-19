@@ -1,15 +1,14 @@
 <script lang="ts" context="module">
 	import { invoke } from "@tauri-apps/api/tauri";
-	import { FREQ_PLOT_WIDTH, SAMPLING_RATE } from "./constants.svelte";
+	import { FREQ_PLOT_WIDTH } from "./constants.svelte";
 	import type {
 		BPF,
 		UIParams,
 		AudioParams,
 		Complex,
 		IIR2,
-		StereoChoice,
 		StereoParams,
-        UIFilters,
+		UIFilters,
 	} from "./types.svelte";
 
 	export function cabs(z: Complex) {
@@ -19,7 +18,7 @@
 	export function init_channel_params(
 		gains: number[],
 		freqs: number[],
-		Qs: number[]
+		Qs: number[],
 	): StereoParams {
 		if (gains.length !== freqs.length || gains.length !== Qs.length) {
 			console.error("array length mismatch");
@@ -69,7 +68,7 @@
 	export function init_ui_params(
 		gains: number[],
 		freqs: number[],
-		Qs: number[]
+		Qs: number[],
 	): UIParams {
 		if (gains.length !== freqs.length || gains.length !== Qs.length) {
 			console.error("array length mismatch");
@@ -103,7 +102,7 @@
 		if (color !== undefined) {
 			document.body.style.setProperty(
 				`--${color_name.replace("_", "-")}`,
-				color
+				color,
 			);
 		}
 	}
@@ -119,9 +118,9 @@
 		} as Complex;
 	}
 
-	export function biquad(gain: number, freq: number, Q: number) {
+	export function biquad(gain: number, freq: number, Q: number, rate: number) {
 		let A = Math.pow(10, gain / 40);
-		let w0 = (2 * Math.PI * freq) / SAMPLING_RATE;
+		let w0 = (2 * Math.PI * freq) / rate;
 		let alpha = Math.sin(w0) / 2 / Q;
 
 		return {
@@ -185,7 +184,7 @@
 			minfreq *
 			Math.pow(
 				10,
-				((x - minfreq) / (maxfreq - minfreq)) * Math.log10(maxfreq / minfreq)
+				((x - minfreq) / (maxfreq - minfreq)) * Math.log10(maxfreq / minfreq),
 			)
 		);
 	}
@@ -195,7 +194,7 @@
 			minfreq *
 			Math.pow(
 				2,
-				((x - minfreq) / (maxfreq - minfreq)) * Math.log2(maxfreq / minfreq)
+				((x - minfreq) / (maxfreq - minfreq)) * Math.log2(maxfreq / minfreq),
 			)
 		);
 	}
@@ -210,7 +209,7 @@
 	export const linspace = (start: number, stop: number, step: number) =>
 		Array.from(
 			{ length: (stop - start) / step + 1 },
-			(_, i) => start + i * step
+			(_, i) => start + i * step,
 		);
 
 	export function frequencyToXAxis(frequency: number) {
@@ -240,7 +239,7 @@
 					g: parseInt(result[2], 16),
 					b: parseInt(result[3], 16),
 					a: null,
-			  }
+				}
 			: null;
 	}
 
@@ -257,6 +256,6 @@
 				return { gain: 0.0, freq: filt.freq, Q: filt.Q };
 			}),
 		];
-		return  {bank: bpfs} as UIFilters
+		return { bank: bpfs } as UIFilters;
 	}
 </script>

@@ -1,11 +1,12 @@
-use std::{fs::File, path::PathBuf};
-
 use cpal::traits::StreamTrait;
+use samplerate::{convert, ConverterType};
+use std::{fs::File, path::PathBuf};
 use tauri::{AppHandle, State, Window};
 
 use crate::{
     audio::{get_resource_wav_samples, get_wav_samples},
     constants::{from_log, ASSETS_PATH, DOWN_RATE, TEST_FILE_PATH},
+    device_sample_rate,
     sql::{query_filter_bank, query_ui_params},
     types::{MStreamSend, StereoChoice, StereoParams},
 };
@@ -14,8 +15,10 @@ pub async fn get_time_data(
     path: &str,
     from_assets: Option<bool>,
     app_handle: tauri::AppHandle,
-) -> Result<Vec<f32>, &str> {
+) -> Result<Vec<f32>, &'static str> {
     let mut time_data = vec![];
+
+    let device_sample_rate = device_sample_rate().unwrap();
 
     if from_assets.is_some() {
         let p = app_handle
@@ -26,17 +29,31 @@ pub async fn get_time_data(
             .into_string()
             .unwrap();
 
-        let filepath = p + "/" + path;
+        // let filepath = p + "/" + path;
+
+        let filepath = p + "\\" + path;
 
         let thread = tauri::async_runtime::spawn(async move {
             if let Ok(f) = File::open(filepath) {
-                let (_head, samples) = wav_io::read_from_file(f).unwrap();
+                let (head, samples) = wav_io::read_from_file(f).unwrap();
 
-                return samples
-                    .iter()
-                    .step_by(DOWN_RATE)
-                    .cloned()
-                    .collect::<Vec<f32>>();
+                println!("{:?}", head);
+                // check sample rate, if it doesn't match device_rate, convert
+                if device_sample_rate != cpal::SampleRate(head.sample_rate) {
+                    let resampled =
+                        convert(44100, 48000, 1, ConverterType::SincBestQuality, &samples).unwrap();
+                    return resampled
+                        .iter()
+                        .step_by(DOWN_RATE)
+                        .cloned()
+                        .collect::<Vec<f32>>();
+                } else {
+                    return samples
+                        .iter()
+                        .step_by(DOWN_RATE)
+                        .cloned()
+                        .collect::<Vec<f32>>();
+                }
             }
             vec![]
         });

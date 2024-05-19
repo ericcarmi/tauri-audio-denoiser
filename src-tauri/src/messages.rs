@@ -4,8 +4,8 @@ use crate::{
     audio::setup_stream,
     constants::{czerov, from_log, NUM_FILTERS},
     types::{
-        AudioParams, FiltersMessage, MSender, MStream, MStreamSend, MUIReceiver, StereoChoice,
-        StereoParams, BPF, IIR2,
+        AudioParams, MSender, MStream, MStreamSend, MUIReceiver, StereoChoice, StereoParams, BPF,
+        IIR2,
     },
 };
 use cpal::traits::StreamTrait;
@@ -68,7 +68,6 @@ pub fn message_filters(
         Q,
     };
     filters[index] = Some(bpf);
-    let filters_message = FiltersMessage { filters };
 
     stereo_message(
         stereo_choice,
