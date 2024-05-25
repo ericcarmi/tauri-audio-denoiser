@@ -28,8 +28,8 @@
 	let indicator_width = 1;
 	let indicator_origin = 0;
 	let indicator_position: number = 0;
-	let ind_left = 0;
-	let ind_right = 0;
+	let highlight_left = 0;
+	let highlight_right = 0;
 	let mouse_down = false;
 
 	let is_loading = false;
@@ -162,11 +162,13 @@
 				indicator_width = Math.abs(e.clientX - indicator_origin);
 				if (e.clientX - indicator_origin < 0) {
 					highlight_el.style.left = indicator_position.toString() + "px";
-					ind_left = indicator_origin - indicator_width - canvas_el.offsetLeft;
-					ind_right = indicator_origin - canvas_el.offsetLeft;
+					highlight_left =
+						indicator_origin - indicator_width - canvas_el.offsetLeft;
+					highlight_right = indicator_origin - canvas_el.offsetLeft;
 				} else {
-					ind_left = indicator_origin - canvas_el.offsetLeft;
-					ind_right = indicator_origin + indicator_width - canvas_el.offsetLeft;
+					highlight_left = indicator_origin - canvas_el.offsetLeft;
+					highlight_right =
+						indicator_origin + indicator_width - canvas_el.offsetLeft;
 				}
 			}
 			function reset() {
@@ -188,31 +190,29 @@
 		console.log(translate);
 
 		if (e.deltaY > 0) {
-			let d = 500 * Math.abs(e.deltaY);
+			let d = 800 * Math.abs(e.deltaY);
 			let r = hover_position / TIME_PLOT_WIDTH;
-			origin = hover_position / 2;
-			zoom = min(zoom + 0.1, max_zoom);
-			translate = min(translate + delta_translate * r, 1000);
-			// start = round(Math.min(start + d * r, end - TIME_PLOT_WIDTH));
-			// end = round(Math.max(end - d * (1 - r), start + TIME_PLOT_WIDTH));
-			// canvas_el.style.transformOrigin = "center";
-			canvas_el.style.transformOrigin = `${origin}px 0`;
-			canvas_el.style.transform = `scale(${zoom}, 1)`;
-			highlight_el.style.transform = `scale(${zoom}, 1)`;
-			el.scrollLeft = translate;
+			// origin = hover_position;
+			// zoom = min(zoom + 0.1, max_zoom);
+			// translate = min(translate + delta_translate * r, 1000);
+			// canvas_el.style.transformOrigin = `${origin}px 0`;
+			// canvas_el.style.transform = `translate(${translate}px, 0px) scale(${zoom}, 1) `;
+			// el.scrollLeft = translate;
+			start = round(Math.min(start + (d * r) / 2, end - TIME_PLOT_WIDTH));
+			end = round(Math.max(end - (d * (1 - r)) / 2, start + TIME_PLOT_WIDTH));
+			indicator_width = indicator_width - r / 2;
 		} else if (e.deltaY < 0) {
-			let d = 500 * e.deltaY;
+			let d = 800 * Math.abs(e.deltaY);
 			let r = hover_position / TIME_PLOT_WIDTH;
-			origin = hover_position / 2;
-			zoom = max(zoom - 0.1, min_zoom);
-			translate = max(translate - delta_translate * r, 0);
-			// start = round(Math.max(start - d * r, 0));
-			// end = round(Math.min(end + d * (1 - r), num_time_samples));
-			// canvas_el.style.transformOrigin = "center";
-			canvas_el.style.transformOrigin = `${origin}px 0`;
-			canvas_el.style.transform = `scale(${zoom}, 1)`;
-			highlight_el.style.transform = `scale(${zoom}, 1)`;
-			el.scrollLeft = translate;
+			// origin = hover_position;
+			// zoom = max(zoom - 0.1, min_zoom);
+			// translate = max(translate - delta_translate * r, 0);
+			// canvas_el.style.transformOrigin = `${origin}px 0`;
+			// canvas_el.style.transform = `translate(${translate}px, 0px) scale(${zoom}, 1) `;
+			// el.scrollLeft = translate;
+			start = round(Math.max(start - (d * r) / 2, 0));
+			end = round(Math.min(end + (d * (1 - r)) / 2, num_time_samples));
+			indicator_width = indicator_width + r / 2;
 		}
 	}
 
@@ -276,7 +276,7 @@
 		bind:this={el}
 		on:scroll={(e) => {
 			e.preventDefault();
-			// console.log(el.scrollLeft);
+			console.log(el.scrollLeft, zoom);
 		}}
 		on:wheel={handleZoom}
 		on:mousedown={(e) => {
@@ -299,14 +299,14 @@
 		>
 			<span class="ind-label" style="left: -2em;"
 				>{(
-					(ind_left * num_time_samples) /
+					(highlight_left * num_time_samples) /
 					sampling_rate /
 					TIME_PLOT_WIDTH
 				).toFixed(1)}</span
 			>
 			<span class="ind-label" style="right: -2em;"
 				>{(
-					(ind_right * num_time_samples) /
+					(highlight_right * num_time_samples) /
 					sampling_rate /
 					TIME_PLOT_WIDTH
 				).toFixed(1)}</span

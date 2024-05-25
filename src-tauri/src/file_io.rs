@@ -37,7 +37,6 @@ pub async fn get_time_data(
             if let Ok(f) = File::open(filepath) {
                 let (head, samples) = wav_io::read_from_file(f).unwrap();
 
-                println!("{:?}", head);
                 // check sample rate, if it doesn't match device_rate, convert
                 if device_sample_rate != cpal::SampleRate(head.sample_rate) {
                     let resampled =
