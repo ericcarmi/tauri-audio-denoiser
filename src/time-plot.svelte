@@ -1,10 +1,21 @@
 <script lang="ts">
 	import { invoke } from "@tauri-apps/api/tauri";
 	import { onDestroy, onMount } from "svelte";
-	import { WebglPlot, WebglLine, ColorRGBA } from "webgl-plot";
 	import { hexToRgb } from "./functions.svelte";
 	import { TIME_PLOT_HEIGHT, TIME_PLOT_WIDTH } from "./constants.svelte";
 	import { listen } from "@tauri-apps/api/event";
+
+	type Highlight = {
+		left_px: number;
+		right_px: number;
+		left_time: number;
+		right_time: number;
+	};
+
+	let indicator_width = 1;
+	let indicator_origin = 0;
+	let highlight_left = 0;
+	let highlight_right = 0;
 
 	const max = Math.max;
 	const min = Math.min;
@@ -25,17 +36,11 @@
 	let highlight_el: HTMLElement;
 	let canvas_el: HTMLCanvasElement;
 	let time_ind_el: HTMLElement;
-	let indicator_width = 1;
-	let indicator_origin = 0;
 	let indicator_position: number = 0;
-	let highlight_left = 0;
-	let highlight_right = 0;
 	let mouse_down = false;
 
 	let is_loading = false;
 
-	let webglp: WebglPlot;
-	let line: WebglLine;
 	let canvasMain: any;
 
 	let zoom = 1;
@@ -44,6 +49,7 @@
 	let delta_translate = TIME_PLOT_WIDTH * 0.1;
 	let max_zoom = 5;
 	let min_zoom = 1;
+	let zoom_delta = 0.1;
 	let start = 0;
 	let end = 1;
 	let time_labels = [0, 0, 0, 0, 0];
@@ -67,22 +73,16 @@
 	});
 
 	onMount(() => {
-		canvasMain = document.getElementById("time_canvas");
-		canvasMain.width = TIME_PLOT_WIDTH;
-		canvasMain.height = TIME_PLOT_HEIGHT;
 		time_ind_el.style.left =
 			Math.min(
 				Math.max(canvas_el.offsetLeft, 0),
 				canvas_el.offsetLeft + TIME_PLOT_WIDTH,
 			) + "px";
 
-		webglp = new WebglPlot(canvasMain);
-		const numX = 1000;
-
-		line = new WebglLine(new ColorRGBA(1, 0, 0, 1), numX);
-		webglp.addLine(line);
-		line.arrangeX();
 		draggable();
+		canvasMain = document.getElementById("time-canvas");
+		canvasMain.width = TIME_PLOT_WIDTH;
+		canvasMain.height = TIME_PLOT_HEIGHT;
 	});
 
 	let redraw_timer = 100;
@@ -109,28 +109,30 @@
 			if (time_data.length > 0) {
 				is_loading = true;
 			}
-			line = new WebglLine(
-				new ColorRGBA(
-					rgb_color.r / 255,
-					rgb_color.g / 255,
-					rgb_color.b / 255,
-					1,
-				),
-				TIME_PLOT_WIDTH,
-			);
+			const canvas = canvasMain;
+			const context: CanvasRenderingContext2D = canvas.getContext("2d");
+			// console.log(context, canvas);
 
-			webglp.removeAllLines();
-			webglp.addLine(line);
-			line.arrangeX();
+			const height = canvasMain.height;
+			const width = canvasMain.width;
+			context.clearRect(0, 0, width, height);
+			context.strokeStyle = `rgb(${rgb_color.r}, ${rgb_color.g}, ${rgb_color.b})`;
+			context.beginPath();
+			context.moveTo(0, TIME_PLOT_HEIGHT / 2);
+			context.lineWidth = 2;
 
-			// not sure this is right, hop about should use canvas width? or num samples? this is the hop for indexing time data...yeah but want to get there to end at width's end, it works
 			let r = Math.round((end - start) / TIME_PLOT_WIDTH);
 			r = Math.max(1, r);
 
-			for (let i = 0; i < TIME_PLOT_WIDTH; i += 1) {
-				line.setY(i, time_data[start + i * r]);
+			for (let i = 0; i < TIME_PLOT_WIDTH; i++) {
+				if (i > 200 && i < 300) {
+					context.fillStyle = "rgb(0,0,150)";
+					context.fillRect(i, 0, i + 1, height);
+				}
+				context.lineTo(i, 50 * time_data[i * r] + TIME_PLOT_HEIGHT / 2);
 			}
-			webglp.update();
+			context.stroke();
+
 			if (time_data.length > 0) {
 				is_loading = false;
 			}
@@ -187,32 +189,33 @@
 			redraw_timer = 0;
 			resetInterval();
 		}
-		console.log(translate);
 
 		if (e.deltaY > 0) {
 			let d = 800 * Math.abs(e.deltaY);
 			let r = hover_position / TIME_PLOT_WIDTH;
-			// origin = hover_position;
-			// zoom = min(zoom + 0.1, max_zoom);
-			// translate = min(translate + delta_translate * r, 1000);
-			// canvas_el.style.transformOrigin = `${origin}px 0`;
-			// canvas_el.style.transform = `translate(${translate}px, 0px) scale(${zoom}, 1) `;
-			// el.scrollLeft = translate;
-			start = round(Math.min(start + (d * r) / 2, end - TIME_PLOT_WIDTH));
-			end = round(Math.max(end - (d * (1 - r)) / 2, start + TIME_PLOT_WIDTH));
-			indicator_width = indicator_width - r / 2;
+			origin = hover_position;
+			zoom = min(zoom + zoom_delta, max_zoom);
+			translate = min(translate + delta_translate * r, 1000);
+			canvas_el.style.transformOrigin = `${origin}px 0`;
+			canvas_el.style.transform = `translate(${translate}px, 0px) scale(${zoom}, 1) `;
+			el.scrollLeft = translate;
+			indicator_origin += zoom_delta;
+			// start = round(Math.min(start + (d * r) / 2, end - TIME_PLOT_WIDTH));
+			// end = round(Math.max(end - (d * (1 - r)) / 2, start + TIME_PLOT_WIDTH));
+			// indicator_width = indicator_width - r / 2;
 		} else if (e.deltaY < 0) {
 			let d = 800 * Math.abs(e.deltaY);
 			let r = hover_position / TIME_PLOT_WIDTH;
-			// origin = hover_position;
-			// zoom = max(zoom - 0.1, min_zoom);
-			// translate = max(translate - delta_translate * r, 0);
-			// canvas_el.style.transformOrigin = `${origin}px 0`;
-			// canvas_el.style.transform = `translate(${translate}px, 0px) scale(${zoom}, 1) `;
-			// el.scrollLeft = translate;
-			start = round(Math.max(start - (d * r) / 2, 0));
-			end = round(Math.min(end + (d * (1 - r)) / 2, num_time_samples));
-			indicator_width = indicator_width + r / 2;
+			origin = hover_position;
+			zoom = max(zoom - zoom_delta, min_zoom);
+			translate = max(translate - delta_translate * r, 0);
+			canvas_el.style.transformOrigin = `${origin}px 0`;
+			canvas_el.style.transform = `translate(${translate}px, 0px) scale(${zoom}, 1) `;
+			el.scrollLeft = translate;
+			indicator_origin -= zoom_delta;
+			// start = round(Math.max(start - (d * r) / 2, 0));
+			// end = round(Math.min(end + (d * (1 - r)) / 2, num_time_samples));
+			// indicator_width = indicator_width + r / 2;
 		}
 	}
 
@@ -276,7 +279,6 @@
 		bind:this={el}
 		on:scroll={(e) => {
 			e.preventDefault();
-			console.log(el.scrollLeft, zoom);
 		}}
 		on:wheel={handleZoom}
 		on:mousedown={(e) => {
@@ -313,16 +315,12 @@
 			>
 		</div>
 		<canvas
-			id="time_canvas"
+			id="time-canvas"
 			bind:this={canvas_el}
 			on:mousemove={(e) => {
 				hover_position = e.offsetX;
 			}}
 		/>
-		<div class="time-axis">
-			<span class="time-label">{(start / sampling_rate).toFixed(1)}</span>
-			<span class="time-label">{(end / sampling_rate).toFixed(1)}</span>
-		</div>
 	</div>
 
 	{#if is_loading}
@@ -359,6 +357,8 @@
 		width: 2em;
 		clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
 		border-radius: 5px;
+		position: relative;
+		left: 1px;
 	}
 
 	input[type="range"]::-webkit-slider-thumb:active {
@@ -394,6 +394,7 @@
 	}
 	.scroll-container {
 		overflow-y: hidden;
+		overflow-x: scroll;
 	}
 	.time-axis {
 		display: flex;
@@ -413,10 +414,10 @@
 		font-size: 10px;
 	}
 	.time-indicator {
-		width: 2px;
+		width: 1px;
 		background: rgb(255, 255, 255, 0.4);
 		position: absolute;
-		margin-top: 1.7em;
+		margin-top: 2em;
 		z-index: 1;
 	}
 </style>

@@ -121,6 +121,7 @@ input {
 }
 
 
+
 .switch {
   display: flex;
   width: 1em;
@@ -190,7 +191,6 @@ input {
   }
 }
 
-
 @keyframes button-border-pulse {
   0% {
     border: 1px solid rgb(from var(--rotary-tick) r g b);
@@ -229,4 +229,24 @@ input {
     border-top: none;
     border-bottom: 3px solid red;
   }
+}
+
+/* indicator for the slider */
+::-webkit-scrollbar {
+	background: black;
+	appearance: none;
+	-webkit-appearance: none;
+	height: 1em;
+	width: 2em;
+	clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+	border-radius: 15px;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--slider-active);
+	border-radius: 15px;
+}
+
+::-webkit-scrollbar-runnable-track {
+	background: var(--gray100);
 }
