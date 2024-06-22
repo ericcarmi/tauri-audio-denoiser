@@ -34,20 +34,30 @@
   --gray7: oklch(0.7 0 0);
   --gray8: oklch(0.8 0 0);
   --gray9: oklch(0.9 0 0);
+  
+  
+  --sepia0: #ebd7cb;
+  --sepia1: #ffe0b5;
+  --sepia2: #d4aa7d;
+  --sepia3: #b87d48;
+  --sepia4: #9e6240;
+  --sepia5: #644536;
 
-
-  --rotary-tick: var(--lightpurple);
-  --rotary-hover: var(--green);
-  --slider-border: var(--purple);
-  --slider-background: var(--gray200);
-  --slider-indicator: var(--purple);
-  --slider-hover: var(--lightpurple);
-  --slider-active: var(--green);
-  --plot-main: var(--purple);
-  --plot-single-filter: var(--gray150);
-  --plot-total-curve: var(--gray200);
-  --app-background: var(--gray4);
-  --app-text: white;
+  --rotary-tick: var(--sepia1);
+  --rotary-hover: var(--sepia3);
+  --slider-background: var(--sepia0);
+  --slider-border: black;
+  --slider-indicator: black;
+  --slider-hover: white;
+  --slider-active: var(--sepia4);
+  --plot-main: var(--sepia3);
+  --plot-single-filter: var(--sepia5);
+  --plot-total-curve: white;
+  --plot-filter-hover: var(--sepia2);
+  --app-background: var(--sepia2);
+  --app-text: black;
+  --button-background: var(--sepia2);
+  --button-text: black;
   
   background: var(--app-background);
   color: var(--app-text);
@@ -100,24 +110,30 @@ button {
   align-items: center;
   height: 2em;
   border-radius: 0;
-  padding: 1px;
+  padding: 0 1em 0 1em;
   margin: 0;
   align-self: flex-end;
   width: max-content;
-  border: 1px solid var(--rotary-tick);
+  border: 1px solid white;
   border-radius: 2px;
-  color: var(--gray200);
-  background: black;
+  color: var(--button-text);
+  background: var(--button-background);
+  border: 1px solid black;
   cursor: pointer;
-  transition: color 0.33s, background 0.33s, filter 0.33s;
-}
-
-button:hover {
-  color: var(--gray150);
+  transition: border-color 0.33s, background 0.33s;
 }
 
 button:active {
-  color: var(--gray100);
+  color: rgb(from var(--rotary-tick) calc(r*2) calc(g*2) calc(b*2));
+}
+
+button:hover {
+  border-color: var(--sepia1);
+}
+
+button[data-attribute="true"] {
+  background: black;
+  color: white;
 }
 
 input {
@@ -162,7 +178,7 @@ input {
   color: var(--gray50);
   align-self: center;
   transition: background 0.33s, border-color 0.33s;
-  border-color: var(--gray100);
+  border-color: white;
   align-items: center;
 }
 

@@ -124,7 +124,6 @@
 		z-index: 1;
 		top: 30%;
 		font-size: 12px;
-		color: var(--gray200);
 		pointer-events: none;
 	}
 	.wrapper {
@@ -147,7 +146,7 @@
 	}
 
 	.thumb {
-		background: black;
+		background: var(--slider-indicator);
 		width: 90%;
 		height: 0.5em;
 		position: absolute;

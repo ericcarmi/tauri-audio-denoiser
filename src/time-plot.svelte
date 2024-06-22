@@ -55,7 +55,7 @@
 	let end = 1;
 	let time_labels = [0, 0, 0, 0, 0];
 
-	let rgb_color: any = { r: 140, g: 0, b: 180 };
+	let rgb_color: any = { r: 235, g: 215, b: 203 };
 	$: time_data, (is_loading = true), redraw_time_data();
 	$: time_data, (end = time_data.length);
 	$: plot_color, (rgb_color = hexToRgb(plot_color));
@@ -131,7 +131,7 @@
 
 			for (let i = 0; i < TIME_PLOT_WIDTH; i++) {
 				if (i >= min_pixel && i <= max_pixel) {
-					context.fillStyle = "rgb(0,0,150)";
+					context.fillStyle = "rgb(	235 ,215, 203)";
 					context.fillRect(i, 0, i + 1, height);
 				} else {
 					context.fillStyle = "rgb(0,0,0)";
@@ -431,7 +431,7 @@
 		opacity: 0;
 	}
 	.highlight[data-attribute="true"] {
-		background: rgba(0, 0, 255, 0.5);
+		background: rgba(235, 215, 203, 0.5);
 		z-index: 1;
 		opacity: 1;
 	}

@@ -189,6 +189,8 @@ pub struct ComponentColors {
     pub plot_filter_hover: Color,
     pub app_background: Color,
     pub app_text: Color,
+    pub button_background: Color,
+    pub button_text: Color,
 }
 const NUM_COMPONENT_COLORS: usize = size_of::<ComponentColors>() / 24; // 24 : num bytes in String
 

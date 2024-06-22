@@ -53,16 +53,18 @@ pub fn query_theme(s: String, theme: Theme) -> Result<ComponentColors, rusqlite:
             rotary_tick: row.get(2)?,
             rotary_hover: row.get(3)?,
             slider_background: row.get(4)?,
-            slider_hover: row.get(5)?,
-            slider_border: row.get(6)?,
-            slider_active: row.get(7)?,
-            slider_indicator: row.get(8)?,
+            slider_border: row.get(5)?,
+            slider_indicator: row.get(6)?,
+            slider_hover: row.get(7)?,
+            slider_active: row.get(8)?,
             plot_main: row.get(9)?,
             plot_single_filter: row.get(10)?,
             plot_total_curve: row.get(11)?,
             plot_filter_hover: row.get(12)?,
             app_background: row.get(13)?,
             app_text: row.get(14)?,
+            button_background: row.get(15)?,
+            button_text: row.get(16)?,
         })
     })?;
 

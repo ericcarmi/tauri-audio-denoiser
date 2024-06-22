@@ -168,14 +168,12 @@
 		display: flex;
 		width: 3em;
 		height: 3em;
-		background: radial-gradient(
-			var(--gray100) 0,
-			var(--gray150) 60%,
-			var(--orange) 100%
-		);
+		background: var(--slider-background) 60%;
 		border-radius: 50%;
 		border: 2px solid var(--gray100);
-		transition: filter 0.44s, border 0.44s;
+		transition:
+			filter 0.44s,
+			border 0.44s;
 		justify-content: center;
 		position: relative;
 		top: 12px;

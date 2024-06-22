@@ -32,6 +32,8 @@
   let plot_filter_hover: string;
   let app_background: string;
   let app_text: string;
+  let button_background: string;
+  let button_text: string;
 
   function update_local_colors() {
     rotary_tick = theme.rotary_tick;
@@ -47,6 +49,8 @@
     plot_filter_hover = theme.plot_filter_hover;
     app_background = theme.app_background;
     app_text = theme.app_text;
+    button_background = theme.button_background;
+    button_text = theme.button_text;
 
     plot_scale = settings.plot_scale;
   }
@@ -91,14 +95,15 @@
   $: app_background,
     update_color(app_background, Object.keys({ app_background })[0]);
   $: app_text, update_color(app_text, Object.keys({ app_text })[0]);
+  $: button_background,
+    update_color(button_background, Object.keys({ button_background })[0]);
+  $: button_text, update_color(button_text, Object.keys({ button_text })[0]);
 
   function update_color(color: string, color_name: string) {
     if (color !== undefined) {
       if (color_name === "app_background") {
         document.body.style.setProperty("background", color);
       } else if (color_name === "app_text") {
-        console.log("change text");
-
         document.body.style.setProperty("color", color);
       }
       document.body.style.setProperty(
@@ -109,6 +114,7 @@
       theme[s] = color;
     }
   }
+
   let ref: any;
 </script>
 
@@ -498,6 +504,20 @@
             type="color"
             bind:value={app_text}
           />app text</span
+        >
+        <span
+          ><input
+            style="--col: {button_background};"
+            type="color"
+            bind:value={button_background}
+          />button background</span
+        >
+        <span
+          ><input
+            style="--col: {button_text};"
+            type="color"
+            bind:value={button_text}
+          />button text</span
         >
 
         <!--

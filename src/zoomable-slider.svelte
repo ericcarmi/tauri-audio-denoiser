@@ -188,7 +188,7 @@
 
 <style>
 	.wrapper {
-		background: linear-gradient(90deg, var(--gray4), var(--gray5), var(--gray4));
+		background: var(--slider-background);
 		display: flex;
 		justify-content: center;
 		border: 1px solid var(--slider-border);
@@ -202,7 +202,7 @@
 		border: 1px solid var(--slider-hover);
 	}
 	.thumb {
-		background: black;
+		background: var(--slider-indicator);
 		position: absolute;
 	}
 	.thumb:active {
@@ -213,20 +213,19 @@
 	}
 	.value-text {
 		font-size: 12px;
-		color: var(--gray200);
 		pointer-events: none;
 		font-weight: bold;
 		z-index: 1;
 	}
 	.scroll-number {
-		background: rgba(0, 0, 0, 0.5);
-		border: 1px solid transparent;
+		background: var(--slider-background);
+		border: 1px solid black;
 		transition: border-color 0.33s;
 		cursor: ns-resize;
 		width: 3em;
 		font-size: 12px;
 	}
 	.scroll-number:hover {
-		border-color: var(--rotary-tick);
+		border-color: var(--slider-hover);
 	}
 </style>

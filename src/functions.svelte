@@ -100,6 +100,13 @@
 
 	export function update_css_color(color: string, color_name: string) {
 		if (color !== undefined) {
+			if (color_name === "app-background") {
+				document.body.style.setProperty("background", color);
+			} else if (color_name === "app-text") {
+				console.log("change text");
+
+				document.body.style.setProperty("color", color);
+			}
 			document.body.style.setProperty(
 				`--${color_name.replace("_", "-")}`,
 				color,

@@ -13,6 +13,7 @@ black=#000000
 white=#ffffff
 gray=#888888
 
+sepia0=#ebd7cb
 sepia1=#ffe0b5
 sepia2=#d4aa7d
 sepia3=#b87d48
@@ -38,7 +39,9 @@ CREATE TABLE COMPONENTCOLORS(id INTEGER PRIMARY KEY,
  plot_total_curve TEXT NOT NULL,
  plot_filter_hover TEXT NOT NULL,
  app_background TEXT NOT NULL,
- app_text TEXT NOT NULL
+ app_text TEXT NOT NULL,
+ button_background TEXT NOT NULL,
+ button_text TEXT NOT NULL
 );
 
 insert into COMPONENTCOLORS(
@@ -55,25 +58,28 @@ insert into COMPONENTCOLORS(
  plot_total_curve,
  plot_filter_hover, 
  app_background, 
- app_text) values (
+ app_text,
+ button_background, 
+ button_text
+ ) values (
  'SEPIA',
- '$sepia1',
- '$white',
- '$sepia4',
- '$black',
- '$black',
- '$white',
- '$sepia4',
+ '$sepia2',
  '$sepia3',
- '$sepia4',
+ '$sepia0',
+ '$sepia5',
+ '$sepia2',
+ '$sepia2',
+ '$sepia1',
+ '$sepia3',
+ '$sepia5',
  '$white',
- '$sepia2', '$sepia2', '$black'
+ '$sepia2',
+ '$sepia1',
+ '$black',
+ '$sepia5',
+ '$sepia0'
 );
 
-
-insert into COMPONENTCOLORS(name, rotary_ticks, rotary_hover, slider_background, slider_border, slider_indicator, slider_hover, slider_active, plot_main, plot_single_filter, plot_total_curve, plot_filter_hover, app_background, app_text) values ('RGB', '#ff0000', '#0000ff', '$gray', '#0000ff', '#000000', '#00ff00', '#00ff00', '#888888', '#ffffff', '#00ff00', '#ff0000', '$gray', '$black' );
-insert into COMPONENTCOLORS(name, rotary_ticks, rotary_hover, slider_background, slider_border, slider_indicator, slider_hover, slider_active, plot_main, plot_single_filter, plot_total_curve, plot_filter_hover, app_background, app_text) values ('CYM', '$cyan', '$magenta', '$gray', '$magenta', '#000000', '$yellow', '$yellow', '#888888', '#ffffff', '$yellow', '$cyan', '$gray', '$black');
-insert into COMPONENTCOLORS(name, rotary_ticks, rotary_hover, slider_background, slider_border, slider_indicator, slider_hover, slider_active, plot_main, plot_single_filter, plot_total_curve, plot_filter_hover, app_background, app_text) values ('POG', '$purple', '$green', '$gray', '$orange', '#000000', '$orange', '$purple', '#888888', '#ffffff', '$green', '$purple', '$gray', '$black' );
 
 insert into COMPONENTCOLORS(
  name,
@@ -87,7 +93,117 @@ insert into COMPONENTCOLORS(
  plot_main,
  plot_single_filter,
  plot_total_curve,
- plot_filter_hover, app_background, app_text) values (
+ plot_filter_hover,
+ app_background,
+ app_text,
+ button_background, 
+ button_text
+ ) values (
+ 'RGB',
+ '#ff0000',
+ '#0000ff',
+ '$gray',
+ '#0000ff',
+ '#000000',
+ '#00ff00',
+ '#00ff00',
+ '#888888',
+ '#ffffff',
+ '#00ff00',
+ '#ff0000',
+ '$gray',
+ '$black',
+ '$black',
+ '$white'
+  );
+insert into COMPONENTCOLORS(
+ name,
+ rotary_ticks,
+ rotary_hover,
+ slider_background,
+ slider_border,
+ slider_indicator,
+ slider_hover,
+ slider_active,
+ plot_main,
+ plot_single_filter,
+ plot_total_curve,
+ plot_filter_hover,
+ app_background,
+ app_text,
+ button_background, 
+ button_text
+ ) values (
+ 'CYM',
+ '$cyan',
+ '$magenta',
+ '$gray',
+ '$magenta',
+ '#000000',
+ '$yellow',
+ '$yellow',
+ '#888888',
+ '#ffffff',
+ '$yellow',
+ '$cyan',
+ '$gray',
+ '$black',
+ '$black',
+ '$white'
+  );
+insert into COMPONENTCOLORS(name,
+ rotary_ticks,
+ rotary_hover,
+ slider_background,
+ slider_border,
+ slider_indicator,
+ slider_hover,
+ slider_active,
+ plot_main,
+ plot_single_filter,
+ plot_total_curve,
+ plot_filter_hover,
+ app_background,
+ app_text,
+ button_background, 
+ button_text
+ ) values (
+ 'POG',
+ '$purple',
+ '$green',
+ '$gray',
+ '$orange',
+ '#000000',
+ '$orange',
+ '$purple',
+ '#888888',
+ '#ffffff',
+ '$green',
+ '$purple',
+ '$gray',
+ '$black',
+ '$black',
+ '$white'
+  );
+
+insert into COMPONENTCOLORS(
+ name,
+ rotary_ticks,
+ rotary_hover,
+ slider_background,
+ slider_border,
+ slider_indicator,
+ slider_hover,
+ slider_active,
+ plot_main,
+ plot_single_filter,
+ plot_total_curve,
+ plot_filter_hover, 
+ app_background, 
+ app_text,
+ button_background, 
+ button_text
+ ) values (
  'BWG',
  '$orange',
  '$white',
@@ -99,7 +215,10 @@ insert into COMPONENTCOLORS(
  '$orange',
  '$gray',
  '$white',
- '$orange', '$gray', '$black'
+ '$orange', '$gray', 
+ '$black',
+ '$black',
+ '$white'
 );
 
 

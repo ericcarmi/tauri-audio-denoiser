@@ -145,10 +145,15 @@
     update_css_color(theme.rotary_hover, "rotary-hover");
     update_css_color(theme.slider_border, "slider-border");
     update_css_color(theme.slider_indicator, "slider-indicator");
+    update_css_color(theme.slider_background, "slider-background");
     update_css_color(theme.slider_hover, "slider-hover");
     update_css_color(theme.slider_active, "slider-active");
     update_css_color(theme.plot_main, "plot-main");
     update_css_color(theme.plot_single_filter, "plot-single-filter");
+    update_css_color(theme.app_background, "app-background");
+    update_css_color(theme.app_text, "app-text");
+    update_css_color(theme.button_background, "button-background");
+    update_css_color(theme.button_text, "button-text");
     update_css_color(theme.plot_total_curve, "plot-total-curve");
     update_css_color(theme.plot_filter_hover, "plot-filter-hover");
 
@@ -551,15 +556,11 @@
     align-items: center;
     height: 2em;
     border-radius: 0;
-    padding: 0;
-    margin: 0;
     align-self: center;
     width: max-content;
-    border: 1px solid var(--rotary-tick);
-    color: var(--gray200);
   }
   .reset-all-gains-switch:hover {
-    color: var(--gray150);
+    color: var(--orange);
   }
   .reset-all-gains-switch:active {
     color: var(--gray100);
@@ -571,12 +572,17 @@
     height: 30px;
     display: inline-flex;
     transition: filter 0.33s;
-    filter: invert(70%);
+    filter: drop-shadow(0 0 10px var(--app-text));
     cursor: pointer;
     outline: none;
   }
   .settings:hover {
-    filter: invert(40%);
+    filter: drop-shadow(
+      0,
+      0,
+      10px,
+      rgb(from var(--app-text) calc(r), calc(b), calc(g))
+    );
   }
   .button-bar {
     display: flex;
@@ -595,7 +601,6 @@
     border-bottom: 1px solid black;
   }
   button {
-    padding: 0 1em 0 1em;
     align-self: center;
   }
   .stereo-buttons-box {
@@ -611,23 +616,23 @@
     margin-top: 1em;
     align-self: flex-start;
   }
-  .mute-button {
-    background: var(--rotary-tick);
-    border: 1px solid black;
-  }
   .mute-button[data-attribute="true"] {
     background: black;
+    color: white;
     border: 1px solid var(--rotary-tick);
     text-decoration: line-through;
-    filter: contrast(70%);
-  }
-  .stereo-control-button[data-attribute="true"] {
-    background: var(--rotary-tick);
-    border: 1px solid black;
-    filter: contrast(100%);
   }
   .stereo-control-button {
-    filter: contrast(70%);
+    background: black;
+    color: white;
+    border: 1px solid black;
+  }
+  .stereo-control-button[data-attribute="true"] {
+    background: var(--button-background);
+    color: var(--button-text);
+  }
+  .stereo-control-button[data-attribute="true"]:hover {
+    border-color: var(--sepia0);
   }
   .spinner {
     height: 100%;

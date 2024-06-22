@@ -27,6 +27,8 @@ export type ComponentColors = {
   plot_filter_hover: string;
   app_background: string;
   app_text: string;
+  button_background: string;
+  button_text: string;
 };
 
 export type Filters = { bank: [IIR2, IIR2, IIR2, IIR2, IIR2] };
