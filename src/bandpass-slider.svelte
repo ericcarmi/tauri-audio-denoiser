@@ -2,7 +2,7 @@
 	import Slider from "./slider.svelte";
 	import RotarySlider from "./rotary-slider.svelte";
 	import ZoomableSlider from "./zoomable-slider.svelte";
-	import type { StereoChoice } from "./types.svelte";
+	import type { StereoChoice } from "./types";
 	import { invoke } from "@tauri-apps/api/tauri";
 
 	export let gain = 0;

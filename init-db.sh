@@ -1,4 +1,5 @@
 #!/bin/bash
+rm db.sqlite
 
 red=#ff0000
 green=#00ff00
@@ -10,33 +11,41 @@ purple=#800080
 orange=#ee5500
 black=#000000
 white=#ffffff
-gray="#888888"
+gray=#888888
+
+sepia1=#ffe0b5
+sepia2=#d4aa7d
+sepia3=#b87d48
+sepia4=#9e6240
+sepia5=#644536
+
 
 sqlite3 -batch db.sqlite "CREATE TABLE SETTINGS(id INTEGER PRIMARY KEY, plot_scale TEXT NOT NULL, theme TEXT NOT NULL, draw_freq_axis BOOLEAN, draw_fft_amp_axis BOOLEAN, draw_filter_amp_axis BOOLEAN);
 
-INSERT into settings (plot_scale, theme, draw_freq_axis, draw_fft_amp_axis, draw_filter_amp_axis) values ('Log', 'BWG', true, true, true);
+INSERT into settings (plot_scale, theme, draw_freq_axis, draw_fft_amp_axis, draw_filter_amp_axis) values ('Log', 'SEPIA', true, true, true);
 
 CREATE TABLE COMPONENTCOLORS(id INTEGER PRIMARY KEY,
  name TEXT NOT NULL,
  rotary_ticks TEXT NOT NULL,
  rotary_hover TEXT NOT NULL,
- slider_hover TEXT NOT NULL,
+ slider_background TEXT NOT NULL,
  slider_border TEXT NOT NULL,
- slider_active TEXT NOT NULL,
  slider_indicator TEXT NOT NULL,
+ slider_hover TEXT NOT NULL,
+ slider_active TEXT NOT NULL,
  plot_main TEXT NOT NULL,
  plot_single_filter TEXT NOT NULL,
  plot_total_curve TEXT NOT NULL,
- plot_filter_hover TEXT NOT NULL
+ plot_filter_hover TEXT NOT NULL,
+ app_background TEXT NOT NULL,
+ app_text TEXT NOT NULL
 );
 
-insert into COMPONENTCOLORS(name, rotary_ticks, rotary_hover, slider_border, slider_indicator, slider_hover, slider_active, plot_main, plot_single_filter, plot_total_curve, plot_filter_hover) values ('RGB', '#ff0000', '#0000ff', '#0000ff', '#000000', '#00ff00', '#00ff00', '#888888', '#ffffff', '#00ff00', '#ff0000' );
-insert into COMPONENTCOLORS(name, rotary_ticks, rotary_hover, slider_border, slider_indicator, slider_hover, slider_active, plot_main, plot_single_filter, plot_total_curve, plot_filter_hover) values ('CYM', '$cyan', '$magenta', '$magenta', '#000000', '$yellow', '$yellow', '#888888', '#ffffff', '$yellow', '$cyan');
-insert into COMPONENTCOLORS(name, rotary_ticks, rotary_hover, slider_border, slider_indicator, slider_hover, slider_active, plot_main, plot_single_filter, plot_total_curve, plot_filter_hover) values ('POG', '$purple', '$green', '$orange', '#000000', '$orange', '$purple', '#888888', '#ffffff', '$green', '$purple' );
 insert into COMPONENTCOLORS(
  name,
  rotary_ticks,
  rotary_hover,
+ slider_background,
  slider_border,
  slider_indicator,
  slider_hover,
@@ -44,10 +53,45 @@ insert into COMPONENTCOLORS(
  plot_main,
  plot_single_filter,
  plot_total_curve,
- plot_filter_hover) values (
+ plot_filter_hover, 
+ app_background, 
+ app_text) values (
+ 'SEPIA',
+ '$sepia1',
+ '$white',
+ '$sepia4',
+ '$black',
+ '$black',
+ '$white',
+ '$sepia4',
+ '$sepia3',
+ '$sepia4',
+ '$white',
+ '$sepia2', '$sepia2', '$black'
+);
+
+
+insert into COMPONENTCOLORS(name, rotary_ticks, rotary_hover, slider_background, slider_border, slider_indicator, slider_hover, slider_active, plot_main, plot_single_filter, plot_total_curve, plot_filter_hover, app_background, app_text) values ('RGB', '#ff0000', '#0000ff', '$gray', '#0000ff', '#000000', '#00ff00', '#00ff00', '#888888', '#ffffff', '#00ff00', '#ff0000', '$gray', '$black' );
+insert into COMPONENTCOLORS(name, rotary_ticks, rotary_hover, slider_background, slider_border, slider_indicator, slider_hover, slider_active, plot_main, plot_single_filter, plot_total_curve, plot_filter_hover, app_background, app_text) values ('CYM', '$cyan', '$magenta', '$gray', '$magenta', '#000000', '$yellow', '$yellow', '#888888', '#ffffff', '$yellow', '$cyan', '$gray', '$black');
+insert into COMPONENTCOLORS(name, rotary_ticks, rotary_hover, slider_background, slider_border, slider_indicator, slider_hover, slider_active, plot_main, plot_single_filter, plot_total_curve, plot_filter_hover, app_background, app_text) values ('POG', '$purple', '$green', '$gray', '$orange', '#000000', '$orange', '$purple', '#888888', '#ffffff', '$green', '$purple', '$gray', '$black' );
+
+insert into COMPONENTCOLORS(
+ name,
+ rotary_ticks,
+ rotary_hover,
+ slider_background,
+ slider_border,
+ slider_indicator,
+ slider_hover,
+ slider_active,
+ plot_main,
+ plot_single_filter,
+ plot_total_curve,
+ plot_filter_hover, app_background, app_text) values (
  'BWG',
  '$orange',
  '$white',
+ '$gray',
  '$white',
  '$black',
  '$orange',
@@ -55,7 +99,7 @@ insert into COMPONENTCOLORS(
  '$orange',
  '$gray',
  '$white',
- '$orange'
+ '$orange', '$gray', '$black'
 );
 
 
@@ -131,5 +175,6 @@ INSERT INTO FREQRANGE (stereo_choice, idx, min, max) VALUES (
 
 cp db.sqlite ./src-tauri/
 cp db.sqlite ./src-tauri/target/debug
-rm db.sqlite
+# rm db.sqlite
 
+echo "database generated"

@@ -10,11 +10,7 @@
     bark_scale,
     hexToRgb,
   } from "./functions.svelte";
-  import {
-    type BPF,
-    type ComponentColors,
-    type Settings,
-  } from "./types.svelte";
+  import { type BPF, type ComponentColors, type Settings } from "./types";
   import {
     FREQ_PLOT_HEIGHT,
     FREQ_PLOT_WIDTH,

@@ -12,7 +12,7 @@
     get_num_filters,
   } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
-  import type { UIParams, StereoChoice, UIFilters } from "./types.svelte";
+  import type { UIParams, StereoChoice, UIFilters } from "./types.ts";
   import {
     init_ui_params,
     remove_slashes_ext,
@@ -154,7 +154,7 @@
 
     selectedRecording = "reisman.wav";
     // selected recording also needs to be in sync with backend file...should be resolved once files are imported correctly instead of one by default, tho should still have that for loading saved state?
-    change_file(selectedRecording, true);
+    // change_file(selectedRecording, true);
   });
 </script>
 
@@ -307,18 +307,22 @@
       </button>
       <button>loop</button>
       <button>fingerprint</button>
-      <span style="align-self: center;"
-        >cursor: {(
-          ((time_hover_position / TIME_PLOT_WIDTH) * num_time_samples) /
-          sampling_rate
-        ).toFixed(1)}</span
+      <div
+        style="display: flex; flex-direction: column;  flex-grow: 1; justify-content: space-evenly"
       >
-      <span style="align-self: center;"
-        >time: {(
-          ((time_position / TIME_PLOT_WIDTH) * num_time_samples) /
-          sampling_rate
-        ).toFixed(1)}</span
-      >
+        <span style="align-self: center;"
+          >cursor: {(
+            ((time_hover_position / TIME_PLOT_WIDTH) * num_time_samples) /
+            sampling_rate
+          ).toFixed(1)}</span
+        >
+        <span
+          >time: {(
+            ((time_position / TIME_PLOT_WIDTH) * num_time_samples) /
+            sampling_rate
+          ).toFixed(1)}</span
+        >
+      </div>
     </div>
   </div>
 

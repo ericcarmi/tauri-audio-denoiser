@@ -35,18 +35,22 @@
   --gray8: oklch(0.8 0 0);
   --gray9: oklch(0.9 0 0);
 
-  color: var(--gray8);
-  background: var(--gray4);
 
   --rotary-tick: var(--lightpurple);
   --rotary-hover: var(--green);
   --slider-border: var(--purple);
+  --slider-background: var(--gray200);
   --slider-indicator: var(--purple);
   --slider-hover: var(--lightpurple);
   --slider-active: var(--green);
   --plot-main: var(--purple);
   --plot-single-filter: var(--gray150);
   --plot-total-curve: var(--gray200);
+  --app-background: var(--gray4);
+  --app-text: white;
+  
+  background: var(--app-background);
+  color: var(--app-text);
 
   * {
     -webkit-user-select: none;

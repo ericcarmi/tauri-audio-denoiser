@@ -90,6 +90,7 @@ pub enum Theme {
     CYM,
     POG,
     BWG,
+    SEPIA,
     CUSTOM,
 }
 
@@ -101,6 +102,7 @@ impl ToSql for Theme {
             CYM => "CYM".to_sql(),
             POG => "POG".to_sql(),
             BWG => "BWG".to_sql(),
+            SEPIA => "SEPIA".to_sql(),
             CUSTOM => "CUSTOM".to_sql(),
         }
     }
@@ -115,6 +117,7 @@ impl FromSql for Theme {
                 "CYM" => Ok(CYM),
                 "POG" => Ok(POG),
                 "BWG" => Ok(BWG),
+                "SEPIA" => Ok(SEPIA),
                 "CUSTOM" => Ok(CUSTOM),
                 _ => Err(rusqlite::types::FromSqlError::InvalidType),
             };
@@ -131,6 +134,7 @@ impl Theme {
             CYM => "CYM",
             POG => "POG",
             BWG => "BWG",
+            SEPIA => "SEPIA",
             CUSTOM => "CUSTOM",
         }
     }
@@ -141,6 +145,8 @@ impl Theme {
             "RGB" => Ok(RGB),
             "CYM" => Ok(CYM),
             "POG" => Ok(POG),
+            "BWG" => Ok(BWG),
+            "SEPIA" => Ok(SEPIA),
             "CUSTOM" => Ok(CUSTOM),
             _ => Err("invalid theme string"),
         }
@@ -172,6 +178,7 @@ pub type Color = String;
 pub struct ComponentColors {
     pub rotary_tick: Color,
     pub rotary_hover: Color,
+    pub slider_background: Color,
     pub slider_hover: Color,
     pub slider_border: Color,
     pub slider_active: Color,
@@ -180,6 +187,8 @@ pub struct ComponentColors {
     pub plot_single_filter: Color,
     pub plot_total_curve: Color,
     pub plot_filter_hover: Color,
+    pub app_background: Color,
+    pub app_text: Color,
 }
 const NUM_COMPONENT_COLORS: usize = size_of::<ComponentColors>() / 24; // 24 : num bytes in String
 

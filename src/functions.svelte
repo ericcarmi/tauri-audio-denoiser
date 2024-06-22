@@ -9,7 +9,7 @@
 		IIR2,
 		StereoParams,
 		UIFilters,
-	} from "./types.svelte";
+	} from "./types";
 
 	export function cabs(z: Complex) {
 		return Math.sqrt(z.re * z.re + z.im * z.im);

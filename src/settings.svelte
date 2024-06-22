@@ -2,12 +2,7 @@
   import { invoke } from "@tauri-apps/api/tauri";
   import { onDestroy, onMount } from "svelte";
   import { shortcut } from "./shortcut.svelte";
-  import type {
-    ComponentColors,
-    PlotScale,
-    Settings,
-    Theme,
-  } from "./types.svelte";
+  import type { ComponentColors, PlotScale, Settings, Theme } from "./types.ts";
 
   let fft_plot_decay = 0.8;
   let fft_plot_size = 256;
@@ -28,17 +23,21 @@
   let rotary_hover: string;
   let slider_border: string;
   let slider_indicator: string;
+  let slider_background: string;
   let slider_hover: string;
   let slider_active: string;
   let plot_main: string;
   let plot_single_filter: string;
   let plot_total_curve: string;
   let plot_filter_hover: string;
+  let app_background: string;
+  let app_text: string;
 
   function update_local_colors() {
     rotary_tick = theme.rotary_tick;
     rotary_hover = theme.rotary_hover;
     slider_border = theme.slider_border;
+    slider_background = theme.slider_background;
     slider_indicator = theme.slider_indicator;
     slider_hover = theme.slider_hover;
     slider_active = theme.slider_active;
@@ -46,6 +45,9 @@
     plot_total_curve = theme.plot_total_curve;
     plot_single_filter = theme.plot_single_filter;
     plot_filter_hover = theme.plot_filter_hover;
+    app_background = theme.app_background;
+    app_text = theme.app_text;
+
     plot_scale = settings.plot_scale;
   }
 
@@ -71,6 +73,8 @@
   $: rotary_hover, update_color(rotary_hover, Object.keys({ rotary_hover })[0]);
   $: slider_border,
     update_color(slider_border, Object.keys({ slider_border })[0]);
+  $: slider_background,
+    update_color(slider_background, Object.keys({ slider_background })[0]);
   $: slider_indicator,
     update_color(slider_indicator, Object.keys({ slider_indicator })[0]);
   $: slider_hover, update_color(slider_hover, Object.keys({ slider_hover })[0]);
@@ -84,11 +88,22 @@
   $: plot_filter_hover,
     update_color(plot_filter_hover, Object.keys({ plot_filter_hover })[0]);
 
+  $: app_background,
+    update_color(app_background, Object.keys({ app_background })[0]);
+  $: app_text, update_color(app_text, Object.keys({ app_text })[0]);
+
   function update_color(color: string, color_name: string) {
     if (color !== undefined) {
+      if (color_name === "app_background") {
+        document.body.style.setProperty("background", color);
+      } else if (color_name === "app_text") {
+        console.log("change text");
+
+        document.body.style.setProperty("color", color);
+      }
       document.body.style.setProperty(
         `--${color_name.replace("_", "-")}`,
-        color
+        color,
       );
       let s = color_name as keyof ComponentColors;
       theme[s] = color;
@@ -353,6 +368,21 @@
             type="radio"
             name="theme"
             on:click={async () => {
+              theme_name = "SEPIA";
+              settings.theme = theme_name;
+              theme = await invoke("sql_theme", {
+                theme: theme_name,
+              });
+              update_local_colors();
+            }}
+            checked={theme_name === "SEPIA"}
+          /> sepia</span
+        >
+        <span class="check-label"
+          ><input
+            type="radio"
+            name="theme"
+            on:click={async () => {
               theme_name = "CUSTOM";
               settings.theme = theme_name;
               theme = await invoke("sql_theme", {
@@ -407,6 +437,13 @@
         >
         <span
           ><input
+            style="--col: {slider_background};"
+            type="color"
+            bind:value={slider_background}
+          />slider background</span
+        >
+        <span
+          ><input
             style="--col: {slider_hover};"
             type="color"
             bind:value={slider_hover}
@@ -447,6 +484,34 @@
             bind:value={plot_filter_hover}
           />plot filter hover</span
         >
+
+        <span
+          ><input
+            style="--col: {app_background};"
+            type="color"
+            bind:value={app_background}
+          />app background</span
+        >
+        <span
+          ><input
+            style="--col: {app_text};"
+            type="color"
+            bind:value={app_text}
+          />app text</span
+        >
+
+        <!--
+      this displays all but colors won't update, the bind isn't right...cuz it iterates over theme instead of local vars?
+        {#each Object.entries(theme) as [name, color]}
+          <span
+            ><input
+              style="--col: {name};"
+              type="color"
+              bind:value={color}
+            />{name.replace("_", " ")}</span
+          >
+        {/each}
+        -->
       </div>
     </div>
   {/if}
@@ -495,15 +560,14 @@
   .wide-item {
     display: grid;
     text-align: center;
-    grid-template-rows: auto auto auto;
-    grid-template-columns: auto auto;
-    align-items: start;
+    grid-template-columns: auto auto auto;
+    align-items: center;
     justify-items: start;
     gap: 0.3em;
   }
   .group-label {
     text-decoration: underline;
-    grid-column: 1 / span 2;
+    grid-column: 1 / span 3;
     align-self: center;
     justify-self: center;
   }

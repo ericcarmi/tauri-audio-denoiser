@@ -19,7 +19,7 @@
 	function redraw() {
 		position = height / 2 - (value / range) * height;
 		indicator.style.top = position + "px";
-		update_backend()
+		update_backend();
 	}
 
 	function draggable() {
@@ -128,7 +128,7 @@
 		pointer-events: none;
 	}
 	.wrapper {
-		background: var(--gray100);
+		background: var(--slider-background);
 		width: 2.5em;
 		display: flex;
 		justify-content: center;
