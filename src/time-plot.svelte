@@ -47,18 +47,18 @@
 	let time_scroll_position = 0;
 	let time_scroll_dragging = false;
 	// 0.1 is zoom delta, should set that too...
-	let delta_translate = TIME_PLOT_WIDTH * 0.1;
 	let max_zoom = 5;
 	let min_zoom = 1;
 	let zoom_delta = 0.1;
+	let delta_translate = TIME_PLOT_WIDTH * zoom_delta;
 	let start = 0;
 	let end = 1;
 	let time_labels = [0, 0, 0, 0, 0];
 
-	let rgb_color: any = { r: 235, g: 215, b: 203 };
 	$: time_data, (is_loading = true), redraw_time_data();
 	$: time_data, (end = time_data.length);
-	$: plot_color, (rgb_color = hexToRgb(plot_color));
+	let rgb_color: any;
+	$: plot_color, (rgb_color = hexToRgb("#000000"));
 
 	const unlisten_2 = listen("audioui_message", (event: any) => {
 		time = event.payload.time / num_time_samples;
@@ -74,11 +74,11 @@
 	});
 
 	onMount(() => {
-		time_ind_el.style.left =
-			Math.min(
-				Math.max(canvas_el.offsetLeft, 0),
-				canvas_el.offsetLeft + TIME_PLOT_WIDTH,
-			) + "px";
+		// time_ind_el.style.left =
+		// 	Math.min(
+		// 		Math.max(canvas_el.offsetLeft, 0),
+		// 		canvas_el.offsetLeft + TIME_PLOT_WIDTH,
+		// 	) + "px";
 
 		draggable();
 		canvasMain = document.getElementById("time-canvas");
@@ -123,6 +123,7 @@
 
 			// the hop size should depend on zoom
 			let r = Math.round((num_time_samples - 0) / TIME_PLOT_WIDTH);
+
 			r = Math.max(1, r);
 			// let min_pixel = (highlight_left / num_time_samples) * TIME_PLOT_WIDTH;
 			// let min_pixel = (highlight_left / num_time_samples) * TIME_PLOT_WIDTH;
@@ -131,10 +132,10 @@
 
 			for (let i = 0; i < TIME_PLOT_WIDTH; i++) {
 				if (i >= min_pixel && i <= max_pixel) {
-					context.fillStyle = "rgb(	235 ,215, 203)";
+					context.fillStyle = "#b87d48";
 					context.fillRect(i, 0, i + 1, height);
 				} else {
-					context.fillStyle = "rgb(0,0,0)";
+					context.fillStyle = "#d4aa7d";
 					context.fillRect(i, 0, i + 1, height);
 				}
 				context.lineTo(i, 50 * time_data[i * r] + TIME_PLOT_HEIGHT / 2);
@@ -157,6 +158,7 @@
 				if (el === null) {
 					return;
 				}
+
 				if (!mouse_down || is_time_slider_dragging) return;
 
 				indicator_origin = origin;
@@ -191,34 +193,28 @@
 		// }
 
 		if (e.deltaY > 0) {
-			zoom = min(zoom + zoom_delta, max_zoom);
 			if (zoom != max_zoom) {
-				let r = hover_position / TIME_PLOT_WIDTH / zoom;
-				let d = 800 * Math.abs(e.deltaY);
-				start = round(Math.min(start + (d * r) / 2, end - TIME_PLOT_WIDTH));
-				end = round(Math.max(end - (d * (1 - r)) / 2, start + TIME_PLOT_WIDTH));
+				let r = hover_position / TIME_PLOT_WIDTH;
+				zoom = min(zoom + zoom_delta, max_zoom);
 
 				origin = hover_position;
-				time_scroll_position = min(
-					time_scroll_position + delta_translate * r,
-					time_scroll_position + TIME_PLOT_WIDTH / zoom,
-				);
+
 				canvas_el.style.transformOrigin = `${origin}px 0`;
 				canvas_el.style.transform = `scale(${zoom}, 1) `;
+
+				start = start + (r * num_time_samples * zoom_delta) / zoom;
+				time_scroll_position += zoom_delta * TIME_PLOT_WIDTH * r;
 			}
 		} else if (e.deltaY < 0) {
 			zoom = max(zoom - zoom_delta, min_zoom);
-			let r = hover_position / TIME_PLOT_WIDTH / zoom;
-			let d = 800 * Math.abs(e.deltaY);
-			start = round(Math.max(start - (d * r) / 2, 0));
-			end = round(Math.min(end + (d * (1 - r)) / 2, num_time_samples));
+			let r = hover_position / TIME_PLOT_WIDTH;
 
 			origin = hover_position;
 			time_scroll_position = max(time_scroll_position - delta_translate * r, 0);
 			canvas_el.style.transformOrigin = `${origin}px 0`;
 			canvas_el.style.transform = `scale(${zoom}, 1) `;
+			start = Math.max(0, start - r * num_time_samples * zoom_delta);
 		}
-		console.log(origin);
 	}
 
 	function update_time_ind() {
@@ -226,7 +222,7 @@
 			time_ind_el.style.left = time_position + canvas_el.offsetLeft + "px";
 		}
 	}
-	$: time_position, update_time_ind();
+	// $: time_position, update_time_ind();
 </script>
 
 <div class="plot-wrapper">
@@ -240,21 +236,21 @@
 		bind:value={time_position}
 		on:mousedown={(e) => {
 			is_time_slider_dragging = true;
-			time_ind_el.style.left =
-				Math.min(
-					Math.max(canvas_el.offsetLeft, e.clientX),
-					canvas_el.offsetLeft + TIME_PLOT_WIDTH,
-				) + "px";
+			// time_ind_el.style.left =
+			// 	Math.min(
+			// 		Math.max(canvas_el.offsetLeft, e.clientX),
+			// 		canvas_el.offsetLeft + TIME_PLOT_WIDTH,
+			// 	) + "px";
 		}}
 		on:mousemove={(e) => {
 			if (is_time_slider_dragging) {
-				time_ind_el.style.left =
-					Math.min(
-						Math.max(canvas_el.offsetLeft, e.clientX),
-						canvas_el.offsetLeft + TIME_PLOT_WIDTH,
-					) -
-					0 +
-					"px";
+				// time_ind_el.style.left =
+				// 	Math.min(
+				// 		Math.max(canvas_el.offsetLeft, e.clientX),
+				// 		canvas_el.offsetLeft + TIME_PLOT_WIDTH,
+				// 	) -
+				// 	0 +
+				// 	"px";
 			}
 		}}
 		on:mouseup={() => {
@@ -268,20 +264,20 @@
 				});
 		}}
 	/>
+	<!--
 	<div
 		class="time-indicator"
 		style="height:{TIME_PLOT_HEIGHT}px"
 		bind:this={time_ind_el}
 	/>
-	<span style="left: 0; position: absolute;"
-		>{(start / sampling_rate).toFixed(1)}</span
-	>
+	-->
+	<span style="left: 0; position: absolute;">{start / sampling_rate}</span>
 	<span style="right: 0; position: absolute;"
 		>{(end / sampling_rate).toFixed(1)}</span
 	>
 	<div
 		class="scroll-container"
-		style="width: {TIME_PLOT_WIDTH}px; "
+		style=""
 		role="cell"
 		tabindex={0}
 		bind:this={el}
@@ -313,8 +309,6 @@
 				}
 			}}
 			on:mousemove={(e) => {
-				// need to update this to use zoom
-				// it needs to use the bounds too
 				hover_position = e.offsetX;
 
 				if (!mouse_down) {
@@ -327,25 +321,23 @@
 			role="button"
 			tabindex={0}
 			on:mousedown={(e) => {
-				// it should work like the other custom draggables but it is not
-				// ...should be able to move mouse outside with mouse down and still work
 				time_scroll_dragging = true;
-				time_scroll_position = e.clientX;
+				// time_scroll_position = e.clientX;
 			}}
 			on:mouseup={(e) => {
 				time_scroll_dragging = false;
 			}}
 			on:mousemove={(e) => {
 				if (time_scroll_dragging) {
-					time_scroll_position = e.clientX;
+					// time_scroll_position = e.clientX;
 				}
 			}}
 		>
 			<div
 				id="time-scroll-position"
 				role="marquee"
-				style="position: absolute; left: {time_scroll_position +
-					canvas_el?.offsetLeft}px; width: calc({TIME_PLOT_WIDTH / zoom}px)"
+				style="position: relative; left: {time_scroll_position}px; width: calc({TIME_PLOT_WIDTH /
+					zoom}px)"
 				on:mousemove={(e) => {
 					if (time_scroll_dragging) {
 						// time_scroll_position = e.offsetX;
@@ -369,8 +361,10 @@
 	}
 
 	canvas {
-		background: black;
 		scale: 1 1;
+		padding: 0;
+		margin: 0;
+		border: none;
 	}
 
 	#time-scrollbar {
@@ -393,13 +387,13 @@
 	}
 	/* indicator for the slider */
 	input[type="range"]::-webkit-slider-thumb {
-		background: black;
+		background: var(--sepia5);
 		appearance: none;
 		-webkit-appearance: none;
-		height: 2em;
-		width: 2em;
+		height: 1em;
+		width: 1em;
 		clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
-		border-radius: 5px;
+		border-radius: 100%;
 		position: relative;
 		left: 1px;
 	}
@@ -412,7 +406,7 @@
 	}
 
 	input[type="range"]::-webkit-slider-runnable-track {
-		background: var(--gray100);
+		background: var(--sepia2);
 	}
 	.time-slider {
 		align-self: center;
@@ -431,7 +425,7 @@
 		opacity: 0;
 	}
 	.highlight[data-attribute="true"] {
-		background: rgba(235, 215, 203, 0.5);
+		background: rgba(from var(--sepia0) r g b / 0.5);
 		z-index: 1;
 		opacity: 1;
 	}
@@ -459,7 +453,7 @@
 		width: 1px;
 		background: rgb(255, 255, 255, 0.4);
 		position: absolute;
-		margin-top: 2em;
+		margin-top: 1em;
 		z-index: 1;
 	}
 </style>

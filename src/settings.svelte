@@ -151,7 +151,7 @@
       >
         move to {on_top ? "top" : "btm"}
       </div>
-      <div
+      <button
         class="close-button"
         use:shortcut={{
           code: "Escape",
@@ -159,16 +159,13 @@
             show_settings = false;
           },
         }}
-        role="button"
-        tabindex="0"
-        on:keypress={() => {}}
         on:click={() => {
           show_settings = false;
           ref && ref.parentNode.removeChild(ref);
         }}
       >
         close
-      </div>
+      </button>
     </div>
   </div>
   {#if settings}

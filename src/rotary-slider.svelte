@@ -127,7 +127,7 @@
 <div
 	class="wrapper"
 	role="button"
-	title="units: {units}"
+	title={units}
 	bind:this={el}
 	tabindex={-1}
 	data-attribute={is_mouse_down}

@@ -63,8 +63,8 @@ insert into COMPONENTCOLORS(
  button_text
  ) values (
  'SEPIA',
- '$sepia2',
  '$sepia3',
+ '$sepia4',
  '$sepia0',
  '$sepia5',
  '$sepia2',

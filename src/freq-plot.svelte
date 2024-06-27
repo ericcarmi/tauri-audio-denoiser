@@ -206,7 +206,7 @@
         context.moveTo(logfreq, 2);
         context.lineTo(logfreq, height - 2);
         context.lineWidth = 2;
-        context.strokeStyle = "rgb(50,50,50)";
+        context.strokeStyle = "#644536";
       }
       context.stroke();
       context.setLineDash([]);
@@ -372,11 +372,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin-top: 2px;
   }
 
   canvas {
-    border: 2px solid var(--plot-main);
-    background: black;
+    border: 1px solid var(--plot-main);
   }
 
   .freq-label-box {

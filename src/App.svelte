@@ -159,7 +159,7 @@
 
     selectedRecording = "reisman.wav";
     // selected recording also needs to be in sync with backend file...should be resolved once files are imported correctly instead of one by default, tho should still have that for loading saved state?
-    // change_file(selectedRecording, true);
+    change_file(selectedRecording, true);
   });
 </script>
 
@@ -319,7 +319,7 @@
           >cursor: {(
             ((time_hover_position / TIME_PLOT_WIDTH) * num_time_samples) /
             sampling_rate
-          ).toFixed(1)}</span
+          ).toFixed(9)}</span
         >
         <span
           >time: {(
@@ -551,20 +551,6 @@
     height: max-content;
   }
 
-  .reset-all-gains-switch {
-    font-size: 14px;
-    align-items: center;
-    height: 2em;
-    border-radius: 0;
-    align-self: center;
-    width: max-content;
-  }
-  .reset-all-gains-switch:hover {
-    color: var(--orange);
-  }
-  .reset-all-gains-switch:active {
-    color: var(--gray100);
-  }
   .settings {
     background: url("/tool.svg");
     background-size: 100% 100%;

@@ -115,10 +115,9 @@ button {
   align-self: flex-end;
   width: max-content;
   border: 1px solid white;
-  border-radius: 2px;
   color: var(--button-text);
   background: var(--button-background);
-  border: 1px solid black;
+  border: 1px solid var(--sepia0);
   cursor: pointer;
   transition: border-color 0.33s, background 0.33s;
 }
@@ -128,7 +127,7 @@ button:active {
 }
 
 button:hover {
-  border-color: var(--sepia1);
+  border-color: var(--button-background);
 }
 
 button[data-attribute="true"] {
@@ -147,7 +146,6 @@ input {
   width: 1em;
   height: 1em;
   padding: 0;
-  border-radius: 50%;
   background: var(--purple);
   color: var(--gray150);
   align-self: center;
@@ -186,16 +184,14 @@ input {
   border-color: var(--gray150);
 }
 
-
 .spinner {
   width: 2em;
   height: 2em;
-  border: 3px solid var(--gray150);
-  border-top-color: var(--plot-main);
+  border: 3px solid var(--button-background);
+  border-top-color: var(--button-text);
   border-radius: 20px;
   animation: 1.47s infinite linear spin;
 }
-
 
 
 @media (prefers-color-scheme: dark) {}
