@@ -47,7 +47,7 @@
 	let time_scroll_position = 0;
 	let time_scroll_dragging = false;
 	// 0.1 is zoom delta, should set that too...
-	let max_zoom = 5;
+	let max_zoom = 3;
 	let min_zoom = 1;
 	let zoom_delta = 0.1;
 	let delta_translate = TIME_PLOT_WIDTH * zoom_delta;
@@ -195,25 +195,36 @@
 		if (e.deltaY > 0) {
 			if (zoom != max_zoom) {
 				let r = hover_position / TIME_PLOT_WIDTH;
+				start = start + (r * num_time_samples * zoom_delta) / zoom;
+				end = end - (r * num_time_samples * zoom_delta) / zoom;
 				zoom = min(zoom + zoom_delta, max_zoom);
 
-				origin = hover_position;
-
-				canvas_el.style.transformOrigin = `${origin}px 0`;
-				canvas_el.style.transform = `scale(${zoom}, 1) `;
-
-				start = start + (r * num_time_samples * zoom_delta) / zoom;
-				time_scroll_position += zoom_delta * TIME_PLOT_WIDTH * r;
+				let dx = (TIME_PLOT_WIDTH / 2 - hover_position) * zoom_delta;
+				// console.log(dx, zoom);
+				time_scroll_position += dx;
+				canvas_el.style.transform = `translate(${time_scroll_position}px, 0px) scale(${zoom}, 1) `;
+				// time_scroll_position =
+				// 	time_scroll_position + zoom_delta * TIME_PLOT_WIDTH * (r - 0.5);
 			}
 		} else if (e.deltaY < 0) {
-			zoom = max(zoom - zoom_delta, min_zoom);
-			let r = hover_position / TIME_PLOT_WIDTH;
+			if (zoom != min_zoom) {
+				let r = hover_position / TIME_PLOT_WIDTH;
+				start = Math.max(0, start - r * num_time_samples * zoom_delta) / zoom;
+				end =
+					Math.min(end + r * num_time_samples * zoom_delta, num_time_samples) /
+					zoom;
 
-			origin = hover_position;
-			time_scroll_position = max(time_scroll_position - delta_translate * r, 0);
-			canvas_el.style.transformOrigin = `${origin}px 0`;
-			canvas_el.style.transform = `scale(${zoom}, 1) `;
-			start = Math.max(0, start - r * num_time_samples * zoom_delta);
+				zoom = max(zoom - zoom_delta, min_zoom);
+				let dx = -(TIME_PLOT_WIDTH / 2 - hover_position) * zoom_delta;
+				console.log(dx, zoom);
+				time_scroll_position += dx;
+				canvas_el.style.transform = `translate(${time_scroll_position}px, 0px) scale(${zoom}, 1) `;
+
+				// time_scroll_position = max(
+				// 	time_scroll_position - zoom_delta * TIME_PLOT_WIDTH * (r - 0.5),
+				// 	0,
+				// );
+			}
 		}
 	}
 
@@ -432,28 +443,8 @@
 	.scroll-container {
 		overflow: hidden;
 	}
-	.time-axis {
-		display: flex;
-		height: 25px;
-		justify-content: space-between;
-	}
-	.time-label {
-		font-size: 10px;
-	}
 	.spinner {
 		position: absolute;
 		margin-top: 20px;
-	}
-	.ind-label {
-		position: absolute;
-		bottom: -0.5em;
-		font-size: 10px;
-	}
-	.time-indicator {
-		width: 1px;
-		background: rgb(255, 255, 255, 0.4);
-		position: absolute;
-		margin-top: 1em;
-		z-index: 1;
 	}
 </style>

@@ -75,9 +75,9 @@
     invoke("message_file_path", { path: selectedRecording });
     // add this back?
     // invoke("get_is_stereo").then((r: any) => {
-    // if (r.is_stereo !== undefined) {
-    // is_stereo = r.is_stereo;
-    // }
+    //   if (r.is_stereo !== undefined) {
+    //     is_stereo = r.is_stereo;
+    //   }
     // });
     get_time_data(from_assets);
   }
@@ -126,8 +126,19 @@
       fromAssets: from_assets,
     }).then((res) => {
       let data = res as Array<number>;
-      time_data = data;
-      num_time_samples = data.length * DOWN_RATE;
+      // this is stereo, it is interleaved
+      time_data = data.filter(function (element, index, array) {
+        return index % 2 === 0;
+      });
+
+      // does it need to be halved? not if only one channel is displayed...duh
+
+      if (is_stereo) {
+        num_time_samples = time_data.length * DOWN_RATE;
+        // console.log("yes");
+      } else {
+        num_time_samples = time_data.length * DOWN_RATE;
+      }
     });
   }
 
@@ -273,7 +284,7 @@
         on:click={async () => {
           if (!is_playing) {
             invoke("play_stream").then(() => {
-              time = time_position / FREQ_PLOT_WIDTH;
+              time = time_position / TIME_PLOT_WIDTH;
               invoke("message_time", {
                 time: time * num_time_samples,
               });

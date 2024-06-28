@@ -7,7 +7,7 @@
 	}
 	export const FREQ_PLOT_WIDTH = 950;
 	export const FREQ_PLOT_HEIGHT = 300;
-	export const TIME_PLOT_WIDTH = FREQ_PLOT_WIDTH;
+	export const TIME_PLOT_WIDTH = 950;
 	export const TIME_PLOT_HEIGHT = 80;
 	export const DOWN_RATE = 1;
 	export const NYQUIST = 44100 / 2;
