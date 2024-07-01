@@ -30,6 +30,7 @@
 	export let time: number;
 	export let num_time_samples: number;
 	export let hover_position = 0;
+	let last_hover_position = 0;
 	export let sampling_rate: number;
 
 	let is_time_slider_dragging = false;
@@ -47,6 +48,7 @@
 
 	let zoom = 1;
 	let time_scroll_position = 0;
+	let left_origin = 0;
 	let click_time_scroll_position = 0;
 	let time_scroll_dragging = false;
 	// 0.1 is zoom delta, should set that too...
@@ -88,6 +90,7 @@
 		canvasMain = document.getElementById("time-canvas");
 		canvasMain.width = TIME_PLOT_WIDTH;
 		canvasMain.height = TIME_PLOT_HEIGHT;
+		left_origin = canvas_el?.offsetLeft;
 	});
 
 	let redraw_timer = 100;
@@ -131,9 +134,8 @@
 			r = Math.max(1, r);
 			// let min_pixel = (highlight_left / num_time_samples) * TIME_PLOT_WIDTH;
 			// let min_pixel = (highlight_left / num_time_samples) * TIME_PLOT_WIDTH;
-			let min_pixel = screen_to_world(highlight_left);
-			let max_pixel = screen_to_world(highlight_right) - 1;
-			console.log(highlight_time / sampling_rate);
+			let min_pixel = highlight_left;
+			let max_pixel = highlight_right;
 
 			for (let i = 0; i < TIME_PLOT_WIDTH; i++) {
 				if (i >= min_pixel && i <= max_pixel) {
@@ -165,11 +167,25 @@
 				}
 				if (!is_highlighting || is_time_slider_dragging) return;
 
-				highlight_width = Math.abs(e.clientX - highlight_origin);
-				if (e.clientX - highlight_origin < 0) {
-					highlight_left =
-						highlight_origin - highlight_width - canvas_el.offsetLeft;
-					highlight_right = highlight_origin - canvas_el.offsetLeft;
+				highlight_width = Math.abs(
+					screen_to_world(e.clientX) - highlight_origin,
+				);
+				if (screen_to_world(e.clientX) - highlight_origin > 0) {
+					highlight_left = highlight_origin;
+					highlight_right = highlight_origin + highlight_width;
+
+					highlight_time = round(
+						screen_to_world(
+							time_scroll_position +
+								(highlight_left / TIME_PLOT_WIDTH) * num_time_samples,
+						),
+					);
+					highlight_time_length = screen_to_world(
+						time_scroll_position + highlight_left + highlight_right,
+					);
+				} else if (screen_to_world(e.clientX) - highlight_origin < 0) {
+					highlight_left = highlight_origin - highlight_width;
+					highlight_right = highlight_origin;
 
 					highlight_time = round(
 						screen_to_world(
@@ -181,20 +197,6 @@
 						screen_to_world(
 							(highlight_left + highlight_right) / TIME_PLOT_WIDTH,
 						) * num_time_samples,
-					);
-				} else if (e.clientX - highlight_origin > 0) {
-					highlight_left = highlight_origin - canvas_el.offsetLeft;
-					highlight_right =
-						highlight_origin + highlight_width - canvas_el.offsetLeft;
-
-					highlight_time = round(
-						screen_to_world(
-							time_scroll_position +
-								(highlight_left / TIME_PLOT_WIDTH) * num_time_samples,
-						),
-					);
-					highlight_time_length = screen_to_world(
-						time_scroll_position + highlight_left + highlight_right,
 					);
 				}
 			}
@@ -227,6 +229,7 @@
 						),
 						TIME_PLOT_WIDTH * (1 - 1 / zoom),
 					);
+					// left_origin = time_scroll_position;
 				}
 			}
 			function reset() {
@@ -242,35 +245,40 @@
 
 	function handleZoom(e: WheelEvent) {
 		e.preventDefault();
-		// if (!interval) {
-		// 	redraw_timer = 0;
-		// 	resetInterval();
-		// }
 
 		if (e.deltaY > 0) {
 			if (zoom != max_zoom) {
 				let D = 1 - zoom / (zoom + zoom_delta);
-				let dx = (e.offsetX * D) / zoom;
+				let dx = (screen_to_world(e.clientX) * D) / zoom;
 				time_scroll_position += dx;
 				zoom = min(zoom + zoom_delta, max_zoom);
+				last_hover_position = screen_to_world(e.clientX);
 			}
 		} else if (e.deltaY < 0) {
 			if (zoom != min_zoom) {
 				let D = zoom / (zoom - zoom_delta) - 1;
-				let dx = (e.offsetX * D) / zoom;
+				let dx = (screen_to_world(e.clientX) * D) / zoom;
 				time_scroll_position = Math.min(
 					Math.max(0, time_scroll_position - dx),
 					TIME_PLOT_WIDTH * (1 - 1 / (zoom - zoom_delta)),
 				);
-
 				zoom = max(zoom - zoom_delta, min_zoom);
+				last_hover_position = screen_to_world(e.clientX);
 			}
 		}
 	}
 
 	function screen_to_world(x: number) {
-		return Math.round(x / zoom + time_scroll_position);
+		return Math.round(
+			(x - canvas_el?.offsetLeft) / zoom + time_scroll_position,
+		);
 	}
+	function world_to_screen(x: number) {
+		return Math.round(
+			(x - time_scroll_position) * zoom + canvas_el?.offsetLeft,
+		);
+	}
+
 	// $: time_position, update_time_ind();
 </script>
 
@@ -304,6 +312,18 @@
 		bind:this={time_ind_el}
 	/>
 	-->
+
+	<div
+		style="position: absolute; left: {world_to_screen(
+			hover_position,
+		)}px; top: {canvas_el?.offsetTop}px; background: red; width: 1em; height: 1em; z-index: 1;"
+	/>
+	<div
+		style="position: absolute; left: {world_to_screen(
+			last_hover_position,
+		)}px; top: {canvas_el?.offsetTop}px; background: green; width: 1em; height: 1em; z-index: 1;"
+	/>
+
 	<div
 		class="scroll-container"
 		style=""
@@ -316,13 +336,15 @@
 				class="highlight"
 				bind:this={highlight_el}
 				role="marquee"
-				style="height: {TIME_PLOT_HEIGHT}px; left: {highlight_left +
-					canvas_el?.offsetLeft}px; width: {highlight_width}px"
-				data-attribute={Math.abs(highlight_right - highlight_origin) > 0}
+				style="height: {TIME_PLOT_HEIGHT}px; left: {world_to_screen(
+					highlight_left,
+				)}px; width: {highlight_width * zoom}px"
+				data-attribute={Math.abs(highlight_right - highlight_origin) > 0 ||
+					Math.abs(highlight_left - highlight_origin) > 0}
 			></div>
 		{/if}
 		<canvas
-			style="transform: scale({zoom}, 1) translate({-time_scroll_position}px, 0px); transform-origin: 0 0; "
+			style="transform: scale({zoom}, 1) translate({-time_scroll_position}px, 0px); transform-origin: 0 0; transition: transform 0.0s;"
 			id="time-canvas"
 			bind:this={canvas_el}
 			on:scroll={(e) => {
@@ -332,15 +354,16 @@
 			on:mousedown={(e) => {
 				if (!is_time_slider_dragging) {
 					is_highlighting = true;
-					indicator_position = e.clientX;
-					highlight_origin = e.clientX;
+					// indicator_position = e.clientX;
+					highlight_origin = screen_to_world(e.clientX);
 					highlight_left = highlight_right = highlight_origin;
 				}
 			}}
 			on:mousemove={(e) => {
-				hover_position = screen_to_world(e.offsetX);
+				hover_position = screen_to_world(e.clientX);
+
 				if (!is_highlighting) {
-					highlight_origin = e.clientX;
+					highlight_origin = screen_to_world(e.clientX);
 				}
 			}}
 		/>
