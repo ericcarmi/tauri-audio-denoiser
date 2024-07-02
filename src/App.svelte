@@ -35,6 +35,9 @@
   let time_data: Array<number> = [];
   let sampling_rate: number = 44100;
 
+  let loop_start_time = 0;
+  let loop_length = 0;
+
   let time_hover_position = 0;
 
   let show_settings = false;
@@ -201,6 +204,8 @@
         bind:is_playing
         bind:hover_position={time_hover_position}
         bind:plot_color={theme.plot_main}
+        bind:loop_length
+        bind:loop_start_time
       />
     {/if}
     <div class="button-bar">
@@ -321,7 +326,35 @@
       >
         {ui_params.clean ? "dry" : "wet"}
       </button>
-      <button>loop</button>
+      <button
+        id="loop-button"
+        on:click={async () => {
+          if (!is_playing) {
+            invoke("play_stream").then(() => {
+              invoke("message_loop_time", {
+                loopTime: loop_start_time,
+                loopLength: loop_length,
+              });
+
+              invoke("message_all", {
+                stereoChoice: ui_params.stereo_choice,
+                leftMute: ui_params.left_mute,
+                rightMute: ui_params.right_mute,
+                noiseGain: ui_params.noise_gain,
+                outputGain: ui_params.output_gain,
+                postSmoothGain: ui_params.post_smooth_gain,
+                preSmoothGain: ui_params.pre_smooth_gain,
+                clean: ui_params.clean,
+                filters: ui_params.filters.bank,
+              });
+            });
+            is_playing = true;
+          } else {
+            await invoke("pause_stream");
+            is_playing = false;
+          }
+        }}>loop</button
+      >
       <button>fingerprint</button>
       <div
         style="display: flex; flex-direction: column;  flex-grow: 1; justify-content: space-evenly"

@@ -5,19 +5,10 @@
 	import { TIME_PLOT_HEIGHT, TIME_PLOT_WIDTH } from "./constants.svelte";
 	import { listen } from "@tauri-apps/api/event";
 
-	type Highlight = {
-		left_px: number;
-		right_px: number;
-		left_time: number;
-		right_time: number;
-	};
-
 	let highlight_width = 1;
 	let highlight_origin = 0;
 	let highlight_left = 0;
 	let highlight_right = 0;
-	let highlight_time = 0;
-	let highlight_time_length = 0;
 
 	const max = Math.max;
 	const min = Math.min;
@@ -30,8 +21,11 @@
 	export let time: number;
 	export let num_time_samples: number;
 	export let hover_position = 0;
-	let last_hover_position = 0;
 	export let sampling_rate: number;
+	export let loop_start_time: number;
+	export let loop_length: number;
+
+	let last_hover_position = 0;
 
 	let is_time_slider_dragging = false;
 	let el: HTMLElement;
@@ -39,7 +33,6 @@
 	let highlight_el: HTMLElement;
 	let canvas_el: HTMLCanvasElement;
 	let time_ind_el: HTMLElement;
-	let indicator_position: number = 0;
 	let is_highlighting = false;
 
 	let is_loading = false;
@@ -55,7 +48,6 @@
 	let max_zoom = 3;
 	let min_zoom = 1;
 	let zoom_delta = 0.1;
-	let delta_translate = TIME_PLOT_WIDTH * zoom_delta;
 	let start = 0;
 	let end = 1;
 	let time_labels = [0, 0, 0, 0, 0];
@@ -93,25 +85,6 @@
 		left_origin = canvas_el?.offsetLeft;
 	});
 
-	let redraw_timer = 100;
-	let interval: any;
-
-	function resetInterval() {
-		clearInterval(interval);
-		interval = setInterval(() => {
-			redraw_timer += 1;
-		}, 1);
-	}
-	function reset_timer() {
-		if (redraw_timer > 10) {
-			clearInterval(interval);
-			interval = undefined;
-			redraw_timer = 0;
-			// redraw_time_data();
-		}
-	}
-	// $: redraw_timer, reset_timer();
-
 	function redraw_time_data() {
 		let renderPlot = () => {
 			if (time_data.length > 0) {
@@ -132,8 +105,6 @@
 			let r = Math.round((num_time_samples - 0) / TIME_PLOT_WIDTH);
 
 			r = Math.max(1, r);
-			// let min_pixel = (highlight_left / num_time_samples) * TIME_PLOT_WIDTH;
-			// let min_pixel = (highlight_left / num_time_samples) * TIME_PLOT_WIDTH;
 			let min_pixel = highlight_left;
 			let max_pixel = highlight_right;
 
@@ -174,29 +145,23 @@
 					highlight_left = highlight_origin;
 					highlight_right = highlight_origin + highlight_width;
 
-					highlight_time = round(
-						screen_to_world(
-							time_scroll_position +
-								(highlight_left / TIME_PLOT_WIDTH) * num_time_samples,
-						),
+					loop_start_time = round(
+						(highlight_left / TIME_PLOT_WIDTH) * num_time_samples,
 					);
-					highlight_time_length = screen_to_world(
-						time_scroll_position + highlight_left + highlight_right,
+					loop_length = round(
+						((highlight_right - highlight_left) / TIME_PLOT_WIDTH) *
+							num_time_samples,
 					);
 				} else if (screen_to_world(e.clientX) - highlight_origin < 0) {
 					highlight_left = highlight_origin - highlight_width;
 					highlight_right = highlight_origin;
 
-					highlight_time = round(
-						screen_to_world(
-							time_scroll_position +
-								(highlight_left / TIME_PLOT_WIDTH) * num_time_samples,
-						),
+					loop_start_time = round(
+						(highlight_left / TIME_PLOT_WIDTH) * num_time_samples,
 					);
-					highlight_time_length = round(
-						screen_to_world(
-							(highlight_left + highlight_right) / TIME_PLOT_WIDTH,
-						) * num_time_samples,
+					loop_length = round(
+						((highlight_right - highlight_left) / TIME_PLOT_WIDTH) *
+							num_time_samples,
 					);
 				}
 			}
@@ -299,6 +264,7 @@
 		}}
 		on:input={() => {
 			time = time_position / TIME_PLOT_WIDTH;
+
 			is_playing &&
 				invoke("message_time", {
 					time: time * num_time_samples,
@@ -312,17 +278,6 @@
 		bind:this={time_ind_el}
 	/>
 	-->
-
-	<div
-		style="position: absolute; left: {world_to_screen(
-			hover_position,
-		)}px; top: {canvas_el?.offsetTop}px; background: red; width: 1em; height: 1em; z-index: 1;"
-	/>
-	<div
-		style="position: absolute; left: {world_to_screen(
-			last_hover_position,
-		)}px; top: {canvas_el?.offsetTop}px; background: green; width: 1em; height: 1em; z-index: 1;"
-	/>
 
 	<div
 		class="scroll-container"

@@ -127,9 +127,9 @@ impl SDFT {
         let mut noise;
         self.inv_time = CZERO;
 
-        for freq in 0..self.size {
+        for (freq, freq_history) in self.freq_history.iter_mut().enumerate() {
             // get spectrum of input
-            self.new_freq[freq] = delta + (self.freq_history[freq]) * self.fkernel[freq];
+            self.new_freq[freq] = delta + *freq_history * self.fkernel[freq];
 
             noise = (noise_spectrum[freq] - 1.0).abs();
             // smooth the noise variance
@@ -146,7 +146,7 @@ impl SDFT {
             post_smoothed_noise = post_smooth_gain * self.post_smooth_noise_history[freq]
                 + (1.0 - post_smooth_gain) * denoise;
             //delay
-            self.freq_history[freq] = self.new_freq[freq];
+            *freq_history = self.new_freq[freq];
             self.pre_smooth_noise_history[freq] = pre_smoothed_noise;
             self.post_smooth_noise_history[freq] = post_smoothed_noise;
 

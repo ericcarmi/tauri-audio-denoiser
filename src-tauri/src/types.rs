@@ -331,6 +331,9 @@ pub struct StereoParams {
     pub file_path: String,
     pub is_stereo: bool,
     pub time: usize,
+    pub loop_start_time: usize,
+    pub loop_length: usize,
+    pub is_looping: bool,
 }
 
 impl StereoParams {
@@ -344,6 +347,9 @@ impl StereoParams {
             file_path: "".to_string(),
             is_stereo: false,
             time: 0,
+            loop_start_time: 0,
+            loop_length: 0,
+            is_looping: false,
         }
     }
 }
@@ -359,6 +365,9 @@ impl Default for StereoParams {
             file_path: "".to_string(),
             is_stereo: false,
             time: 0,
+            loop_start_time: 0,
+            loop_length: 0,
+            is_looping: false,
         }
     }
 }

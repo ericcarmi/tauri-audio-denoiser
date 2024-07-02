@@ -13,7 +13,7 @@
     "allowlist": {
       "all": false,
       "shell": {
-        "all": false,
+        "all": true,
         "open": true
       },
       "path": {
@@ -29,10 +29,6 @@
           "$RESOURCE/*",
           "*/**"
         ]
-      },
-      "shell": {
-        "all": false,
-        "open": true
       }
     },
     "windows": [

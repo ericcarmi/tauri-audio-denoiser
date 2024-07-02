@@ -79,6 +79,7 @@ pub fn message_filters(
     );
 }
 
+/// this only works after stream has started, because the time variable created when stream is setup...something like that? maybe it isn't, i forgot
 #[tauri::command]
 pub fn message_time(time: f32, streamsend: State<MStreamSend>) {
     let _ = streamsend
@@ -91,6 +92,23 @@ pub fn message_time(time: f32, streamsend: State<MStreamSend>) {
         .unwrap()
         .try_send(UIAudioMessage {
             time: Some(time),
+            ..Default::default()
+        });
+}
+
+#[tauri::command]
+pub fn message_loop_time(loop_time: usize, loop_length: usize, streamsend: State<MStreamSend>) {
+    let _ = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .msender
+        .0
+        .lock()
+        .unwrap()
+        .try_send(UIAudioMessage {
+            loop_start_time: Some(loop_time),
+            loop_length: Some(loop_length),
             ..Default::default()
         });
 }
@@ -265,6 +283,7 @@ fn stereo_message(
 #[derive(Clone, Debug, Copy)]
 pub struct ChannelMessage {
     pub time: Option<f32>,
+    pub loop_length: Option<f32>,
     pub clean: Option<bool>,
     pub left_mute: Option<bool>,
     pub right_mute: Option<bool>,
@@ -280,6 +299,7 @@ impl Default for ChannelMessage {
         // let filter_bank = FilterBank{bp}
         Self {
             time: None,
+            loop_length: None,
             clean: None,
             left_mute: None,
             right_mute: None,
@@ -299,10 +319,13 @@ pub struct UIAudioMessage {
     pub left_channel: Option<ChannelMessage>,
     pub right_channel: Option<ChannelMessage>,
     pub file_path: Option<String>,
-    pub time: Option<f32>,
     pub stereo_choice: Option<StereoChoice>,
     pub clean: Option<bool>,
     pub export: Option<bool>,
+    pub time: Option<f32>,
+    pub loop_start_time: Option<usize>,
+    pub loop_length: Option<usize>,
+    pub is_looping: Option<bool>,
 }
 
 // use all None for default message to shorten other functions that send one thing at a time
@@ -316,6 +339,9 @@ impl Default for UIAudioMessage {
             left_channel: None,
             right_channel: None,
             export: None,
+            loop_start_time: None,
+            loop_length: None,
+            is_looping: None,
         }
     }
 }
@@ -369,6 +395,7 @@ impl UIAudioMessage {
             }
         }
 
+        // this is where time is handled differently? was there a reason? forgot...
         if let Some(t) = self.time {
             params.time = (t) as usize;
             if params.is_stereo {
@@ -379,11 +406,18 @@ impl UIAudioMessage {
                 params.right.sdft.time_history =
                     Fixed::from(vec![Complex::new(0.0, 0.0); params.right.dft_size]);
             } else {
-                // params.left.time
                 params.left.sdft.freq_history = czerov(params.left.dft_size);
                 params.left.sdft.time_history =
                     Fixed::from(vec![Complex::new(0.0, 0.0); params.left.dft_size]);
             }
+        }
+        if let Some(t) = self.loop_start_time {
+            params.loop_start_time = t;
+            params.time = t;
+            params.is_looping = !params.is_looping;
+        }
+        if let Some(t) = self.loop_length {
+            params.loop_length = t;
         }
     }
 

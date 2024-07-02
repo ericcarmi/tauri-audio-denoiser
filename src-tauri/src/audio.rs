@@ -184,7 +184,7 @@ where
         config,
         move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
             if let Ok(msg) = rx.try_recv() {
-                msg.receive(&mut stereo_params)
+                msg.receive(&mut stereo_params);
             }
 
             if !stereo_params.is_stereo {
@@ -192,6 +192,12 @@ where
                 if stereo_params.clean {
                     // ...each frame has 2 samples
                     for frame in output.chunks_mut(num_channels) {
+                        if stereo_params.is_looping
+                            && stereo_params.time
+                                > stereo_params.loop_start_time + stereo_params.loop_length
+                        {
+                            stereo_params.time = stereo_params.loop_start_time;
+                        }
                         if stereo_params.time >= stereo_params.num_file_samples {
                             break;
                         }
@@ -208,6 +214,12 @@ where
                     }
                 } else {
                     for frame in output.chunks_mut(num_channels) {
+                        if stereo_params.is_looping
+                            && stereo_params.time
+                                > stereo_params.loop_start_time + stereo_params.loop_length
+                        {
+                            stereo_params.time = stereo_params.loop_start_time;
+                        }
                         if stereo_params.time >= stereo_params.num_file_samples {
                             break;
                         }
@@ -251,6 +263,12 @@ where
                 if stereo_params.clean {
                     // ...each frame has 2 samples
                     for frame in output.chunks_mut(num_channels) {
+                        if stereo_params.is_looping
+                            && stereo_params.time
+                                > stereo_params.loop_start_time + stereo_params.loop_length
+                        {
+                            stereo_params.time = stereo_params.loop_start_time;
+                        }
                         if stereo_params.time + 2 >= stereo_params.num_file_samples {
                             break;
                         }
@@ -276,6 +294,12 @@ where
                     }
                 } else {
                     for frame in output.chunks_mut(num_channels) {
+                        if stereo_params.is_looping
+                            && stereo_params.time
+                                > stereo_params.loop_start_time + stereo_params.loop_length
+                        {
+                            stereo_params.time = stereo_params.loop_start_time;
+                        }
                         if stereo_params.time + 2 >= stereo_params.num_file_samples {
                             break;
                         }
