@@ -87,6 +87,8 @@
 
 	function redraw_time_data() {
 		let renderPlot = () => {
+			// is_loading = false;
+			// return;
 			if (time_data.length > 0) {
 				is_loading = true;
 			}
@@ -103,6 +105,7 @@
 
 			// the hop size should depend on zoom
 			let r = Math.round((num_time_samples - 0) / TIME_PLOT_WIDTH);
+			console.log(num_time_samples, r);
 
 			r = Math.max(1, r);
 			let min_pixel = highlight_left;
@@ -138,12 +141,18 @@
 				}
 				if (!is_highlighting || is_time_slider_dragging) return;
 
-				highlight_width = Math.abs(
-					screen_to_world(e.clientX) - highlight_origin,
-				);
+				if (e.clientX < TIME_PLOT_WIDTH + canvas_el.offsetLeft) {
+					highlight_width = Math.abs(
+						Math.max(screen_to_world(e.clientX), 0) - highlight_origin,
+					);
+				}
 				if (screen_to_world(e.clientX) - highlight_origin > 0) {
 					highlight_left = highlight_origin;
-					highlight_right = highlight_origin + highlight_width;
+					highlight_right = Math.min(
+						highlight_origin + highlight_width,
+						TIME_PLOT_WIDTH,
+					);
+					console.log(highlight_right, highlight_width);
 
 					loop_start_time = round(
 						(highlight_left / TIME_PLOT_WIDTH) * num_time_samples,
@@ -153,7 +162,7 @@
 							num_time_samples,
 					);
 				} else if (screen_to_world(e.clientX) - highlight_origin < 0) {
-					highlight_left = highlight_origin - highlight_width;
+					highlight_left = Math.max(highlight_origin - highlight_width, 0);
 					highlight_right = highlight_origin;
 
 					loop_start_time = round(

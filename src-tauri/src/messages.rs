@@ -92,6 +92,7 @@ pub fn message_time(time: f32, streamsend: State<MStreamSend>) {
         .unwrap()
         .try_send(UIAudioMessage {
             time: Some(time),
+            is_looping: Some(false),
             ..Default::default()
         });
 }
@@ -109,6 +110,7 @@ pub fn message_loop_time(loop_time: usize, loop_length: usize, streamsend: State
         .try_send(UIAudioMessage {
             loop_start_time: Some(loop_time),
             loop_length: Some(loop_length),
+            is_looping: Some(true),
             ..Default::default()
         });
 }
@@ -414,10 +416,12 @@ impl UIAudioMessage {
         if let Some(t) = self.loop_start_time {
             params.loop_start_time = t;
             params.time = t;
-            params.is_looping = !params.is_looping;
         }
         if let Some(t) = self.loop_length {
             params.loop_length = t;
+        }
+        if let Some(t) = self.is_looping {
+            params.is_looping = t;
         }
     }
 

@@ -39,8 +39,11 @@ pub async fn get_time_data(
 
                 // check sample rate, if it doesn't match device_rate, convert
                 if device_sample_rate != cpal::SampleRate(head.sample_rate) {
+                    println!("resampling begin");
+
                     let resampled =
                         convert(44100, 48000, 1, ConverterType::SincBestQuality, &samples).unwrap();
+                    println!("resampling end");
                     return resampled
                         .iter()
                         .step_by(DOWN_RATE)

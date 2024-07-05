@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/tauri";
   import { onMount } from "svelte";
-  import { WebglPlot, WebglLine, ColorRGBA } from "webgl-plot";
   import {
     loglin,
     biquad,
@@ -15,9 +13,6 @@
     FREQ_PLOT_HEIGHT,
     FREQ_PLOT_WIDTH,
     MIN_FREQ,
-    NYQUIST,
-    TIME_PLOT_HEIGHT,
-    TIME_PLOT_WIDTH,
   } from "./constants.svelte";
 
   export let bpfs: Array<BPF>;
@@ -25,7 +20,10 @@
   export let is_playing = false;
   export let num_sliders = 0;
   export let bpf_hovering = Array(num_sliders).fill(false);
-  export let sampling_rate: number;
+  export let sampling_rate = 44100;
+  let NYQUIST = sampling_rate / 2;
+
+  $: sampling_rate, (NYQUIST = sampling_rate / 2);
 
   let eq_color: string;
   let eq_hover_color: string;
@@ -269,10 +267,9 @@
       const canvas = freqcanvas;
 
       const height = canvas.height;
-      const width = canvas.width;
 
       const context: CanvasRenderingContext2D = canvas.getContext("2d");
-      if (should_clear) context.clearRect(0, 0, width, height);
+      if (should_clear) context.clearRect(0, 0, FREQ_PLOT_WIDTH, height);
 
       let N = FREQ_PLOT_WIDTH;
       let sum_curve: Array<number> = Array(N).fill(0);
@@ -318,6 +315,7 @@
             (-curve[i] * FREQ_PLOT_HEIGHT) / 64 + FREQ_PLOT_HEIGHT / 2,
           );
         }
+
         context.lineWidth = 2;
         context.strokeStyle = bpf_hovering[idx] ? eq_hover_color : eq_color;
         context.stroke();

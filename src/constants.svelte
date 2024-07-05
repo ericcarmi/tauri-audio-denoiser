@@ -9,7 +9,7 @@
 	export const FREQ_PLOT_HEIGHT = 300;
 	export const TIME_PLOT_WIDTH = 920;
 	export const TIME_PLOT_HEIGHT = 80;
-	export const DOWN_RATE = 1;
+	export const DOWN_RATE = 32;
 	export const NYQUIST = 44100 / 2;
 	export const MIN_FREQ = 20;
 	export const MAX_FREQ = 20000;

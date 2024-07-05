@@ -1,6 +1,7 @@
 #![allow(dead_code, unused_imports)]
 use dasp_ring_buffer as ring_buf;
 use rand::Rng;
+use rayon::prelude::*;
 
 use rustfft::num_complex::{Complex32, ComplexFloat};
 use rustfft::{num_complex::Complex, FftPlanner};
@@ -153,7 +154,6 @@ impl SDFT {
             // inverse
             self.inv_time += post_smoothed_noise * self.ikernel[freq];
         }
-        // self.freq_history = self.new_freq.clone();
         self.time_history.push(Complex {
             re: signal,
             im: 0.0,

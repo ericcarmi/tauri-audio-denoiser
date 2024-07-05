@@ -137,10 +137,10 @@
       // does it need to be halved? not if only one channel is displayed...duh
 
       if (is_stereo) {
-        num_time_samples = time_data.length * DOWN_RATE;
+        num_time_samples = time_data.length;
         // console.log("yes");
       } else {
-        num_time_samples = time_data.length * DOWN_RATE;
+        num_time_samples = time_data.length;
       }
     });
   }
@@ -331,6 +331,8 @@
         on:click={async () => {
           if (!is_playing) {
             invoke("play_stream").then(() => {
+              console.log(loop_start_time/sampling_rate, loop_length/sampling_rate);
+
               invoke("message_loop_time", {
                 loopTime: loop_start_time,
                 loopLength: loop_length,

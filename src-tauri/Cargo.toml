@@ -28,6 +28,7 @@ log = "0.4.21"
 rusqlite = { version = "0.31.0", features = ["serde_json", "bundled"] }
 ts-rs = "8.1.0"
 samplerate = "0.2.4"
+rayon = "1.10.0"
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
