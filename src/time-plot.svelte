@@ -59,7 +59,8 @@
 
 	const unlisten_2 = listen("audioui_message", (event: any) => {
 		time = event.payload.time / num_time_samples;
-		time_position = time * TIME_PLOT_WIDTH;
+		time_position =
+			world_to_screen(time * TIME_PLOT_WIDTH) - canvas_el.offsetLeft;
 	});
 	const unlisten_resize = listen("tauri://resize", () => {
 		highlight_width = 0;
