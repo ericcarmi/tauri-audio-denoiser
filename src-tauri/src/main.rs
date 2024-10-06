@@ -43,6 +43,7 @@ fn main() {
             message_left_mute,
             message_right_mute,
             message_loop_time,
+            message_fingerprint,
             message_all,
             process_export,
             sql_theme,

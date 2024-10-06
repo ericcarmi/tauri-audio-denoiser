@@ -5,7 +5,7 @@ use tauri::{AppHandle, State, Window};
 
 use crate::{
     audio::{get_resource_wav_samples, get_wav_samples},
-    constants::{from_log, ASSETS_PATH, DOWN_RATE, TEST_FILE_PATH},
+    constants::{from_log, ASSETS_PATH, DOWN_RATE, TEST_FILE},
     device_sample_rate,
     sql::{query_filter_bank, query_ui_params},
     types::{MStreamSend, StereoChoice, StereoParams},
@@ -112,10 +112,17 @@ pub async fn process_export(
     let file_samples;
     let is_stereo;
     // need to update this
-    if let Some(f) = file_path {
-        (file_samples, is_stereo) = get_wav_samples(f.as_str(), app_handle.clone());
+    if let Some(f) = file_path.clone() {
+        let p = app_handle.path_resolver().resource_dir().unwrap().join(f);
+        (file_samples, is_stereo) = get_wav_samples(p);
     } else {
-        (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE_PATH, app_handle.clone());
+        let p = app_handle
+            .path_resolver()
+            .resource_dir()
+            .unwrap()
+            .join("assets")
+            .join(TEST_FILE);
+        (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE, app_handle.clone());
     }
 
     let p = app_handle

@@ -10,6 +10,7 @@ use cpal::{
 };
 use samplerate::{convert, ConverterType};
 use std::fs::File;
+use std::path::PathBuf;
 use tauri::{AppHandle, Window};
 
 pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>, bool) {
@@ -21,10 +22,12 @@ pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>,
         .into_string()
         .unwrap();
 
+    println!("{:?}", p);
     let file_in = File::open(p).unwrap();
     let (head, samples) = wav_io::read_from_file(file_in).unwrap();
     let is_stereo = if head.channels == 1 { false } else { true };
     let device_sample_rate = device_sample_rate().unwrap();
+
     if device_sample_rate != cpal::SampleRate(head.sample_rate) {
         let resampled = convert(44100, 48000, 1, ConverterType::SincBestQuality, &samples).unwrap();
         (resampled, is_stereo)
@@ -33,32 +36,23 @@ pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>,
     }
 }
 
-pub fn get_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>, bool) {
-    if let Ok(file_in) = File::open(path) {
-        let (head, samples) = wav_io::read_from_file(file_in).unwrap();
-        let is_stereo = if head.channels == 1 { false } else { true };
-        (samples, is_stereo)
+pub fn get_wav_samples(path: PathBuf) -> (Vec<f32>, bool) {
+    // if let Ok(file_in) = File::open(path) {
+    //     let (head, samples) = wav_io::read_from_file(file_in).unwrap();
+    //     let is_stereo = if head.channels == 1 { false } else { true };
+    //     (samples, is_stereo)
+    // } else {
+    let f = File::open(path).unwrap();
+    let (head, samples) = wav_io::read_from_file(f).unwrap();
+    let is_stereo = if head.channels == 1 { false } else { true };
+    let device_sample_rate = device_sample_rate().unwrap();
+    if device_sample_rate != cpal::SampleRate(head.sample_rate) {
+        let resampled = convert(44100, 48000, 1, ConverterType::SincBestQuality, &samples).unwrap();
+        (resampled, is_stereo)
     } else {
-        let p = app_handle
-            .path_resolver()
-            .resolve_resource("assets/".to_owned() + path)
-            .expect("failed to resolve resource")
-            .into_os_string()
-            .into_string()
-            .unwrap();
-
-        let f = File::open(p).unwrap();
-        let (head, samples) = wav_io::read_from_file(f).unwrap();
-        let is_stereo = if head.channels == 1 { false } else { true };
-        let device_sample_rate = device_sample_rate().unwrap();
-        if device_sample_rate != cpal::SampleRate(head.sample_rate) {
-            let resampled =
-                convert(44100, 48000, 1, ConverterType::SincBestQuality, &samples).unwrap();
-            (resampled, is_stereo)
-        } else {
-            (samples, is_stereo)
-        }
+        (samples, is_stereo)
     }
+    // }
 }
 
 #[tauri::command]
@@ -165,9 +159,16 @@ where
     let file_samples;
     let is_stereo;
     if let Some(f) = file_path.clone() {
-        (file_samples, is_stereo) = get_wav_samples(f.as_str(), app_handle.clone());
+        let p = app_handle.path_resolver().resource_dir().unwrap().join(f);
+        (file_samples, is_stereo) = get_wav_samples(p);
     } else {
-        (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE_PATH, app_handle.clone());
+        let p = app_handle
+            .path_resolver()
+            .resource_dir()
+            .unwrap()
+            .join("assets")
+            .join(TEST_FILE);
+        (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE, app_handle.clone());
     }
     let mut stereo_params = StereoParams::new();
     stereo_params.is_stereo = is_stereo;
@@ -185,6 +186,16 @@ where
         move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
             if let Ok(msg) = rx.try_recv() {
                 msg.receive(&mut stereo_params);
+                if msg.fingerprint.is_some() {
+                    println!("fingerprint time");
+
+                    // call the function from here...then what
+                    // it sends the spectrum and changes the the eq params -- return these from fxn
+                    // send a chunk of the data, along with stereo_choice
+                    // get spectrum of the noise
+                    // LMS min error to get eq params
+                    // calculate_fingerprint(file_samples)
+                }
             }
 
             if !stereo_params.is_stereo {
@@ -358,4 +369,10 @@ where
     )?;
 
     Ok((stream, tx))
+}
+
+pub fn calculate_fingerprint(file_path: PathBuf, start: usize, len: usize) {
+    println!(" ready to get fingerprint");
+    let (file_samples, is_stereo) = get_wav_samples(file_path);
+    // let portion = file_samples[start..start + len];
 }

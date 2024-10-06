@@ -12,7 +12,7 @@
     get_num_filters,
   } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
-  import type { UIParams, StereoChoice, UIFilters } from "./types.ts";
+  import type { UIParams, StereoChoice, UIFilters, Settings } from "./types.ts";
   import {
     init_ui_params,
     remove_slashes_ext,
@@ -20,11 +20,11 @@
     update_css_color,
   } from "./functions.svelte";
   import RotarySlider from "./rotary-slider.svelte";
-  import Settings from "./settings.svelte";
+  import SettingsMenu from "./settings.svelte";
   import TimePlot from "./time-plot.svelte";
 
   let num_sliders = 0;
-  let settings: any;
+  let settings: Settings;
   let theme: any;
   let is_processing = false;
   let is_selecting_processing_choice = false;
@@ -150,9 +150,9 @@
     await get_ui_params(ui_params.stereo_choice);
     settings = await invoke("sql_settings").catch(async (_r) => {
       // await message("have to init settings", "denoiser");
-      // await invoke("init_settings");
-      // settings = await invoke("get_settings");
-    });
+      await invoke("init_settings");
+      settings = await invoke("get_settings");
+    }) as Settings;
     theme = await invoke("sql_theme", { theme: settings.theme });
 
     update_css_color(theme.rotary_tick, "rotary-tick");
@@ -180,11 +180,11 @@
 <main class="container" id="app-container">
   <div class="header">
     {#if show_settings}
-      <Settings bind:settings bind:show_settings bind:theme />
+      <SettingsMenu bind:settings bind:show_settings bind:theme />
     {/if}
     {#if ui_params.filters.bank.length === num_sliders}
       <FreqPlot
-        bind:settings
+        bind:settings={settings}
         bind:sampling_rate
         bind:theme
         bind:bpf_hovering
@@ -331,7 +331,10 @@
         on:click={async () => {
           if (!is_playing) {
             invoke("play_stream").then(() => {
-              console.log(loop_start_time/sampling_rate, loop_length/sampling_rate);
+              console.log(
+                loop_start_time / sampling_rate,
+                loop_length / sampling_rate,
+              );
 
               invoke("message_loop_time", {
                 loopTime: loop_start_time,
@@ -357,7 +360,14 @@
           }
         }}>loop</button
       >
-      <button>fingerprint</button>
+      <button
+        on:click={() => {
+          invoke("message_fingerprint", {
+            start: Math.round(loop_start_time / sampling_rate),
+            len: Math.round(loop_length / sampling_rate),
+          });
+        }}>fingerprint</button
+      >
       <div
         style="display: flex; flex-direction: column;  flex-grow: 1; justify-content: space-evenly"
       >

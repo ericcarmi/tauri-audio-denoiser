@@ -46,7 +46,7 @@
       "targets": "all",
       "identifier": "com.audio-eq.dev",
       "resources": [
-        "assets/*.wav",
+        "reisman.wav",
         "db.sqlite"
       ],
       "icon": [

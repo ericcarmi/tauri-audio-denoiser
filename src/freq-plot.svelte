@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import {
     loglin,
     biquad,
@@ -14,6 +14,7 @@
     FREQ_PLOT_WIDTH,
     MIN_FREQ,
   } from "./constants.svelte";
+  import { listen } from "@tauri-apps/api/event";
 
   export let bpfs: Array<BPF>;
   export let fft_data: any;
@@ -39,10 +40,21 @@
   export let theme: ComponentColors;
 
   let freq_axis_labels = [20, 500, 1000, 2000, 5000, 10000, 20000];
+  let freq_axis_label_left = [0, 0, 0, 0, 0, 0, 0];
   let filter_amp_axis_labels = [30, 20, 10, 0, -10, -20, -30];
   let fft_amp_axis_labels = [30, 25, 20, 15, 10, 5, 0];
 
   var last_bar_heights = Array(256).fill(0);
+
+  const unlisten_2 = listen("audioui_message", (event: any) => {
+    if (event.payload.spectrum) {
+      fft_data = event.payload.spectrum;
+    }
+  });
+
+  onDestroy(() => {
+    unlisten_2.then((f) => f());
+  });
 
   // function pointer instead of if statements inside loop
   // when setting changes, plot_scale points to mel or bark...but this still uses if statements for now
@@ -105,12 +117,18 @@
     draw_freq_axis && update_freq_axis();
     draw_filter_amp_axis && update_filter_amp_axis();
     draw_fft_amp_axis && update_fft_amp_axis();
+    freq_axis_label_left = freq_axis_labels.map((label) => {
+      return Number(get_plot_scale(label, plot_scale).toPrecision(4));
+    });
+    console.log(freq_axis_label_left)
   }
+
+  $: freq_axis_labels, update_axes();
 
   onMount(() => {
     plot_scale = "Log";
-    freq_axis_labels.map((_i) => {
-      // console.log(i, get_plot_scale(i, plot_scale));
+    freq_axis_labels.map((i) => {
+      console.log(i, get_plot_scale(i, plot_scale));
     });
     update_settings();
     freqcanvas = document.getElementById("freq_canvas");
@@ -335,10 +353,8 @@
   <div style="width: {FREQ_PLOT_WIDTH}px; ">
     <canvas id="freq_canvas" />
     <div class="freq-label-box" style="width: {FREQ_PLOT_WIDTH}px;">
-      {#each freq_axis_labels as label}
-        <span
-          class="freq-label"
-          style="left: {get_plot_scale(label, plot_scale).toFixed(1)}px;"
+      {#each freq_axis_labels as label, i}
+        <span class="freq-label" style="left: {freq_axis_label_left[i]}px;"
           >{label.toFixed(0)}</span
         >
       {/each}

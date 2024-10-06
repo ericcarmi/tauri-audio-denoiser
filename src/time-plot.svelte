@@ -106,7 +106,7 @@
 
 			// the hop size should depend on zoom
 			let r = Math.round((num_time_samples - 0) / TIME_PLOT_WIDTH);
-			console.log(num_time_samples, r);
+			// console.log(num_time_samples, r);
 
 			r = Math.max(1, r);
 			let min_pixel = highlight_left;
@@ -153,7 +153,7 @@
 						highlight_origin + highlight_width,
 						TIME_PLOT_WIDTH,
 					);
-					console.log(highlight_right, highlight_width);
+					// console.log(highlight_right, highlight_width);
 
 					loop_start_time = round(
 						(highlight_left / TIME_PLOT_WIDTH) * num_time_samples,

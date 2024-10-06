@@ -30,3 +30,4 @@ notes.md
 /src-tauri/bindings/*
 *.sqlite
 
+/src-tauri/vendor

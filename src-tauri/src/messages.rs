@@ -1,7 +1,10 @@
-use std::sync::Mutex;
+use std::{
+    path::{Path, PathBuf},
+    sync::Mutex,
+};
 
 use crate::{
-    audio::setup_stream,
+    audio::{self, setup_stream},
     constants::{czerov, from_log, NUM_FILTERS},
     types::{
         AudioParams, MSender, MStream, MStreamSend, MUIReceiver, StereoChoice, StereoParams, BPF,
@@ -111,6 +114,36 @@ pub fn message_loop_time(loop_time: usize, loop_length: usize, streamsend: State
             loop_start_time: Some(loop_time),
             loop_length: Some(loop_length),
             is_looping: Some(true),
+            ..Default::default()
+        });
+}
+#[tauri::command]
+pub fn message_fingerprint(
+    streamsend: State<MStreamSend>,
+    start: usize,
+    len: usize,
+    app_handle: AppHandle,
+    file_name: &str,
+) {
+    let file = app_handle
+        .path_resolver()
+        .resource_dir()
+        .expect("failed to open resource dir")
+        .join("assets")
+        .join(file_name);
+    let _ = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .msender
+        .0
+        .lock()
+        .unwrap()
+        .try_send(UIAudioMessage {
+            fingerprint: Some(true),
+            start_fingerprint: Some(start),
+            length_fingerprint: Some(len),
+            file_path: Some(file),
             ..Default::default()
         });
 }
@@ -320,7 +353,7 @@ impl Default for ChannelMessage {
 pub struct UIAudioMessage {
     pub left_channel: Option<ChannelMessage>,
     pub right_channel: Option<ChannelMessage>,
-    pub file_path: Option<String>,
+    pub file_path: Option<PathBuf>,
     pub stereo_choice: Option<StereoChoice>,
     pub clean: Option<bool>,
     pub export: Option<bool>,
@@ -328,6 +361,10 @@ pub struct UIAudioMessage {
     pub loop_start_time: Option<usize>,
     pub loop_length: Option<usize>,
     pub is_looping: Option<bool>,
+    // don't really need to send bool, it is true when message is received?
+    pub fingerprint: Option<bool>,
+    pub start_fingerprint: Option<usize>,
+    pub length_fingerprint: Option<usize>,
 }
 
 // use all None for default message to shorten other functions that send one thing at a time
@@ -344,6 +381,9 @@ impl Default for UIAudioMessage {
             loop_start_time: None,
             loop_length: None,
             is_looping: None,
+            fingerprint: None,
+            start_fingerprint: None,
+            length_fingerprint: None,
         }
     }
 }
@@ -422,6 +462,17 @@ impl UIAudioMessage {
         }
         if let Some(t) = self.is_looping {
             params.is_looping = t;
+        }
+        if self.fingerprint.is_some()
+            && self.file_path.is_some()
+            && self.start_fingerprint.is_some()
+            && self.length_fingerprint.is_some()
+        {
+            audio::calculate_fingerprint(
+                self.file_path.clone().unwrap(),
+                self.start_fingerprint.unwrap(),
+                self.length_fingerprint.unwrap(),
+            );
         }
     }
 
