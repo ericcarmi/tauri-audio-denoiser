@@ -1,6 +1,6 @@
-use crate::constants::*;
 use crate::messages::{AudioUIMessage, UIAudioMessage};
-use crate::types::*;
+use crate::{averaged_stft, types::*};
+use crate::{constants::*, stft};
 use anyhow;
 use cpal::FromSample;
 use cpal::{self};
@@ -8,6 +8,7 @@ use cpal::{
     traits::{DeviceTrait, HostTrait},
     SizedSample,
 };
+use dsp::num_complex::Complex;
 use samplerate::{convert, ConverterType};
 use std::fs::File;
 use std::path::PathBuf;
@@ -29,6 +30,7 @@ pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>,
     let device_sample_rate = device_sample_rate().unwrap();
 
     if device_sample_rate != cpal::SampleRate(head.sample_rate) {
+        // sample rates should not be constant numbers
         let resampled = convert(44100, 48000, 1, ConverterType::SincBestQuality, &samples).unwrap();
         (resampled, is_stereo)
     } else {
@@ -374,5 +376,34 @@ where
 pub fn calculate_fingerprint(file_path: PathBuf, start: usize, len: usize) {
     println!(" ready to get fingerprint");
     let (file_samples, is_stereo) = get_wav_samples(file_path);
-    // let portion = file_samples[start..start + len];
+    let mut buf = vec![];
+    for samp in file_samples[start..start + len].iter() {
+        buf.push(Complex { re: *samp, im: 0.0 });
+    }
+    let fft_size = 512;
+    let spectrum = averaged_stft(buf, fft_size, fft_size);
+    // now do LMS to match filterbank to spectrum
+    // this is one of those places where it would make sense to go between IIR2 and BPF, where BPF is a parameterized version, more intuitive control...interesting for ML maybe
+
+    // does the spectrum have to be converted? well that's the goal, is to represent it with some filter bank, a sum of filters
+    // matching one filter at a time? that would require some sense of a "partial-best-score", it would hit a local minimum, then it moves to a different region with a new filter...not sure if that will work
+
+    // otherwise it's just randomly adjusting things and trying to move along gradient...this traditional method doesn't look at the big picture
+
+    let mut filters = Filters::new();
+
+    let score = 10000.0;
+    let mu = 0.04;
+    // maybe do num_iterations...but no idea how many it will take
+    while score < 10.0 {
+        // this is what i'm missing...where does the direction come from?need a gradient, a direction to go in...not sure
+        for filter in filters.bank {
+            // filter.b0 += mu * grad;
+        }
+
+        let s = filters.parallel_transfer(fft_size);
+        // score gets updated like this?
+        // score = sum(spectrum - s)
+        // and then recalculate gradient?
+    }
 }

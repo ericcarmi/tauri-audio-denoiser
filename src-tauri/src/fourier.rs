@@ -136,6 +136,42 @@ pub fn stft(mut buffer: Vec<Complex<f32>>, size: usize, hop: usize) -> Vec<Vec<f
     spectra
 }
 
+/// return a single spectrum that is averaged from stft
+pub fn averaged_stft(mut buffer: Vec<Complex<f32>>, size: usize, hop: usize) -> Vec<f32> {
+    let mut planner = FftPlanner::new();
+    let fft = planner.plan_fft_forward(size);
+
+    let win = dsp::window::hamming(size);
+    let frame = vec![1.0; size];
+    let mut output = vec![0.0; size];
+    win.apply(&frame, &mut output);
+
+    let l = buffer.len();
+    let num_slices = l / (size + hop);
+    let mut average_spectrum: Vec<f32> = vec![0.0; size / 2];
+    for slice in 0..num_slices {
+        let mut x = vec![Complex { re: 0.0, im: 0.0 }; size];
+        for (i, samp) in buffer[slice * size + hop * slice..(slice + 1) * size + hop * slice]
+            .iter()
+            .enumerate()
+        {
+            x[i] = (samp * win.samples[i]) / 2.0;
+        }
+
+        fft.process(&mut x);
+
+        for (i, samp) in x[0..size / 2].iter().enumerate() {
+            average_spectrum[i] += samp.norm();
+        }
+    }
+
+    average_spectrum = average_spectrum
+        .iter()
+        .map(|x| *x / num_slices as f32)
+        .collect();
+
+    average_spectrum
+}
 pub fn mfft(mut signal: Vec<f32>) -> Vec<f32> {
     let len = signal.len();
     let mut buffer = vec![];

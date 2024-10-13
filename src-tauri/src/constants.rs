@@ -14,6 +14,7 @@ pub fn get_num_filters() -> usize {
 pub const TEST_FILE: &str = "reisman.wav";
 pub const ASSETS_PATH: &str = "assets";
 
+// should not be constants
 pub const SAMPLING_RATE: f32 = 44100.0;
 pub const NYQUIST: f32 = SAMPLING_RATE / 2.0;
 pub const DOWN_RATE: usize = 1;
