@@ -1,6 +1,6 @@
 use crate::messages::{AudioUIMessage, UIAudioMessage};
-use crate::{averaged_stft, types::*};
-use crate::{constants::*, stft};
+use crate::{constants::*, fourier::stft};
+use crate::{fourier::averaged_stft, types::*};
 use anyhow;
 use cpal::FromSample;
 use cpal::{self};
@@ -23,7 +23,6 @@ pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>,
         .into_string()
         .unwrap();
 
-    println!("{:?}", p);
     let file_in = File::open(p).unwrap();
     let (head, samples) = wav_io::read_from_file(file_in).unwrap();
     let is_stereo = if head.channels == 1 { false } else { true };
@@ -38,6 +37,8 @@ pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>,
     }
 }
 
+// this function and fn above should be combined, obviously
+// but also, might want to make option to resample, otherwise when using from process_export, getting wav samples and resampling to output device does not make sense...
 pub fn get_wav_samples(path: PathBuf) -> (Vec<f32>, bool) {
     // if let Ok(file_in) = File::open(path) {
     //     let (head, samples) = wav_io::read_from_file(file_in).unwrap();
@@ -292,6 +293,9 @@ where
                             left_spectrum.push(left_sample);
                             let fr = frame.get_mut(0).unwrap();
                             *fr = left_samp;
+                        } else {
+                            let fr = frame.get_mut(0).unwrap();
+                            *fr = T::from_sample(0.0);
                         }
 
                         if !stereo_params.right.ui_params.right_mute {
@@ -302,6 +306,9 @@ where
 
                             let fr = frame.get_mut(1).unwrap();
                             *fr = right_samp;
+                        } else {
+                            let fr = frame.get_mut(1).unwrap();
+                            *fr = T::from_sample(0.0);
                         }
                         stereo_params.time += 2;
                     }
@@ -332,8 +339,10 @@ where
                             left_spectrum.push(left_filtered);
                             let fr = frame.get_mut(0).unwrap();
                             *fr = left_samp;
+                        } else {
+                            let fr = frame.get_mut(0).unwrap();
+                            *fr = T::from_sample(0.0);
                         }
-
                         if !stereo_params.right.ui_params.right_mute {
                             let right_sample = file_samples[stereo_params.time + 1]
                                 * stereo_params.right.ui_params.output_gain;
@@ -348,6 +357,9 @@ where
                             right_spectrum.push(right_filtered);
                             let fr = frame.get_mut(1).unwrap();
                             *fr = right_samp;
+                        } else {
+                            let fr = frame.get_mut(1).unwrap();
+                            *fr = T::from_sample(0.0);
                         }
                         stereo_params.time += 2;
                     }
@@ -381,7 +393,7 @@ pub fn calculate_fingerprint(file_path: PathBuf, start: usize, len: usize) {
         buf.push(Complex { re: *samp, im: 0.0 });
     }
     let fft_size = 512;
-    let spectrum = averaged_stft(buf, fft_size, fft_size);
+    let smooth_spectrum = averaged_stft(buf, fft_size, fft_size);
     // now do LMS to match filterbank to spectrum
     // this is one of those places where it would make sense to go between IIR2 and BPF, where BPF is a parameterized version, more intuitive control...interesting for ML maybe
 
@@ -390,20 +402,51 @@ pub fn calculate_fingerprint(file_path: PathBuf, start: usize, len: usize) {
 
     // otherwise it's just randomly adjusting things and trying to move along gradient...this traditional method doesn't look at the big picture
 
-    let mut filters = Filters::new();
+    /* do it in steps
+        - find peaks in smoothed spectrum
+        - set freq of one filter
+        - set gain
+        - set Q
 
-    let score = 10000.0;
-    let mu = 0.04;
-    // maybe do num_iterations...but no idea how many it will take
-    while score < 10.0 {
+        assuming freq is matched with smooth spectrum
+        peak/gain should also match exactly?
+        but then Q should be gradient descented until local error min is reached
+        then repeat for the rest of the spectrum
+
+
+    */
+
+    let mut filters = Filters::new();
+    let mut filter_index = 0;
+
+    let score = 100.0;
+    let mut mode = Mode::Freq;
+
+    while score < 10.0 && filter_index < NUM_FILTERS {
         // this is what i'm missing...where does the direction come from?need a gradient, a direction to go in...not sure
-        for filter in filters.bank {
-            // filter.b0 += mu * grad;
-        }
+        // for filter in filters.bank {}
+        // match mode {
+
+        //     Freq => {
+        //         // filters.bank[filter_index].
+        //         // set the current filter index at one of the maxima
+        //     }
+        //     Gain => {
+        //         // gain can be set with freq?
+
+        //     }
+        //     Q => {}
+        // }
 
         let s = filters.parallel_transfer(fft_size);
         // score gets updated like this?
         // score = sum(spectrum - s)
         // and then recalculate gradient?
     }
+}
+
+enum Mode {
+    Gain,
+    Freq,
+    Q,
 }

@@ -4,9 +4,8 @@ use std::{fs::File, path::PathBuf};
 use tauri::{AppHandle, State, Window};
 
 use crate::{
-    audio::{get_resource_wav_samples, get_wav_samples},
+    audio::{device_sample_rate, get_resource_wav_samples, get_wav_samples},
     constants::{from_log, ASSETS_PATH, DOWN_RATE, TEST_FILE},
-    device_sample_rate,
     sql::{query_filter_bank, query_ui_params},
     types::{MStreamSend, StereoChoice, StereoParams},
 };
@@ -111,10 +110,14 @@ pub async fn process_export(
     // file samples are not an audio param, stream is remade when file is changed so this stays
     let file_samples;
     let is_stereo;
+    let head;
     // need to update this
     if let Some(f) = file_path.clone() {
         let p = app_handle.path_resolver().resource_dir().unwrap().join(f);
-        (file_samples, is_stereo) = get_wav_samples(p);
+        // (file_samples, is_stereo) = get_wav_samples(p);
+        let f = File::open(p).unwrap();
+        (head, file_samples) = wav_io::read_from_file(f).unwrap();
+        is_stereo = if head.channels == 1 { false } else { true };
     } else {
         let p = app_handle
             .path_resolver()
@@ -122,7 +125,10 @@ pub async fn process_export(
             .unwrap()
             .join("assets")
             .join(TEST_FILE);
-        (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE, app_handle.clone());
+        // (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE, app_handle.clone());
+        let f = File::open(p).unwrap();
+        (head, file_samples) = wav_io::read_from_file(f).unwrap();
+        is_stereo = if head.channels == 1 { false } else { true };
     }
 
     let p = app_handle
@@ -190,6 +196,7 @@ pub async fn process_export(
             stereo_params.right.ui_params.post_smooth_gain = ru.post_smooth_gain;
         }
     }
+    // println!("{:?}", stereo_params);
 
     let _ = window.emit("update_processing_percentage", 0.0);
 
@@ -255,13 +262,10 @@ pub async fn process_export(
         let p = app_handle
             .path_resolver()
             .resolve_resource(ASSETS_PATH)
-            .expect("failed to resolve resource")
-            .into_os_string()
-            .into_string()
-            .unwrap();
+            .expect("failed to resolve resource");
 
         let header = wav_io::new_stereo_header();
-        if let Ok(mut file) = File::create(p + "/" + "output.wav") {
+        if let Ok(mut file) = File::create(p.join("output.wav")) {
             let _r = wav_io::write_to_file(&mut file, &header, &samples);
         };
         Ok(())
