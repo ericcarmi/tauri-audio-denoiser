@@ -1,25 +1,13 @@
-use crate::constants::*;
 use dsp;
 use rustfft::{num_complex::Complex, FftPlanner};
-use std::fs::File;
+use std::{fs::File, path::PathBuf, str::FromStr};
 
 #[tauri::command]
-pub async fn get_time_onefft(
-    path: &str,
-    app_handle: tauri::AppHandle,
-) -> Result<(Vec<f32>, Vec<f32>), &str> {
+pub async fn get_time_onefft(path: &str) -> Result<(Vec<f32>, Vec<f32>), &str> {
     let mut time_data = vec![];
     let mut freq_data = vec![];
 
-    let p = app_handle
-        .path_resolver()
-        .resolve_resource(ASSETS_PATH)
-        .expect("failed to resolve resource")
-        .into_os_string()
-        .into_string()
-        .unwrap();
-
-    let filepath = p + "/" + path;
+    let filepath = PathBuf::from_str(path).expect("bad path").join(path);
 
     let thread = tauri::async_runtime::spawn(async move {
         let file_in = File::open(filepath).unwrap();
@@ -51,22 +39,11 @@ pub async fn get_time_onefft(
 }
 
 #[tauri::command]
-pub async fn get_stft_data(
-    path: &str,
-    app_handle: tauri::AppHandle,
-) -> Result<(Vec<f32>, Vec<Vec<f32>>), &str> {
+pub async fn get_stft_data(path: &str) -> Result<(Vec<f32>, Vec<Vec<f32>>), &str> {
     let mut vstft: Vec<Vec<f32>> = vec![];
     let mut time_data = vec![];
 
-    let p = app_handle
-        .path_resolver()
-        .resolve_resource(ASSETS_PATH)
-        .expect("failed to resolve resource")
-        .into_os_string()
-        .into_string()
-        .unwrap();
-
-    let filepath = p + "/" + path;
+    let filepath = PathBuf::from_str(path).expect("bad path").join(path);
 
     let thread = tauri::async_runtime::spawn(async move {
         let file_in = File::open(filepath).unwrap();
@@ -137,7 +114,7 @@ pub fn stft(mut buffer: Vec<Complex<f32>>, size: usize, hop: usize) -> Vec<Vec<f
 }
 
 /// return a single spectrum that is averaged from stft
-pub fn averaged_stft(mut buffer: Vec<Complex<f32>>, size: usize, hop: usize) -> Vec<f32> {
+pub fn averaged_stft(buffer: Vec<Complex<f32>>, size: usize, hop: usize) -> Vec<f32> {
     let mut planner = FftPlanner::new();
     let fft = planner.plan_fft_forward(size);
 
@@ -147,8 +124,10 @@ pub fn averaged_stft(mut buffer: Vec<Complex<f32>>, size: usize, hop: usize) -> 
     win.apply(&frame, &mut output);
 
     let l = buffer.len();
+    println!("length {:?}", l);
     let num_slices = l / (size + hop);
     let mut average_spectrum: Vec<f32> = vec![0.0; size / 2];
+    println!("num slices {:?}", num_slices);
     for slice in 0..num_slices {
         let mut x = vec![Complex { re: 0.0, im: 0.0 }; size];
         for (i, samp) in buffer[slice * size + hop * slice..(slice + 1) * size + hop * slice]

@@ -12,7 +12,13 @@
     get_num_filters,
   } from "./constants.svelte";
   import BandpassSlider from "./bandpass-slider.svelte";
-  import type { UIParams, StereoChoice, UIFilters, Settings } from "./types.ts";
+  import type {
+    UIParams,
+    StereoChoice,
+    UIFilters,
+    Settings,
+    BPF,
+  } from "./types.ts";
   import {
     init_ui_params,
     remove_slashes_ext,
@@ -48,8 +54,9 @@
   let selectedRecording = "";
   let is_playing = false;
   let is_stereo = true;
+  let is_loading = false;
 
-  let fft_data: any;
+  let fft_data: Array<number>;
   let ui_params: UIParams = init_ui_params(gains, freqs, Qs);
 
   const unlisten_file_drop = listen("tauri://file-drop", async (event: any) => {
@@ -67,22 +74,47 @@
       sampling_rate = event.payload as number;
     },
   );
+
+  const unlisten_fingerprint = listen("fingerprint_message", (event: any) => {
+    if (event.payload.spectrum) {
+      fft_data = [];
+      fft_data = Array.from(event.payload.spectrum);
+      // fft_data = fft_data.map((x) => {
+      // return x * 20.0;
+      // });
+    }
+    if (event.payload.filters) {
+      const filters = event.payload.filters as Array<BPF>;
+      for (const filt of filters) {
+        if (filt !== null) {
+          ui_params.filters.bank[0] = filt;
+          // ui_params.filters.bank[0].gain= 20;
+          // ui_params.filters.bank[0].freq = 40;
+        }
+      }
+      console.log(ui_params.filters.bank);
+    }
+  });
   onDestroy(() => {
     unlisten_audioui_message.then((f) => f());
     unlisten_file_drop.then((f) => f());
     unlisten_samplerate_message.then((f) => f());
+    unlisten_fingerprint.then((f) => f());
   });
 
-  function change_file(path: string, from_assets?: boolean) {
+  function change_file(path: string) {
     selectedRecording = path;
-    invoke("message_file_path", { path: selectedRecording });
+    is_loading = true;
+    invoke("message_file_path", { path: selectedRecording }).catch(() => {
+      is_loading = false;
+    });
     // add this back?
     // invoke("get_is_stereo").then((r: any) => {
     //   if (r.is_stereo !== undefined) {
     //     is_stereo = r.is_stereo;
     //   }
     // });
-    get_time_data(from_assets);
+    get_time_data();
   }
 
   async function get_ui_params(new_choice: StereoChoice) {
@@ -122,37 +154,40 @@
 
   let bpf_hovering = Array(num_sliders).fill(false);
 
-  function get_time_data(from_assets?: boolean) {
+  function get_time_data() {
     if (selectedRecording === "") return;
     invoke("get_time_data", {
       path: selectedRecording,
-      fromAssets: from_assets,
-    }).then((res) => {
-      let data = res as Array<number>;
-      // this is stereo, it is interleaved
-      time_data = data.filter(function (element, index, array) {
-        return index % 2 === 0;
+    })
+      .then((res) => {
+        let data = res as Array<number>;
+        // this is stereo, it is interleaved
+        time_data = data.filter(function (element, index, array) {
+          return index % 2 === 0;
+        });
+
+        // does it need to be halved? not if only one channel is displayed...duh
+
+        if (is_stereo) {
+          num_time_samples = time_data.length;
+          // console.log("yes");
+        } else {
+          num_time_samples = time_data.length;
+        }
+      })
+      .catch(() => {
+        is_loading = false;
       });
-
-      // does it need to be halved? not if only one channel is displayed...duh
-
-      if (is_stereo) {
-        num_time_samples = time_data.length;
-        // console.log("yes");
-      } else {
-        num_time_samples = time_data.length;
-      }
-    });
   }
 
   onMount(async () => {
     num_sliders = await get_num_filters();
     await get_ui_params(ui_params.stereo_choice);
-    settings = await invoke("sql_settings").catch(async (_r) => {
+    settings = (await invoke("sql_settings").catch(async (_r) => {
       // await message("have to init settings", "denoiser");
       await invoke("init_settings");
       settings = await invoke("get_settings");
-    }) as Settings;
+    })) as Settings;
     theme = await invoke("sql_theme", { theme: settings.theme });
 
     update_css_color(theme.rotary_tick, "rotary-tick");
@@ -171,9 +206,9 @@
     update_css_color(theme.plot_total_curve, "plot-total-curve");
     update_css_color(theme.plot_filter_hover, "plot-filter-hover");
 
-    selectedRecording = "reisman.wav";
+    // selectedRecording = "reisman.wav";
     // selected recording also needs to be in sync with backend file...should be resolved once files are imported correctly instead of one by default, tho should still have that for loading saved state?
-    change_file(selectedRecording, true);
+    // change_file(selectedRecording);
   });
 </script>
 
@@ -184,7 +219,7 @@
     {/if}
     {#if ui_params.filters.bank.length === num_sliders}
       <FreqPlot
-        bind:settings={settings}
+        bind:settings
         bind:sampling_rate
         bind:theme
         bind:bpf_hovering
@@ -206,6 +241,7 @@
         bind:plot_color={theme.plot_main}
         bind:loop_length
         bind:loop_start_time
+        bind:is_loading
       />
     {/if}
     <div class="button-bar">
@@ -362,9 +398,16 @@
       >
       <button
         on:click={() => {
+          console.log(selectedRecording);
+          console.log(
+            Math.round(loop_length / sampling_rate),
+            loop_length,
+            loop_start_time,
+          );
           invoke("message_fingerprint", {
-            start: Math.round(loop_start_time / sampling_rate),
-            len: Math.round(loop_length / sampling_rate),
+            start: Math.round(loop_start_time),
+            len: Math.round(loop_length),
+            fileName: selectedRecording,
           });
         }}>fingerprint</button
       >
@@ -375,7 +418,7 @@
           >cursor: {(
             ((time_hover_position / TIME_PLOT_WIDTH) * num_time_samples) /
             sampling_rate
-          ).toFixed(9)}</span
+          ).toFixed(2)}</span
         >
         <span
           >time: {(
@@ -531,6 +574,7 @@
       import file
     </button>
     <button
+      style="filter: {is_selecting_processing_choice ? 'blur(1px)' : ''}"
       on:click={() => {
         if (!is_processing) {
           is_selecting_processing_choice = !is_selecting_processing_choice;
@@ -541,14 +585,15 @@
     </button>
     {#if is_selecting_processing_choice}
       <button
-        style="position: absolute; bottom: 40px;right:30px;"
+        style="position: absolute; bottom: 80px;right:30px;"
         title="apply parameters for 'Both' to left and right"
         on:click={() => {
           if (!is_processing) {
             is_processing = true;
             is_playing = false;
-            invoke("process_export", { stereoChoice: "Both" }).then(() => {
+            invoke("process_export", { stereoChoice: "Both", filePath: selectedRecording }).then(() => {
               is_processing = false;
+              invoke("windows_explorer")
             });
           }
           is_selecting_processing_choice = false;
@@ -557,14 +602,15 @@
         Both
       </button>
       <button
-        style="position: absolute; bottom: 10px;right:30px;"
+        style="position: absolute; bottom: 50px;right:30px;"
         title="apply parameters for left and right independently"
         on:click={() => {
           if (!is_processing) {
             is_processing = true;
             is_playing = false;
-            invoke("process_export", { stereoChoice: "Left" }).then(() => {
+            invoke("process_export", { stereoChoice: "Left", filePath: selectedRecording }).then(() => {
               is_processing = false;
+              invoke("windows_explorer")
             });
           }
           is_selecting_processing_choice = false;

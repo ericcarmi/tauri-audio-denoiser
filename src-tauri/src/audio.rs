@@ -1,7 +1,7 @@
-use crate::messages::{AudioUIMessage, UIAudioMessage};
-use crate::{constants::*, fourier::stft};
+use crate::constants::*;
+use crate::errors::DenoiserResult;
+use crate::messages::{AudioUIMessage, FingerprintMessage, UIAudioMessage};
 use crate::{fourier::averaged_stft, types::*};
-use anyhow;
 use cpal::FromSample;
 use cpal::{self};
 use cpal::{
@@ -13,29 +13,6 @@ use samplerate::{convert, ConverterType};
 use std::fs::File;
 use std::path::PathBuf;
 use tauri::{AppHandle, Window};
-
-pub fn get_resource_wav_samples(path: &str, app_handle: AppHandle) -> (Vec<f32>, bool) {
-    let p = app_handle
-        .path_resolver()
-        .resolve_resource(path)
-        .expect("failed to resolve resource")
-        .into_os_string()
-        .into_string()
-        .unwrap();
-
-    let file_in = File::open(p).unwrap();
-    let (head, samples) = wav_io::read_from_file(file_in).unwrap();
-    let is_stereo = if head.channels == 1 { false } else { true };
-    let device_sample_rate = device_sample_rate().unwrap();
-
-    if device_sample_rate != cpal::SampleRate(head.sample_rate) {
-        // sample rates should not be constant numbers
-        let resampled = convert(44100, 48000, 1, ConverterType::SincBestQuality, &samples).unwrap();
-        (resampled, is_stereo)
-    } else {
-        (samples, is_stereo)
-    }
-}
 
 // this function and fn above should be combined, obviously
 // but also, might want to make option to resample, otherwise when using from process_export, getting wav samples and resampling to output device does not make sense...
@@ -50,7 +27,14 @@ pub fn get_wav_samples(path: PathBuf) -> (Vec<f32>, bool) {
     let is_stereo = if head.channels == 1 { false } else { true };
     let device_sample_rate = device_sample_rate().unwrap();
     if device_sample_rate != cpal::SampleRate(head.sample_rate) {
-        let resampled = convert(44100, 48000, 1, ConverterType::SincBestQuality, &samples).unwrap();
+        let resampled = convert(
+            head.sample_rate,
+            device_sample_rate.0,
+            1,
+            ConverterType::SincBestQuality,
+            &samples,
+        )
+        .unwrap();
         (resampled, is_stereo)
     } else {
         (samples, is_stereo)
@@ -62,9 +46,9 @@ pub fn get_wav_samples(path: PathBuf) -> (Vec<f32>, bool) {
 pub fn setup_stream(
     tx: tauri::async_runtime::Sender<AudioUIMessage>,
     app_handle: AppHandle,
-    file_path: Option<String>,
+    file_path: Option<PathBuf>,
     window: Window,
-) -> Result<(cpal::Stream, tauri::async_runtime::Sender<UIAudioMessage>), anyhow::Error>
+) -> DenoiserResult<(cpal::Stream, tauri::async_runtime::Sender<UIAudioMessage>)>
 where
 {
     let (_host, device, config) = host_device_setup()?;
@@ -100,19 +84,19 @@ where
         cpal::SampleFormat::F64 => {
             make_stream::<f64>(&device, &config.into(), tx, app_handle, file_path, window)
         }
-        sample_format => Err(anyhow::Error::msg(format!(
-            "Unsupported sample format '{sample_format}'"
-        ))),
+        sample_format => Err(crate::errors::DenoiserError::Other(
+            "failed to make stream".to_string(),
+        )),
     }
 }
 
-pub fn host_device_setup(
-) -> Result<(cpal::Host, cpal::Device, cpal::SupportedStreamConfig), anyhow::Error> {
+pub fn host_device_setup() -> DenoiserResult<(cpal::Host, cpal::Device, cpal::SupportedStreamConfig)>
+{
     let host = cpal::default_host();
 
-    let device = host
-        .default_output_device()
-        .ok_or_else(|| anyhow::Error::msg("Default output device is not available"))?;
+    let device = host.default_output_device().ok_or_else(|| {
+        crate::errors::DenoiserError::Other("failed to get default device".to_string())
+    })?;
 
     // let s = device.supported_output_configs();
     // if let Ok(c) = s {
@@ -133,11 +117,11 @@ pub fn host_device_setup(
     Ok((host, device, conf))
 }
 
-pub fn device_sample_rate() -> Result<cpal::SampleRate, anyhow::Error> {
+pub fn device_sample_rate() -> DenoiserResult<cpal::SampleRate> {
     let host = cpal::default_host();
-    let device = host
-        .default_output_device()
-        .ok_or_else(|| anyhow::Error::msg("Default output device is not available"))?;
+    let device = host.default_output_device().ok_or_else(|| {
+        crate::errors::DenoiserError::Other("failed to get default device".to_string())
+    })?;
     let conf = device.default_output_config()?;
     Ok(conf.sample_rate())
 }
@@ -147,9 +131,9 @@ pub fn make_stream<T>(
     config: &cpal::StreamConfig,
     tx_ui: tauri::async_runtime::Sender<AudioUIMessage>,
     app_handle: AppHandle,
-    file_path: Option<String>,
+    file_path: Option<PathBuf>,
     window: Window,
-) -> Result<(cpal::Stream, tauri::async_runtime::Sender<UIAudioMessage>), anyhow::Error>
+) -> DenoiserResult<(cpal::Stream, tauri::async_runtime::Sender<UIAudioMessage>)>
 where
     T: SizedSample + FromSample<f32>,
 {
@@ -159,19 +143,11 @@ where
     let (tx, mut rx) = tauri::async_runtime::channel::<UIAudioMessage>(1);
 
     // variables that stream will use, including params
-    let file_samples;
-    let is_stereo;
+    let mut file_samples = vec![];
+    let mut is_stereo = true;
     if let Some(f) = file_path.clone() {
         let p = app_handle.path_resolver().resource_dir().unwrap().join(f);
         (file_samples, is_stereo) = get_wav_samples(p);
-    } else {
-        let p = app_handle
-            .path_resolver()
-            .resource_dir()
-            .unwrap()
-            .join("assets")
-            .join(TEST_FILE);
-        (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE, app_handle.clone());
     }
     let mut stereo_params = StereoParams::new();
     stereo_params.is_stereo = is_stereo;
@@ -189,16 +165,9 @@ where
         move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
             if let Ok(msg) = rx.try_recv() {
                 msg.receive(&mut stereo_params);
-                if msg.fingerprint.is_some() {
-                    println!("fingerprint time");
-
-                    // call the function from here...then what
-                    // it sends the spectrum and changes the the eq params -- return these from fxn
-                    // send a chunk of the data, along with stereo_choice
-                    // get spectrum of the noise
-                    // LMS min error to get eq params
-                    // calculate_fingerprint(file_samples)
-                }
+                // if msg.fingerprint.is_some() {
+                //     println!("fingerprint time");
+                // }
             }
 
             if !stereo_params.is_stereo {
@@ -385,68 +354,84 @@ where
     Ok((stream, tx))
 }
 
-pub fn calculate_fingerprint(file_path: PathBuf, start: usize, len: usize) {
+pub fn calculate_fingerprint(file_path: PathBuf, start: usize, len: usize, window: Window) {
     println!(" ready to get fingerprint");
     let (file_samples, is_stereo) = get_wav_samples(file_path);
+    // need to do something about stereo...
     let mut buf = vec![];
     for samp in file_samples[start..start + len].iter() {
         buf.push(Complex { re: *samp, im: 0.0 });
     }
-    let fft_size = 512;
+    let fft_size = 256;
+
     let smooth_spectrum = averaged_stft(buf, fft_size, fft_size);
-    // now do LMS to match filterbank to spectrum
-    // this is one of those places where it would make sense to go between IIR2 and BPF, where BPF is a parameterized version, more intuitive control...interesting for ML maybe
 
-    // does the spectrum have to be converted? well that's the goal, is to represent it with some filter bank, a sum of filters
-    // matching one filter at a time? that would require some sense of a "partial-best-score", it would hit a local minimum, then it moves to a different region with a new filter...not sure if that will work
+    let mut indices = vec![];
+    let mut maxes_found = 0;
+    let mut relative_max = 0.0;
+    let mut ranges = vec![];
+    while maxes_found < 5 {
+        let (i, m) = max_in_range(&smooth_spectrum, &ranges);
+        if i.is_none() {
+            break;
+        }
+        let idx = i.unwrap();
+        if maxes_found == 0 {
+            relative_max = m;
+            maxes_found += 1;
+            indices.push(idx);
 
-    // otherwise it's just randomly adjusting things and trying to move along gradient...this traditional method doesn't look at the big picture
-
-    /* do it in steps
-        - find peaks in smoothed spectrum
-        - set freq of one filter
-        - set gain
-        - set Q
-
-        assuming freq is matched with smooth spectrum
-        peak/gain should also match exactly?
-        but then Q should be gradient descented until local error min is reached
-        then repeat for the rest of the spectrum
-
-
-    */
-
-    let mut filters = Filters::new();
-    let mut filter_index = 0;
-
-    let score = 100.0;
-    let mut mode = Mode::Freq;
-
-    while score < 10.0 && filter_index < NUM_FILTERS {
-        // this is what i'm missing...where does the direction come from?need a gradient, a direction to go in...not sure
-        // for filter in filters.bank {}
-        // match mode {
-
-        //     Freq => {
-        //         // filters.bank[filter_index].
-        //         // set the current filter index at one of the maxima
-        //     }
-        //     Gain => {
-        //         // gain can be set with freq?
-
-        //     }
-        //     Q => {}
-        // }
-
-        let s = filters.parallel_transfer(fft_size);
-        // score gets updated like this?
-        // score = sum(spectrum - s)
-        // and then recalculate gradient?
+            ranges.push((idx.saturating_sub(16), (idx + 16).min(255)));
+        } else {
+            if m < relative_max * 0.5 {
+                // if max gets too small, don't need to keep looking
+                break;
+            }
+            relative_max = m;
+            maxes_found += 1;
+            indices.push(idx);
+            ranges.push((idx.saturating_sub(16), (idx + 16).min(255)));
+        }
     }
+    println!("{:?}", indices);
+    let mut filters = [None; NUM_FILTERS];
+    for i in 0..indices.len() {
+        let mut bpf = BPF::new();
+        bpf.gain = smooth_spectrum[indices[i]];
+        if bpf.gain > 0.01 {
+            bpf.freq = (indices[i] as f32 * SAMPLING_RATE / 256.0).max(20.0);
+            // Q is the only thing that needs to be figured out based on rolloff
+            // bpf.Q =
+            filters[i] = Some(bpf);
+        }
+    }
+
+    let _ = window.emit(
+        FingerprintMessage::name(),
+        FingerprintMessage {
+            spectrum: Some(smooth_spectrum.clone()),
+            filters,
+        },
+    );
 }
 
-enum Mode {
-    Gain,
-    Freq,
-    Q,
+/// search for max, exclude ranges but keep original size for easy indexing
+fn max_in_range(v: &Vec<f32>, ranges: &Vec<(usize, usize)>) -> (Option<usize>, f32) {
+    let mut idx = None;
+    let mut max = 0.0;
+    for (i, val) in v.iter().enumerate() {
+        if *val > max {
+            let mut good = true;
+            for (a, b) in ranges.iter() {
+                if i >= *a && i <= *b {
+                    good = false;
+                }
+            }
+            if good {
+                max = *val;
+                idx = Some(i);
+            }
+        }
+    }
+    (idx, max)
 }

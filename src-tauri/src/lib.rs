@@ -1,5 +1,6 @@
 pub mod audio;
 pub mod constants;
+pub mod errors;
 pub mod file_io;
 pub mod fourier;
 pub mod messages;
@@ -10,6 +11,8 @@ pub mod types;
 
 #[cfg(test)]
 mod tests {
+    use std::{path::PathBuf, str::FromStr};
+
     use super::*;
     use constants::from_log;
     // use crate::sdft::*;
@@ -20,19 +23,19 @@ mod tests {
 
     #[test]
     fn sdft() {
-        let N = 10;
-        let mut x = ringbuff::Fixed::from(vec![Complex { re: 0.0, im: 0.0 }; N]);
-        for i in 0..N {
+        let n = 10;
+        let mut x = ringbuff::Fixed::from(vec![Complex { re: 0.0, im: 0.0 }; n]);
+        for i in 0..n {
             x.push(Complex {
                 re: i as f32,
                 im: 0.0,
             });
         }
-        for i in 0..N {
+        for _i in 0..n {
             println!("{:?}", x.get(0));
             x.push(Complex { re: 1.0, im: 0.0 });
         }
-        for i in 0..N {
+        for _i in 0..n {
             println!("{:?}", x.get(0));
         }
     }
@@ -41,10 +44,12 @@ mod tests {
     #[test]
     fn make_freq_response() {
         let mut params = StereoParams::new();
-        let p = "C:\\Users\\eric\\denoiser\\src-tauri\\target\\debug".to_string();
-        let left_ui_params = query_ui_params(StereoChoice::Both, p.clone());
+        let p = PathBuf::from_str("C:\\Users\\eric\\denoiser\\src-tauri\\target\\debug")
+            .expect("failed to make path from str")
+            .join("db.sqlite");
+        let left_ui_params = query_ui_params(StereoChoice::Both, &p);
         let lu = left_ui_params.unwrap();
-        let filter_bank = query_filter_bank(StereoChoice::Both, p.clone());
+        let filter_bank = query_filter_bank(StereoChoice::Both, &p);
         let fb = filter_bank.unwrap();
         let filters: Filters = fb.into();
 

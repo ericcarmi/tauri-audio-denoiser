@@ -1,10 +1,8 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Mutex,
-};
+#![allow(non_snake_case)]
+use std::{path::PathBuf, str::FromStr, sync::Mutex};
 
 use crate::{
-    audio::{self, setup_stream},
+    audio::{calculate_fingerprint, setup_stream},
     constants::{czerov, from_log, NUM_FILTERS},
     types::{
         AudioParams, MSender, MStream, MStreamSend, MUIReceiver, StereoChoice, StereoParams, BPF,
@@ -15,7 +13,9 @@ use cpal::traits::StreamTrait;
 use dasp_ring_buffer::Fixed;
 use rustfft::num_complex::Complex;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, State, Window};
+use tauri::{AppHandle, Manager, State, Window};
+
+// any reason not to use a single function for most of these? would be a lot less code, same effect
 
 /// this is to load params directly from server, the ones that are setup in the stream, the audio params...want to keep them synced with UI on startup, so this will just be called onMount from frontend
 #[tauri::command]
@@ -131,21 +131,33 @@ pub fn message_fingerprint(
         .expect("failed to open resource dir")
         .join("assets")
         .join(file_name);
+    // let _ = streamsend
+    //     .0
+    //     .lock()
+    //     .unwrap()
+    //     .msender
+    //     .0
+    //     .lock()
+    //     .unwrap()
+    //     .try_send(UIAudioMessage {
+    //         fingerprint: Some(true),
+    //         start_fingerprint: Some(start),
+    //         length_fingerprint: Some(len),
+    //         file_path: Some(file),
+    //         ..Default::default()
+    //     });
+    // shouldn't be a stream message, don't need the audio stream to be running
     let _ = streamsend
         .0
         .lock()
         .unwrap()
-        .msender
+        .stream
         .0
         .lock()
         .unwrap()
-        .try_send(UIAudioMessage {
-            fingerprint: Some(true),
-            start_fingerprint: Some(start),
-            length_fingerprint: Some(len),
-            file_path: Some(file),
-            ..Default::default()
-        });
+        .pause();
+    let w = app_handle.get_window("main").unwrap();
+    calculate_fingerprint(file, start, len, w);
 }
 
 #[tauri::command]
@@ -249,7 +261,17 @@ pub fn message_file_path(
     app_handle: AppHandle,
     window: Window,
 ) {
+    let _ = streamsend
+        .0
+        .lock()
+        .unwrap()
+        .stream
+        .0
+        .lock()
+        .unwrap()
+        .pause();
     let (ui_tx, rx) = tauri::async_runtime::channel::<AudioUIMessage>(2);
+    let path = PathBuf::from_str(path.as_str()).expect("bad path");
     let (stream, tx) = setup_stream(ui_tx, app_handle, Some(path), window).unwrap();
     let _ = stream.pause();
     let mtx = Mutex::new(tx);
@@ -468,11 +490,11 @@ impl UIAudioMessage {
             && self.start_fingerprint.is_some()
             && self.length_fingerprint.is_some()
         {
-            audio::calculate_fingerprint(
-                self.file_path.clone().unwrap(),
-                self.start_fingerprint.unwrap(),
-                self.length_fingerprint.unwrap(),
-            );
+            // audio::calculate_fingerprint(
+            //     self.file_path.clone().unwrap(),
+            //     self.start_fingerprint.unwrap(),
+            //     self.length_fingerprint.unwrap(),
+            // );
         }
     }
 
@@ -510,7 +532,7 @@ impl UIAudioMessage {
 }
 
 /// message sent from audio thread to ui
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct AudioUIMessage {
     pub spectrum: Option<Vec<f32>>,
     pub is_stereo: Option<bool>,
@@ -519,19 +541,20 @@ pub struct AudioUIMessage {
     pub time: Option<f32>,
 }
 
-impl Default for AudioUIMessage {
-    fn default() -> Self {
-        Self {
-            spectrum: None,
-            is_stereo: None,
-            is_processing: None,
-            processing_percentage: None,
-            time: None,
-        }
-    }
-}
 impl AudioUIMessage {
     pub fn name() -> &'static str {
         "audioui_message"
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+pub struct FingerprintMessage {
+    pub spectrum: Option<Vec<f32>>,
+    pub filters: [Option<BPF>; NUM_FILTERS],
+}
+
+impl FingerprintMessage {
+    pub fn name() -> &'static str {
+        "fingerprint_message"
     }
 }

@@ -606,7 +606,7 @@
     justify-self: flex-end;
     width: max-content;
     transition: color 0.3s;
-    border: 1px solid var(--orange);
+    border: 1px solid var(--sepia1);
   }
   .top-button:hover {
     color: var(--gray150);
@@ -618,7 +618,7 @@
     padding: 1px;
     width: max-content;
     transition: color 0.3s;
-    border: 1px solid var(--orange);
+    border: 1px solid var(--sepia1);
   }
   .close-button:hover {
     color: var(--gray150);
@@ -650,7 +650,7 @@
     height: 2em;
   }
   .title {
-    color: var(--orange);
+    color: var(--sepia1);
     letter-spacing: 0.4em;
     font-weight: bold;
     align-self: center;

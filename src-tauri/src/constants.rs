@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 use std::f32::consts::PI;
 
 use rustfft::num_complex::Complex;
@@ -11,12 +12,13 @@ pub fn get_num_filters() -> usize {
     NUM_FILTERS
 }
 
-pub const TEST_FILE: &str = "reisman.wav";
-pub const ASSETS_PATH: &str = "assets";
+// pub const TEST_FILE: &str = "reisman.wav";
+// pub const ASSETS_PATH: &str = "assets";
 
 // should not be constants
 pub const SAMPLING_RATE: f32 = 44100.0;
-pub const NYQUIST: f32 = SAMPLING_RATE / 2.0;
+// pub const NYQUIST: f32 = SAMPLING_RATE / 2.0;
+// down rate is just being used to downsample for drawing to frontend
 pub const DOWN_RATE: usize = 1;
 
 pub const CZERO: Complex<f32> = Complex { re: 0.0, im: 0.0 };
@@ -28,7 +30,7 @@ pub fn from_log(g: f32) -> f32 {
     (10.0_f32).powf(g / 20.0)
 }
 
-pub fn biquad(gain: f32, freq: f32, Q: f32) -> IIR2 {
+pub fn _biquad(gain: f32, freq: f32, Q: f32) -> IIR2 {
     let A = (gain / 40.0).powf(10.0);
     let w0 = (2.0 * PI * freq) / SAMPLING_RATE;
     let alpha = (w0).sin() / 2.0 / Q;

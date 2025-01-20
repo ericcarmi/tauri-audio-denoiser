@@ -1,87 +1,86 @@
 use cpal::traits::StreamTrait;
 use samplerate::{convert, ConverterType};
-use std::{fs::File, path::PathBuf};
+use std::{fs::File, path::PathBuf, str::FromStr};
 use tauri::{AppHandle, State, Window};
 
 use crate::{
-    audio::{device_sample_rate, get_resource_wav_samples, get_wav_samples},
-    constants::{from_log, ASSETS_PATH, DOWN_RATE, TEST_FILE},
+    audio::device_sample_rate,
+    constants::{from_log, DOWN_RATE},
     sql::{query_filter_bank, query_ui_params},
     types::{MStreamSend, StereoChoice, StereoParams},
 };
 #[tauri::command]
 pub async fn get_time_data(
     path: &str,
-    from_assets: Option<bool>,
     app_handle: tauri::AppHandle,
 ) -> Result<Vec<f32>, &'static str> {
     let mut time_data = vec![];
 
     let device_sample_rate = device_sample_rate().unwrap();
 
-    if from_assets.is_some() {
-        let p = app_handle
-            .path_resolver()
-            .resolve_resource(ASSETS_PATH)
-            .expect("failed to resolve resource")
-            .into_os_string()
-            .into_string()
-            .unwrap();
+    let filepath = app_handle
+        .path_resolver()
+        .app_local_data_dir()
+        .expect("~AppData\\Local\\denoiser should exist")
+        .join(path);
+    // path really being used as file_name
 
-        // let filepath = p + "/" + path;
+    let thread = tauri::async_runtime::spawn(async move {
+        if let Ok(f) = File::open(filepath) {
+            let (head, samples) = wav_io::read_from_file(f).unwrap();
 
-        let filepath = p + "\\" + path;
+            // check sample rate, if it doesn't match device_rate, convert
+            if device_sample_rate != cpal::SampleRate(head.sample_rate) {
+                println!("resampling begin");
 
-        let thread = tauri::async_runtime::spawn(async move {
-            if let Ok(f) = File::open(filepath) {
-                let (head, samples) = wav_io::read_from_file(f).unwrap();
-
-                // check sample rate, if it doesn't match device_rate, convert
-                if device_sample_rate != cpal::SampleRate(head.sample_rate) {
-                    println!("resampling begin");
-
-                    let resampled =
-                        convert(44100, 48000, 1, ConverterType::SincBestQuality, &samples).unwrap();
-                    println!("resampling end");
-                    return resampled
-                        .iter()
-                        .step_by(DOWN_RATE)
-                        .cloned()
-                        .collect::<Vec<f32>>();
-                } else {
-                    return samples
-                        .iter()
-                        .step_by(DOWN_RATE)
-                        .cloned()
-                        .collect::<Vec<f32>>();
-                }
-            }
-            vec![]
-        });
-
-        if let Ok(r) = thread.await {
-            time_data = r;
-        }
-    } else {
-        let filepath = path.to_owned();
-
-        let thread = tauri::async_runtime::spawn(async move {
-            if let Ok(f) = File::open(PathBuf::from(filepath)) {
-                let (_head, samples) = wav_io::read_from_file(f).unwrap();
-
+                let resampled = convert(
+                    head.sample_rate,
+                    device_sample_rate.0,
+                    1,
+                    ConverterType::SincBestQuality,
+                    &samples,
+                )
+                .unwrap();
+                println!("resampling end");
+                return resampled
+                    .iter()
+                    .step_by(DOWN_RATE)
+                    .cloned()
+                    .collect::<Vec<f32>>();
+            } else {
                 return samples
                     .iter()
                     .step_by(DOWN_RATE)
                     .cloned()
                     .collect::<Vec<f32>>();
             }
-            vec![]
-        });
-
-        if let Ok(r) = thread.await {
-            time_data = r;
         }
+        vec![]
+    });
+
+    if let Ok(r) = thread.await {
+        time_data = r;
     }
+    // } else {
+    //     let filepath = path.to_owned();
+
+    //     let thread = tauri::async_runtime::spawn(async move {
+    //         if let Ok(f) = File::open(PathBuf::from(filepath)) {
+    //             let (_head, samples) = wav_io::read_from_file(f).unwrap();
+
+    //             return samples
+    //                 .iter()
+    //                 .step_by(DOWN_RATE)
+    //                 .cloned()
+    //                 .collect::<Vec<f32>>();
+    //         }
+    //         vec![]
+    //     });
+
+    //     if let Ok(r) = thread.await {
+    //         time_data = r;
+    //     }
+    // }
     if time_data.is_empty() {
         return Err("failed to get time data");
     }
@@ -93,7 +92,7 @@ pub async fn get_time_data(
 pub async fn process_export(
     streamsend: State<'_, MStreamSend>,
     app_handle: AppHandle,
-    file_path: Option<String>,
+    file_path: String,
     stereo_choice: StereoChoice,
     window: Window,
 ) -> Result<(), String> {
@@ -112,32 +111,17 @@ pub async fn process_export(
     let is_stereo;
     let head;
     // need to update this
-    if let Some(f) = file_path.clone() {
-        let p = app_handle.path_resolver().resource_dir().unwrap().join(f);
-        // (file_samples, is_stereo) = get_wav_samples(p);
-        let f = File::open(p).unwrap();
-        (head, file_samples) = wav_io::read_from_file(f).unwrap();
-        is_stereo = if head.channels == 1 { false } else { true };
-    } else {
-        let p = app_handle
-            .path_resolver()
-            .resource_dir()
-            .unwrap()
-            .join("assets")
-            .join(TEST_FILE);
-        // (file_samples, is_stereo) = get_resource_wav_samples(TEST_FILE, app_handle.clone());
-        let f = File::open(p).unwrap();
-        (head, file_samples) = wav_io::read_from_file(f).unwrap();
-        is_stereo = if head.channels == 1 { false } else { true };
-    }
+    let p = PathBuf::from_str(file_path.as_str()).expect("bad path");
+    // (file_samples, is_stereo) = get_wav_samples(p);
+    let f = File::open(p).unwrap();
+    (head, file_samples) = wav_io::read_from_file(f).unwrap();
+    is_stereo = if head.channels == 1 { false } else { true };
 
-    let p = app_handle
+    let db_path = app_handle
         .path_resolver()
-        .resource_dir()
-        .expect("failed to resolve resource")
-        .into_os_string()
-        .into_string()
-        .unwrap();
+        .app_local_data_dir()
+        .expect("app local data dir should exist")
+        .join("db.sqlite");
 
     // query db
 
@@ -147,8 +131,8 @@ pub async fn process_export(
 
     match stereo_choice {
         StereoChoice::Both => {
-            let filter_bank = query_filter_bank(stereo_choice, p.clone());
-            let ui_params = query_ui_params(stereo_choice, p);
+            let filter_bank = query_filter_bank(stereo_choice, &db_path);
+            let ui_params = query_ui_params(stereo_choice, &db_path);
             if filter_bank.is_err() || ui_params.is_err() {
                 // return something
             }
@@ -168,10 +152,10 @@ pub async fn process_export(
             stereo_params.right.ui_params.post_smooth_gain = p.post_smooth_gain;
         }
         _ => {
-            let left_bank = query_filter_bank(StereoChoice::Left, p.clone());
-            let right_bank = query_filter_bank(StereoChoice::Right, p.clone());
-            let left_ui_params = query_ui_params(StereoChoice::Left, p.clone());
-            let right_ui_params = query_ui_params(StereoChoice::Right, p);
+            let left_bank = query_filter_bank(StereoChoice::Left, &db_path);
+            let right_bank = query_filter_bank(StereoChoice::Right, &db_path);
+            let left_ui_params = query_ui_params(StereoChoice::Left, &db_path);
+            let right_ui_params = query_ui_params(StereoChoice::Right, &db_path);
             if left_bank.is_err()
                 || left_ui_params.is_err()
                 || right_bank.is_err()
@@ -261,11 +245,11 @@ pub async fn process_export(
         }
         let p = app_handle
             .path_resolver()
-            .resolve_resource(ASSETS_PATH)
-            .expect("failed to resolve resource");
+            .app_local_data_dir()
+            .expect("~AppData\\Local\\denoiser should exist");
 
         let header = wav_io::new_stereo_header();
-        if let Ok(mut file) = File::create(p.join("output.wav")) {
+        if let Ok(mut file) = File::create(p.join("denoised.wav")) {
             let _r = wav_io::write_to_file(&mut file, &header, &samples);
         };
         Ok(())

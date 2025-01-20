@@ -17,7 +17,7 @@
   import { listen } from "@tauri-apps/api/event";
 
   export let bpfs: Array<BPF>;
-  export let fft_data: any;
+  export let fft_data: Array<number>;
   export let is_playing = false;
   export let num_sliders = 0;
   export let bpf_hovering = Array(num_sliders).fill(false);
@@ -48,7 +48,7 @@
 
   const unlisten_2 = listen("audioui_message", (event: any) => {
     if (event.payload.spectrum) {
-      fft_data = event.payload.spectrum;
+      fft_data = Array.from(event.payload.spectrum);
     }
   });
 
@@ -120,16 +120,16 @@
     freq_axis_label_left = freq_axis_labels.map((label) => {
       return Number(get_plot_scale(label, plot_scale).toPrecision(4));
     });
-    console.log(freq_axis_label_left)
+    // console.log(freq_axis_label_left);
   }
 
   $: freq_axis_labels, update_axes();
 
   onMount(() => {
     plot_scale = "Log";
-    freq_axis_labels.map((i) => {
-      console.log(i, get_plot_scale(i, plot_scale));
-    });
+    // freq_axis_labels.map((i) => {
+      // console.log(i, get_plot_scale(i, plot_scale));
+    // });
     update_settings();
     freqcanvas = document.getElementById("freq_canvas");
     freqcanvas.width = FREQ_PLOT_WIDTH;

@@ -103,7 +103,7 @@
 			if (color_name === "app-background") {
 				document.body.style.setProperty("background", color);
 			} else if (color_name === "app-text") {
-				console.log("change text");
+				// console.log("change text");
 
 				document.body.style.setProperty("color", color);
 			}
@@ -230,8 +230,8 @@
 	}
 
 	export function remove_slashes_ext(s: string) {
-		if (s.includes("/")) {
-			let x = s.split("/");
+		if (s.includes("\\")) {
+			let x = s.split("\\");
 			return x[x.length - 1].split(".")[0];
 		} else {
 			return s.split(".")[0];

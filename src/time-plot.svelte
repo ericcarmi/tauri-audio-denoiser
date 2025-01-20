@@ -35,7 +35,7 @@
 	let time_ind_el: HTMLElement;
 	let is_highlighting = false;
 
-	let is_loading = false;
+	export let is_loading = false;
 
 	let canvasMain: any;
 
@@ -52,7 +52,7 @@
 	let end = 1;
 	let time_labels = [0, 0, 0, 0, 0];
 
-	$: time_data, (is_loading = true), redraw_time_data();
+	$: time_data, redraw_time_data();
 	$: time_data, (end = time_data.length);
 	let rgb_color: any;
 	$: plot_color, (rgb_color = hexToRgb("#000000"));

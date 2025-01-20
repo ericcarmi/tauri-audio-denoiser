@@ -96,10 +96,6 @@ impl From<BPF> for IIR2 {
         let A = 10.0_f32.powf(bpf.gain / 40.0);
         let w0 = (2.0 * PI * bpf.freq) / SAMPLING_RATE;
         let alpha = (w0).sin() / 2.0 / bpf.Q;
-        // println!("{:?}", bpf);
-        // println!("{:?}", A);
-        // println!("{:?}", w0);
-        // println!("{:?}", alpha);
         Self {
             b0: 1.0 + alpha * A,
             b1: -2.0 * w0.cos(),
