@@ -84,11 +84,12 @@ fn main() {
             // let c = ComponentColors::as_slice();
             // println!("{:?}", c);
 
-            let p = app_handle
-                .path_resolver()
-                .app_local_data_dir()
-                .expect("AppData\\Local\\denoiser should exist")
-                .join("log.txt");
+            // let p = app_handle
+            //     .path_resolver()
+            //     .app_local_data_dir()
+            //     .expect("AppData\\Local\\denoiser should exist")
+            //     .join("log.txt");
+            let p = std::env::current_dir().unwrap().join("log.txt");
 
             let _w = WriteLogger::init(
                 LevelFilter::Info,

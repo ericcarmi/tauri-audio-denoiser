@@ -660,7 +660,6 @@
     height: 30px;
     display: inline-flex;
     transition: filter 0.33s;
-    filter: drop-shadow(0 0 10px var(--app-text));
     cursor: pointer;
     outline: none;
   }

@@ -8,7 +8,7 @@ use cpal::{
     traits::{DeviceTrait, HostTrait},
     SizedSample,
 };
-use dsp::num_complex::Complex;
+use rustfft::num_complex::Complex;
 use samplerate::{convert, ConverterType};
 use std::fs::File;
 use std::path::PathBuf;

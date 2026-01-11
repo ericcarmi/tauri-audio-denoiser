@@ -1,4 +1,3 @@
-use dsp;
 use rustfft::{num_complex::Complex, FftPlanner};
 use std::{fs::File, path::PathBuf, str::FromStr};
 
@@ -81,10 +80,8 @@ pub fn stft(mut buffer: Vec<Complex<f32>>, size: usize, hop: usize) -> Vec<Vec<f
     let mut planner = FftPlanner::new();
     let fft = planner.plan_fft_forward(size);
 
-    let win = dsp::window::hamming(size);
-    let frame = vec![1.0; size];
-    let mut output = vec![0.0; size];
-    win.apply(&frame, &mut output);
+    // don't think this is right but also not using STFT, just getting rid of dsp and hound crates
+    let window = hamming_window(size);
 
     let l = buffer.len();
     let num_slices = l / (size + hop);
@@ -96,7 +93,7 @@ pub fn stft(mut buffer: Vec<Complex<f32>>, size: usize, hop: usize) -> Vec<Vec<f
             .iter()
             .enumerate()
         {
-            x[i] = (samp * win.samples[i] + last_spectrum[i]) / 2.0;
+            x[i] = (samp * window[i] + last_spectrum[i]) / 2.0;
         }
 
         // last_spectrum = x.clone();
@@ -118,10 +115,10 @@ pub fn averaged_stft(buffer: Vec<Complex<f32>>, size: usize, hop: usize) -> Vec<
     let mut planner = FftPlanner::new();
     let fft = planner.plan_fft_forward(size);
 
-    let win = dsp::window::hamming(size);
-    let frame = vec![1.0; size];
-    let mut output = vec![0.0; size];
-    win.apply(&frame, &mut output);
+    // let win = dsp::window::hamming(size);
+    // let frame = vec![1.0; size];
+    // let mut output = vec![0.0; size];
+    let window = hamming_window(size);
 
     let l = buffer.len();
     println!("length {:?}", l);
@@ -134,7 +131,7 @@ pub fn averaged_stft(buffer: Vec<Complex<f32>>, size: usize, hop: usize) -> Vec<
             .iter()
             .enumerate()
         {
-            x[i] = (samp * win.samples[i]) / 2.0;
+            x[i] = (samp * window[i]) / 2.0;
         }
 
         fft.process(&mut x);
@@ -165,4 +162,22 @@ pub fn mfft(mut signal: Vec<f32>) -> Vec<f32> {
         .iter()
         .map(|x| x.norm())
         .collect::<Vec<f32>>()
+}
+
+fn hamming_window(n_samples: usize) -> Vec<f32> {
+    if n_samples <= 1 {
+        return vec![1.0];
+    }
+    let mut window: Vec<f32> = Vec::with_capacity(n_samples);
+    let m = (n_samples - 1) as f32;
+    let two_pi = 2.0 * std::f32::consts::PI;
+
+    for n in 0..n_samples {
+        let f = n as f32;
+        let c = (two_pi * f) / m;
+        let w = 0.54 - 0.46 * c.cos();
+        window.push(w);
+    }
+
+    window
 }
